@@ -1,0 +1,15 @@
+http://localhost:18080 {
+	redir https://localhost:8443{uri} permanent
+}
+
+https://localhost:8443 {
+	tls /certs/localhost.pem /certs/localhost-key.pem
+
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	handle {
+		reverse_proxy web:5173
+	}
+}

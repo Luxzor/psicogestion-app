@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+!.env.test.example
+infra/certs/*
+!infra/certs/.gitkeep
+.DS_Store

@@ -1,0 +1,46 @@
+@baseUrl = https://localhost:8443/api/v1
+
+### Estado de la API
+GET {{baseUrl}}/health
+
+### Registro
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre_completo": "Ana Pérez",
+  "telefono": "9991234567",
+  "correo_institucional": "ana@uady.mx",
+  "contrasena": "ClaveSegura1!",
+  "confirmar_contrasena": "ClaveSegura1!",
+  "consentimiento": true
+}
+
+### Verificación
+POST {{baseUrl}}/auth/verificacion
+Content-Type: application/json
+
+{
+  "correo_institucional": "ana@uady.mx",
+  "codigo": "123456"
+}
+
+### Inicio de sesión
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "identificador": "ana@uady.mx",
+  "contrasena": "Clave1!"
+}
+
+### Recuperación con respuesta neutral
+POST {{baseUrl}}/auth/recuperacion
+Content-Type: application/json
+
+{
+  "correo_institucional": "ana@uady.mx"
+}
+
+### Readiness (requiere PostgreSQL y Redis)
+GET {{baseUrl}}/ready

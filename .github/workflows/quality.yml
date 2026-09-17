@@ -1,0 +1,63 @@
+name: Quality gate
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://psicogestion_test:psicogestion_test_password@localhost:5432/psicogestion_test
+      REDIS_URL: redis://localhost:6379
+      SMTP_HOST: localhost
+      SMTP_PORT: 1025
+      SMTP_FROM: no-reply@psicogestion.test
+      JWT_ACCESS_SECRET: test_access_secret_must_be_replaced_with_a_long_value
+      JWT_REFRESH_SECRET: test_refresh_secret_must_be_replaced_with_a_different_long_value
+      RATE_LIMIT_KEY_SECRET: test_rate_limit_secret_must_be_replaced_with_a_long_value
+      WEB_ORIGIN: https://localhost:8443
+      API_PORT: 3001
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: psicogestion_test
+          POSTGRES_USER: psicogestion_test
+          POSTGRES_PASSWORD: psicogestion_test_password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U psicogestion_test -d psicogestion_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26.5.0
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run migrate -w @psicogestion/api
+      - run: npm test
+      - run: npm run test:integration
+      - run: RUN_INTEGRATION_TESTS=1 npm run test:coverage
+      - run: npm run build
+      - run: npm audit --audit-level=high

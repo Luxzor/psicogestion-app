@@ -1,0 +1,320 @@
+openapi: 3.1.0
+info:
+  title: PsicoGestión API
+  version: 0.1.0
+  description: 'Contrato REST de la Iteración 1: administración de cuentas.'
+servers:
+  - url: https://localhost:8443/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Estado de vida de la API
+      security: []
+      responses:
+        '200':
+          description: API disponible
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ServiceStatus' }
+  /ready:
+    get:
+      summary: Estado de preparación de las dependencias críticas
+      security: []
+      responses:
+        '200':
+          description: PostgreSQL y Redis disponibles
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReadyStatus' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+  /auth/registro:
+    post:
+      summary: Crea una cuenta pendiente de verificación
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201': { $ref: '#/components/responses/RegistrationCreated' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/ConflictError' }
+        '429': { $ref: '#/components/responses/RateLimitError' }
+  /auth/verificacion:
+    post:
+      summary: Verifica un código de seis dígitos y activa la cuenta
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerificationRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/AccountActive' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '410': { $ref: '#/components/responses/ExpiredError' }
+        '429': { $ref: '#/components/responses/RateLimitError' }
+  /auth/verificacion/reenviar:
+    post:
+      summary: Reenvía un código sin enumerar cuentas activas
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmailRequest' }
+      responses:
+        '202': { $ref: '#/components/responses/VerificationResendAccepted' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimitError' }
+  /auth/login:
+    post:
+      summary: Inicia sesión y establece una cookie refresh HttpOnly
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Sesión creada. La cookie `refresh` es HttpOnly, Secure y SameSite=Strict.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+        '403': { $ref: '#/components/responses/UnverifiedError' }
+        '423': { $ref: '#/components/responses/BlockedError' }
+        '429': { $ref: '#/components/responses/RateLimitError' }
+  /auth/refresh:
+    post:
+      summary: Rota la cookie refresh y entrega un access token nuevo
+      security: []
+      responses:
+        '200':
+          description: Token de acceso renovado y cookie refresh rotada.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccessTokenResponse' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+  /auth/sesion:
+    delete:
+      summary: Revoca la sesión actual y elimina la cookie refresh
+      responses:
+        '204': { description: Sesión cerrada }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+  /auth/recuperacion:
+    post:
+      summary: Solicita recuperación sin enumerar cuentas
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmailRequest' }
+      responses:
+        '202': { $ref: '#/components/responses/RecoveryAccepted' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimitError' }
+  /auth/restablecimiento:
+    post:
+      summary: Actualiza la contraseña, consume el enlace y revoca sesiones
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/PasswordUpdated' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '410': { $ref: '#/components/responses/ExpiredError' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ServiceStatus:
+      type: object
+      required: [status, service]
+      properties:
+        status: { type: string, const: ok }
+        service: { type: string, const: psicogestion-api }
+    ReadyStatus:
+      type: object
+      required: [status, service]
+      properties:
+        status: { type: string, const: ready }
+        service: { type: string, const: psicogestion-api }
+    RegisterRequest:
+      type: object
+      required:
+        [
+          nombre_completo,
+          telefono,
+          correo_institucional,
+          contrasena,
+          confirmar_contrasena,
+          consentimiento,
+        ]
+      properties:
+        nombre_completo: { type: string, minLength: 1, maxLength: 50 }
+        telefono: { type: string, pattern: '^\\d{10}$' }
+        correo_institucional: { type: string, format: email }
+        contrasena: { $ref: '#/components/schemas/Password' }
+        confirmar_contrasena: { $ref: '#/components/schemas/Password' }
+        consentimiento: { type: boolean, const: true }
+    VerificationRequest:
+      type: object
+      required: [correo_institucional, codigo]
+      properties:
+        correo_institucional: { type: string, format: email }
+        codigo: { type: string, pattern: '^\\d{6}$' }
+    EmailRequest:
+      type: object
+      required: [correo_institucional]
+      properties:
+        correo_institucional: { type: string, format: email }
+    LoginRequest:
+      type: object
+      required: [identificador, contrasena]
+      properties:
+        identificador: { type: string, minLength: 1 }
+        contrasena: { type: string, minLength: 1 }
+    ResetPasswordRequest:
+      type: object
+      required: [token, nueva_contrasena, confirmar_contrasena]
+      properties:
+        token: { type: string, minLength: 20, writeOnly: true }
+        nueva_contrasena: { $ref: '#/components/schemas/Password' }
+        confirmar_contrasena: { $ref: '#/components/schemas/Password' }
+    Password:
+      type: string
+      minLength: 8
+      maxLength: 25
+      pattern: '^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).+$'
+      writeOnly: true
+    User:
+      type: object
+      required: [id, nombre_completo, rol]
+      properties:
+        id: { type: string, format: uuid }
+        nombre_completo: { type: string }
+        rol: { type: string, enum: [administrador] }
+    LoginResponse:
+      type: object
+      required: [access_token, usuario]
+      properties:
+        access_token: { type: string }
+        usuario: { $ref: '#/components/schemas/User' }
+    AccessTokenResponse:
+      type: object
+      required: [access_token]
+      properties:
+        access_token: { type: string }
+    ApiError:
+      type: object
+      required: [codigo, mensaje, correlation_id]
+      properties:
+        codigo: { type: string }
+        mensaje: { type: string }
+        campos:
+          type: object
+          additionalProperties: { type: string }
+        correlation_id: { type: string, format: uuid }
+    RegistrationResponse:
+      type: object
+      required: [codigo, estado]
+      properties:
+        codigo: { type: string, const: REGISTRO_CREADO }
+        estado: { type: string, const: pendiente_verificacion }
+    AccountResponse:
+      type: object
+      required: [codigo, estado]
+      properties:
+        codigo: { type: string }
+        estado: { type: string, const: activo }
+    MessageResponse:
+      type: object
+      required: [codigo]
+      properties:
+        codigo: { type: string }
+        mensaje: { type: string }
+  responses:
+    RegistrationCreated:
+      description: Cuenta creada y código enviado.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/RegistrationResponse' }
+    AccountActive:
+      description: Cuenta activada.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/AccountResponse' }
+    VerificationResendAccepted:
+      description: Solicitud de reenvío procesada.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/MessageResponse' }
+    RecoveryAccepted:
+      description: Respuesta neutral de recuperación.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/MessageResponse' }
+    PasswordUpdated:
+      description: Contraseña actualizada y sesiones revocadas.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/MessageResponse' }
+    ValidationError:
+      description: Datos de entrada inválidos.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    ConflictError:
+      description: Correo o teléfono ya registrados.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    InvalidSessionError:
+      description: Sesión o credenciales inválidas.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    UnverifiedError:
+      description: Cuenta pendiente de verificación.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    BlockedError:
+      description: Cuenta bloqueada.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    ExpiredError:
+      description: Código o enlace inválido o expirado.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    RateLimitError:
+      description: Se excedió el límite de intentos.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    ServiceUnavailable:
+      description: Una dependencia crítica no está disponible.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
