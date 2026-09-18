@@ -94,7 +94,7 @@
 .auth-logo {
   width: min(12rem, 74%);
   height: auto;
-  margin: 0 auto 1rem;
+  margin: 0 auto 3.5rem;
 }
 .auth-panel__header {
   margin-bottom: 1rem;
