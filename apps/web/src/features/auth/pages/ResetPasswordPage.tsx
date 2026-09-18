@@ -2,8 +2,10 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../../auth/api';
+import { SubmitButton } from '../components/AuthActions';
 import { AuthCard } from '../components/AuthCard';
-import { FieldError, NoticeBox } from '../components/FormFeedback';
+import { AuthField } from '../components/AuthField';
+import { NoticeBox } from '../components/FormFeedback';
 import { useFormFeedback } from '../hooks/useFormFeedback';
 
 export function ResetPasswordPage() {
@@ -29,7 +31,7 @@ export function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <AuthCard title="Enlace no válido">
+      <AuthCard title="Enlace no válido" subtitle="Solicita un nuevo enlace de recuperación.">
         <p className="notice error">El enlace de recuperación no es válido.</p>
         <Link to="/recuperar">Solicitar un enlace nuevo</Link>
       </AuthCard>
@@ -37,46 +39,35 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <AuthCard title="Restablecer contraseña">
+    <AuthCard title="Restablecer contraseña" subtitle="Define una nueva contraseña segura.">
       <NoticeBox notice={notice} />
-      <form onSubmit={submit} noValidate>
-        <label>
-          Nueva contraseña
-          <input
-            name="nueva_contrasena"
-            type="password"
-            minLength={8}
-            maxLength={25}
-            required
-            autoComplete="new-password"
-            aria-invalid={Boolean(fieldErrors.nueva_contrasena)}
-            aria-describedby="new-password-error"
-          />
-          <FieldError id="new-password-error" message={fieldErrors.nueva_contrasena} />
-        </label>
-        <p className="help">
-          De 8 a 25 caracteres, con una mayúscula, un número y un carácter especial.
-        </p>
-        <label>
-          Confirmar contraseña
-          <input
-            name="confirmar_contrasena"
-            type="password"
-            minLength={8}
-            maxLength={25}
-            required
-            autoComplete="new-password"
-            aria-invalid={Boolean(fieldErrors.confirmar_contrasena)}
-            aria-describedby="reset-confirmar-contrasena-error"
-          />
-          <FieldError
-            id="reset-confirmar-contrasena-error"
-            message={fieldErrors.confirmar_contrasena}
-          />
-        </label>
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Actualizando…' : 'Actualizar contraseña'}
-        </button>
+      <form className="auth-form" onSubmit={submit} noValidate>
+        <AuthField
+          label="Nueva contraseña"
+          name="nueva_contrasena"
+          type="password"
+          minLength={8}
+          maxLength={25}
+          required
+          autoComplete="new-password"
+          error={fieldErrors.nueva_contrasena}
+          errorId="new-password-error"
+          hint="De 8 a 25 caracteres, con mayúscula, número y carácter especial."
+        />
+        <AuthField
+          label="Confirmar contraseña"
+          name="confirmar_contrasena"
+          type="password"
+          minLength={8}
+          maxLength={25}
+          required
+          autoComplete="new-password"
+          error={fieldErrors.confirmar_contrasena}
+          errorId="reset-confirmar-contrasena-error"
+        />
+        <SubmitButton busy={isSubmitting}>
+          {isSubmitting ? 'Actualizando...' : 'Actualizar contraseña'}
+        </SubmitButton>
       </form>
     </AuthCard>
   );

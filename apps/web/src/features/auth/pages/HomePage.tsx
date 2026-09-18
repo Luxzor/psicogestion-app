@@ -19,14 +19,14 @@ export function HomePage({
 
   return (
     <main className="app-shell">
-      <header>
-        <div>
-          <strong>PsicoGestión</strong>
-          <span>SEAP · UADY</span>
+      <header className="topbar">
+        <div className="topbar__brand">
+          <strong>PsicoGestion</strong>
+          <span>SEAP - UADY</span>
         </div>
         <button
           ref={triggerButton}
-          className="secondary"
+          className="button button--ghost"
           type="button"
           onClick={() => setConfirming(true)}
         >

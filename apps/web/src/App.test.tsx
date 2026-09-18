@@ -44,7 +44,7 @@ describe('App', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Ana Pérez' } });
+    fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Ana Perez' } });
     fireEvent.change(screen.getByLabelText('Teléfono (10 dígitos)'), {
       target: { value: '9991234567' },
     });
@@ -52,7 +52,7 @@ describe('App', () => {
       target: { value: 'ana@uady.mx' },
     });
     fireEvent.change(
-      screen.getByLabelText('Contraseña', { selector: '[autocomplete="new-password"]' }),
+      screen.getByLabelText(/^Contraseña/, { selector: '[autocomplete="new-password"]' }),
       {
         target: { value: 'ClaveSegura1!' },
       },

@@ -1,0 +1,93 @@
+.app-shell {
+  min-height: 100vh;
+  background: var(--color-background);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem clamp(1rem, 4vw, 4rem);
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.topbar__brand {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.topbar__brand span {
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.8rem;
+}
+
+.welcome {
+  width: min(100% - 2rem, 54rem);
+  margin: clamp(2rem, 7vw, 5rem) auto;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.welcome h1 {
+  margin-bottom: 0.75rem;
+  color: var(--color-primary);
+}
+
+.welcome p {
+  margin-bottom: 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  padding: 1rem;
+  place-items: center;
+  background: rgb(8 20 36 / 55%);
+}
+
+.dialog {
+  width: min(100%, 28rem);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.dialog h2 {
+  margin-bottom: 0.65rem;
+  color: var(--color-primary);
+}
+
+.dialog p {
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: end;
+  gap: 0.75rem;
+  margin-top: 1.3rem;
+}
+
+@media (max-width: 40rem) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .dialog-actions .button {
+    width: 100%;
+  }
+}

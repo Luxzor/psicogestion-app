@@ -1,13 +1,18 @@
 import type { ReactNode } from 'react';
+import { AuthLayout } from '../layouts/AuthLayout';
 
-export function AuthCard({ title, children }: { title: string; children: ReactNode }) {
+export function AuthCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}) {
   return (
-    <main className="auth-shell">
-      <section className="card" aria-labelledby="page-title">
-        <p className="brand">SEAP · UADY</p>
-        <h1 id="page-title">{title}</h1>
-        {children}
-      </section>
-    </main>
+    <AuthLayout title={title} subtitle={subtitle}>
+      {children}
+    </AuthLayout>
   );
 }

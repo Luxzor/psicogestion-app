@@ -1,8 +1,10 @@
 import type { FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../../auth/api';
+import { AuthActions, SubmitButton } from '../components/AuthActions';
 import { AuthCard } from '../components/AuthCard';
-import { FieldError, NoticeBox } from '../components/FormFeedback';
+import { AuthField } from '../components/AuthField';
+import { NoticeBox } from '../components/FormFeedback';
 import { useFormFeedback } from '../hooks/useFormFeedback';
 
 type VerifyNavigationState = { correo?: string };
@@ -41,51 +43,47 @@ export function VerifyPage() {
   }
 
   return (
-    <AuthCard title="Verifica tu correo">
-      <p>Ingresa el código de seis dígitos enviado a tu correo institucional.</p>
+    <AuthCard
+      title="Verifica tu correo"
+      subtitle="Ingresa el código de seis dígitos enviado a tu correo institucional."
+    >
       <NoticeBox notice={notice} />
-      <form onSubmit={submit} noValidate>
-        <label>
-          Correo institucional
-          <input
-            name="correo_institucional"
-            type="email"
-            defaultValue={email}
-            required
-            aria-invalid={Boolean(fieldErrors.correo_institucional)}
-            aria-describedby="verify-correo-error"
-          />
-          <FieldError id="verify-correo-error" message={fieldErrors.correo_institucional} />
-        </label>
-        <label>
-          Código de verificación
-          <input
-            name="codigo"
-            inputMode="numeric"
-            pattern="[0-9]{6}"
-            maxLength={6}
-            required
-            autoComplete="one-time-code"
-            aria-invalid={Boolean(fieldErrors.codigo)}
-            aria-describedby="codigo-error"
-          />
-          <FieldError id="codigo-error" message={fieldErrors.codigo} />
-        </label>
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Verificando…' : 'Verificar cuenta'}
-        </button>
+      <form className="auth-form" onSubmit={submit} noValidate>
+        <AuthField
+          label="Correo institucional"
+          name="correo_institucional"
+          type="email"
+          defaultValue={email}
+          required
+          error={fieldErrors.correo_institucional}
+          errorId="verify-correo-error"
+        />
+        <AuthField
+          label="Código de verificación"
+          name="codigo"
+          inputMode="numeric"
+          pattern="[0-9]{6}"
+          maxLength={6}
+          required
+          autoComplete="one-time-code"
+          error={fieldErrors.codigo}
+          errorId="codigo-error"
+        />
+        <SubmitButton busy={isSubmitting}>
+          {isSubmitting ? 'Verificando...' : 'Verificar cuenta'}
+        </SubmitButton>
       </form>
       <button
-        className="link-button"
+        className="text-button"
         type="button"
         onClick={resend}
         disabled={!email || isSubmitting}
       >
         Reenviar código
       </button>
-      <p className="link-line">
+      <AuthActions>
         <Link to="/registro">Corregir correo o crear otra cuenta</Link>
-      </p>
+      </AuthActions>
     </AuthCard>
   );
 }

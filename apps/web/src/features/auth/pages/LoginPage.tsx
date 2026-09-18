@@ -2,8 +2,10 @@ import type { FormEvent } from 'react';
 import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../../auth/api';
+import { AuthActions, SubmitButton } from '../components/AuthActions';
 import { AuthCard } from '../components/AuthCard';
-import { FieldError, NoticeBox } from '../components/FormFeedback';
+import { AuthField } from '../components/AuthField';
+import { NoticeBox } from '../components/FormFeedback';
 import { useFormFeedback } from '../hooks/useFormFeedback';
 import type { Notice, Session } from '../types';
 
@@ -44,41 +46,35 @@ export function LoginPage({ onLogin }: { onLogin: (session: Session) => void }) 
   }
 
   return (
-    <AuthCard title="Iniciar sesión">
-      <p>Accede con tu correo institucional o teléfono y contraseña.</p>
+    <AuthCard
+      title="Iniciar sesión"
+      subtitle="Accede con tu correo institucional o teléfono y contraseña."
+    >
       <NoticeBox notice={notice} />
-      <form onSubmit={submit} noValidate>
-        <label>
-          Correo institucional o teléfono
-          <input
-            name="identificador"
-            required
-            autoComplete="username"
-            aria-invalid={Boolean(fieldErrors.identificador)}
-            aria-describedby="identificador-error"
-          />
-          <FieldError id="identificador-error" message={fieldErrors.identificador} />
-        </label>
-        <label>
-          Contraseña
-          <input
-            name="contrasena"
-            type="password"
-            required
-            autoComplete="current-password"
-            aria-invalid={Boolean(fieldErrors.contrasena)}
-            aria-describedby="login-contrasena-error"
-          />
-          <FieldError id="login-contrasena-error" message={fieldErrors.contrasena} />
-        </label>
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Ingresando…' : 'Entrar'}
-        </button>
+      <form className="auth-form" onSubmit={submit} noValidate>
+        <AuthField
+          label="Correo institucional o teléfono"
+          name="identificador"
+          required
+          autoComplete="username"
+          error={fieldErrors.identificador}
+          errorId="identificador-error"
+        />
+        <AuthField
+          label="Contraseña"
+          name="contrasena"
+          type="password"
+          required
+          autoComplete="current-password"
+          error={fieldErrors.contrasena}
+          errorId="login-contrasena-error"
+        />
+        <SubmitButton busy={isSubmitting}>{isSubmitting ? 'Ingresando...' : 'Entrar'}</SubmitButton>
       </form>
-      <p className="link-line">
-        <Link to="/recuperar">¿Olvidaste tu contraseña?</Link> ·{' '}
+      <AuthActions>
+        <Link to="/recuperar">Olvidé mi contraseña</Link>
         <Link to="/registro">Crear cuenta</Link>
-      </p>
+      </AuthActions>
     </AuthCard>
   );
 }

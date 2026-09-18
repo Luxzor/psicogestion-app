@@ -1,8 +1,10 @@
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../../auth/api';
+import { AuthActions, SubmitButton } from '../components/AuthActions';
 import { AuthCard } from '../components/AuthCard';
-import { FieldError, NoticeBox } from '../components/FormFeedback';
+import { AuthField } from '../components/AuthField';
+import { NoticeBox } from '../components/FormFeedback';
 import { useFormFeedback } from '../hooks/useFormFeedback';
 
 export function RecoveryPage() {
@@ -18,29 +20,28 @@ export function RecoveryPage() {
   }
 
   return (
-    <AuthCard title="Recuperar cuenta">
-      <p>Te enviaremos un enlace de un solo uso que vence en 10 minutos.</p>
+    <AuthCard
+      title="Recuperar cuenta"
+      subtitle="Te enviaremos un enlace de un solo uso que vence en 10 minutos."
+    >
       <NoticeBox notice={notice} />
-      <form onSubmit={submit} noValidate>
-        <label>
-          Correo institucional
-          <input
-            name="correo_institucional"
-            type="email"
-            required
-            autoComplete="email"
-            aria-invalid={Boolean(fieldErrors.correo_institucional)}
-            aria-describedby="recovery-correo-error"
-          />
-          <FieldError id="recovery-correo-error" message={fieldErrors.correo_institucional} />
-        </label>
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Enviando…' : 'Enviar enlace'}
-        </button>
+      <form className="auth-form" onSubmit={submit} noValidate>
+        <AuthField
+          label="Correo institucional"
+          name="correo_institucional"
+          type="email"
+          required
+          autoComplete="email"
+          error={fieldErrors.correo_institucional}
+          errorId="recovery-correo-error"
+        />
+        <SubmitButton busy={isSubmitting}>
+          {isSubmitting ? 'Enviando...' : 'Enviar enlace'}
+        </SubmitButton>
       </form>
-      <p className="link-line">
+      <AuthActions>
         <Link to="/iniciar-sesion">Volver al inicio de sesión</Link>
-      </p>
+      </AuthActions>
     </AuthCard>
   );
 }

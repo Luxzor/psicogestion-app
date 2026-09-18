@@ -55,10 +55,15 @@ export function ConfirmDialog({
         <h2 id="logout-title">{title}</h2>
         <p id="logout-description">{description}</p>
         <div className="dialog-actions">
-          <button ref={cancelButton} className="secondary" type="button" onClick={onCancel}>
+          <button
+            ref={cancelButton}
+            className="button button--secondary"
+            type="button"
+            onClick={onCancel}
+          >
             Cancelar
           </button>
-          <button type="button" onClick={onConfirm}>
+          <button className="button button--primary" type="button" onClick={onConfirm}>
             Cerrar sesión
           </button>
         </div>
