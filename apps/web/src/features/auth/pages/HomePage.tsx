@@ -22,7 +22,6 @@ export function HomePage({
       <header className="topbar">
         <div className="topbar__brand">
           <strong>PsicoGestion</strong>
-          <span>SEAP - UADY</span>
         </div>
         <button
           ref={triggerButton}

@@ -1,4 +1,8 @@
 import type { ReactNode } from 'react';
+import panelUrl from '../../../../assets/gradient-panel.jpg';
+import darkLogoUrl from '../../../../assets/PsicoGestión_dark.png';
+import lightLogoUrl from '../../../../assets/PsicoGestión_light.png';
+import seapDarkLogoUrl from '../../../../assets/logo_seap_dark.png';
 
 type AuthLayoutProps = {
   title: string;
@@ -9,22 +13,24 @@ type AuthLayoutProps = {
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
   return (
     <main className="auth-page">
-      <section className="auth-hero" aria-label="PsicoGestion UADY">
-        <div className="auth-hero__content">
-          <p className="auth-kicker">SEAP - UADY</p>
-          <h1>PsicoGestion</h1>
-          <p>
-            Acceso institucional para la gestión segura de procesos psicológicos y académicos.
-          </p>
+      <section className="auth-shell" aria-label="Acceso PsicoGestion">
+        <div className="auth-visual" aria-hidden="true">
+          <img className="auth-visual__image" src={panelUrl} alt="" />
+          <img className="auth-visual__seap" src={seapDarkLogoUrl} alt="" />
+          <div className="auth-visual__copy">
+            <img className="auth-visual__logo" src={darkLogoUrl} alt="" />
+            <span>Gestión institucional segura para la atención psicológica.</span>
+          </div>
         </div>
-      </section>
-      <section className="auth-panel" aria-labelledby="page-title">
-        <div className="auth-panel__header">
-          <p className="auth-kicker">Cuenta institucional</p>
-          <h2 id="page-title">{title}</h2>
-          <p>{subtitle}</p>
+
+        <div className="auth-panel" aria-labelledby="page-title">
+          <img className="auth-logo" src={lightLogoUrl} alt="PsicoGestión" />
+          <div className="auth-panel__header">
+            <h2 id="page-title">{title}</h2>
+            <p>{subtitle}</p>
+          </div>
+          {children}
         </div>
-        {children}
       </section>
     </main>
   );

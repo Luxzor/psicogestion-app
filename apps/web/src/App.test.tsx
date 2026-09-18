@@ -48,6 +48,7 @@ describe('App', () => {
     fireEvent.change(screen.getByLabelText('Teléfono (10 dígitos)'), {
       target: { value: '9991234567' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     fireEvent.change(screen.getByLabelText('Correo institucional UADY'), {
       target: { value: 'ana@uady.mx' },
     });
@@ -60,6 +61,7 @@ describe('App', () => {
     fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
       target: { value: 'ClaveSegura1!' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
     fireEvent.click(screen.getByLabelText(/Confirmo que soy titular/i));
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
