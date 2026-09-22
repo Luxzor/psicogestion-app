@@ -6,19 +6,19 @@ funcionalidad hasta que llega a `main`.
 
 ## Ramas principales
 
-| Rama | Propósito |
-|---|---|
-| `main` | Código estable y entregado. Nadie hace push directo aquí. |
-| `develop` | Integración de las funcionalidades de la iteración en curso. |
+| Rama                         | Propósito                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `main`                       | Código estable y entregado. Nadie hace push directo aquí.                                                                            |
+| `develop`                    | Integración de las funcionalidades de la iteración en curso.                                                                         |
 | `release/<nombre-iteracion>` | Se abre cuando el alcance de la iteración se congela y entra a pruebas. Solo recibe correcciones de bugs, no funcionalidades nuevas. |
 
 ## Ramas de trabajo
 
-| Prefijo | Cuándo se usa | Sale de | Se integra en |
-|---|---|---|---|
-| `feature/...` | Nueva funcionalidad | `develop` | `develop` |
-| `bugfix/...` | Corrección de un bug encontrado en pruebas | `release/...` (o `develop` si se detecta antes) | la misma rama de la que salió |
-| `hotfix/...` | Corrección urgente ya en producción | `main` | `main` y `develop` |
+| Prefijo       | Cuándo se usa                              | Sale de                                         | Se integra en                 |
+| ------------- | ------------------------------------------ | ----------------------------------------------- | ----------------------------- |
+| `feature/...` | Nueva funcionalidad                        | `develop`                                       | `develop`                     |
+| `bugfix/...`  | Corrección de un bug encontrado en pruebas | `release/...` (o `develop` si se detecta antes) | la misma rama de la que salió |
+| `hotfix/...`  | Corrección urgente ya en producción        | `main`                                          | `main` y `develop`            |
 
 ### Convención de nombres
 

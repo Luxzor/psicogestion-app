@@ -34,8 +34,13 @@
     "prettier": "3.9.6",
     "typescript-eslint": "8.70.0"
   },
-  "allowScripts": {},
+  "allowScripts": {
+    "argon2": true,
+    "esbuild": true
+  },
   "optionalDependencies": {
-    "@typescript/typescript-linux-arm64": "7.0.2"
+    "@typescript/typescript-linux-arm64": "7.0.2",
+    "@typescript/typescript-linux-x64": "7.0.2",
+    "@typescript/typescript-win32-x64": "7.0.2"
   }
 }

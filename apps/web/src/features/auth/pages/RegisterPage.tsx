@@ -6,6 +6,7 @@ import { AuthActions, SubmitButton } from '../components/AuthActions';
 import { AuthCard } from '../components/AuthCard';
 import { AuthField } from '../components/AuthField';
 import { FieldError, NoticeBox } from '../components/FormFeedback';
+import { PasswordRequirements } from '../components/PasswordRequirements';
 import { useFormFeedback } from '../hooks/useFormFeedback';
 
 const steps = [
@@ -17,6 +18,8 @@ const steps = [
 export function RegisterPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { notice, fieldErrors, isSubmitting, run } = useFormFeedback();
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -87,7 +90,7 @@ export function RegisterPage() {
             autoComplete="new-password"
             error={fieldErrors.contrasena}
             errorId="contrasena-error"
-            hint="De 8 a 25 caracteres, con mayúscula, número y carácter especial."
+            onChange={(e) => setPassword(e.target.value)}
           />
           <AuthField
             label="Confirmar contraseña"
@@ -99,7 +102,9 @@ export function RegisterPage() {
             autoComplete="new-password"
             error={fieldErrors.confirmar_contrasena}
             errorId="confirmar-contrasena-error"
+            onChange={(e) => setConfirmPassword(e.target.value)}
           />
+          <PasswordRequirements password={password} confirmPassword={confirmPassword} />
         </section>
 
         <section className="register-step" hidden={step !== 2}>
