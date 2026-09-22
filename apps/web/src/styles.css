@@ -12,7 +12,7 @@
   --shadow-soft: 0 24px 80px rgb(12 28 51 / 14%);
   --radius: 8px;
   font-family:
-    Satoshi,
+    'Satoshi',
     'Avenir Next',
     'Nunito Sans',
     Inter,
@@ -24,6 +24,20 @@
     sans-serif;
   color: var(--color-text);
   background: var(--color-background);
+}
+
+[data-theme='dark'] {
+  --color-primary: #6ba3e0;
+  --color-primary-dark: #4a8ad0;
+  --color-accent: #e0a820;
+  --color-background: #111015;
+  --color-surface: #1a1d27;
+  --color-muted: #8b95a8;
+  --color-text: #e8eaf0;
+  --color-line: #2a2d3a;
+  --color-error: #f87171;
+  --color-success: #34d399;
+  --shadow-soft: 0 24px 80px rgb(0 0 0 / 40%);
 }
 
 * {
