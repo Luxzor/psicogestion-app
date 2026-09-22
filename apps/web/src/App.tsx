@@ -49,6 +49,8 @@ export function App() {
     if (!session) return;
     try {
       await api('/auth/sesion', { method: 'DELETE', accessToken: session.token });
+    } catch (error) {
+      console.error('Logout error:', error);
     } finally {
       setSession(null);
       navigate('/iniciar-sesion');

@@ -36,10 +36,12 @@ export function DashboardLayout({ session, onLogout }: DashboardLayoutProps) {
           title="¿Cerrar sesión?"
           description="Se eliminarán los datos de esta sesión en este equipo."
           onCancel={() => setConfirming(false)}
-          onConfirm={() => void onLogout()}
+          onConfirm={() => {
+            setConfirming(false);
+            void onLogout();
+          }}
         />
       )}
     </div>
   );
 }
-
