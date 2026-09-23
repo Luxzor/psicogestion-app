@@ -5,6 +5,8 @@ import type { Session } from '../../auth/types';
 import '../styles/dashboard.css';
 import { Header } from '../components/Header';
 import { Sidebar } from '../components/Sidebar';
+import { AlertDialog } from '../../../components/AlertDialog';
+import { useUnsavedChanges } from '../../../contexts/UnsavedChangesContext';
 
 interface DashboardLayoutProps {
   session: Session;
@@ -14,6 +16,16 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ session, onLogout }: DashboardLayoutProps) {
   const [confirming, setConfirming] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const { hasUnsavedChanges } = useUnsavedChanges();
+
+  const handleLogoutClick = () => {
+    if (hasUnsavedChanges) {
+      setShowAlert(true);
+    } else {
+      setConfirming(true);
+    }
+  };
 
   return (
     <div className={`dashboard${collapsed ? ' is-collapsed' : ''}`}>
@@ -21,7 +33,7 @@ export function DashboardLayout({ session, onLogout }: DashboardLayoutProps) {
         session={session}
         collapsed={collapsed}
         onToggle={() => setCollapsed((v) => !v)}
-        onLogout={() => setConfirming(true)}
+        onLogout={handleLogoutClick}
       />
 
       <div className="dashboard__main">
@@ -40,6 +52,14 @@ export function DashboardLayout({ session, onLogout }: DashboardLayoutProps) {
             setConfirming(false);
             void onLogout();
           }}
+        />
+      )}
+
+      {showAlert && (
+        <AlertDialog
+          title="Acción pendiente"
+          description="Tienes cambios sin guardar. Por favor termina o descarta la acción actual para poder cerrar sesión."
+          onClose={() => setShowAlert(false)}
         />
       )}
     </div>
