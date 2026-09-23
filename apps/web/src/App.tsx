@@ -15,6 +15,7 @@ import { DashboardLayout } from './features/dashboard/layouts/DashboardLayout';
 import { PacientesPage } from './features/pacientes/pages/PacientesPage';
 import { SalasPage } from './features/salas/pages/SalasPage';
 import { TerapeutasPage } from './features/terapeutas/pages/TerapeutasPage';
+import { UnsavedChangesProvider } from './contexts/UnsavedChangesContext';
 
 function ProtectedLayout({
   session,
@@ -24,7 +25,11 @@ function ProtectedLayout({
   onLogout: () => Promise<void>;
 }) {
   if (!session) return <Navigate to="/iniciar-sesion" replace />;
-  return <DashboardLayout session={session} onLogout={onLogout} />;
+  return (
+    <UnsavedChangesProvider>
+      <DashboardLayout session={session} onLogout={onLogout} />
+    </UnsavedChangesProvider>
+  );
 }
 
 export function App() {
