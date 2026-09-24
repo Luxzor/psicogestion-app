@@ -266,6 +266,13 @@ export const authService = {
     await authRepository.audit({ ...context, userId: user.id, event: 'recuperacion_solicitada' });
   },
 
+  async verifyRecoveryToken(token: string) {
+    const [selector] = token.split('.');
+    if (!selector) return { valid: false };
+    const isValid = await authRepository.checkRecoveryToken(selector);
+    return { valid: isValid };
+  },
+
   async resetPassword(token: string, password: string, context: RequestContext) {
     const [selector, secret] = token.split('.');
     if (!selector || !secret) {

@@ -181,12 +181,21 @@ export const authRepository = {
     );
   },
 
+  async checkRecoveryToken(selector: string) {
+    const result = await db.query(
+      `SELECT id FROM token_recuperacion
+       WHERE selector = $1 AND consumido_en IS NULL AND expira_en > $2`,
+      [selector, new Date()],
+    );
+    return result.rowCount !== null && result.rowCount > 0;
+  },
+
   async lockRecoveryToken(selector: string, client: Queryable) {
     const result = await client.query<{ id: string; id_usuario: string; token_hash: string }>(
       `SELECT id, id_usuario, token_hash FROM token_recuperacion
-       WHERE selector = $1 AND consumido_en IS NULL AND expira_en > now()
+       WHERE selector = $1 AND consumido_en IS NULL AND expira_en > $2
        FOR UPDATE`,
-      [selector],
+      [selector, new Date()],
     );
     return result.rows[0] ?? null;
   },
@@ -194,9 +203,9 @@ export const authRepository = {
   async consumeRecoveryToken(tokenId: string, client: Queryable) {
     const result = await client.query(
       `UPDATE token_recuperacion SET consumido_en = now()
-       WHERE id = $1 AND consumido_en IS NULL AND expira_en > now()
+       WHERE id = $1 AND consumido_en IS NULL AND expira_en > $2
        RETURNING id`,
-      [tokenId],
+      [tokenId, new Date()],
     );
     return result.rowCount === 1;
   },

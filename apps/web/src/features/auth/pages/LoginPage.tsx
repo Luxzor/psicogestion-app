@@ -15,6 +15,10 @@ const notices: Record<string, Notice> = {
     type: 'success',
     text: 'Tu contraseña fue actualizada. Ya puedes iniciar sesión.',
   },
+  'enlace-expirado': {
+    type: 'error',
+    text: 'El enlace de recuperación ha expirado. Por favor, solicita uno nuevo.',
+  },
 };
 
 export function LoginPage({ onLogin }: { onLogin: (session: Session) => void }) {

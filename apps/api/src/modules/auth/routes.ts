@@ -139,6 +139,16 @@ authRouter.post(
   }),
 );
 
+authRouter.get(
+  '/restablecimiento/verificar',
+  asyncRoute(async (request, response) => {
+    const token = typeof request.query.token === 'string' ? request.query.token : '';
+    if (!token) throw new AppError(400, 'TOKEN_REQUERIDO', 'El token es requerido.');
+    const result = await authService.verifyRecoveryToken(token);
+    response.json(result);
+  }),
+);
+
 authRouter.post(
   '/restablecimiento',
   asyncRoute(async (request, response) => {

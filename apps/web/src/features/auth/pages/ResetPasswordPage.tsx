@@ -6,25 +6,48 @@ import { SubmitButton } from '../components/AuthActions';
 import { AuthCard } from '../components/AuthCard';
 import { AuthField } from '../components/AuthField';
 import { NoticeBox } from '../components/FormFeedback';
+import { PasswordRequirements } from '../components/PasswordRequirements';
 import { useFormFeedback } from '../hooks/useFormFeedback';
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [token] = useState(() => params.get('token') ?? '');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { notice, fieldErrors, isSubmitting, run } = useFormFeedback();
 
   useEffect(() => {
     const tokenFromUrl = params.get('token');
     if (!tokenFromUrl) return;
-    navigate('/restablecer', { replace: true });
+    
+    // Validate token immediately on load
+    api<{ valid: boolean }>(`/auth/restablecimiento/verificar?token=${tokenFromUrl}`)
+      .then((res) => {
+        if (!res.valid) {
+          navigate('/iniciar-sesion?aviso=enlace-expirado', { replace: true });
+        }
+      })
+      .catch(() => {
+        navigate('/iniciar-sesion?aviso=enlace-expirado', { replace: true });
+      });
   }, [navigate, params]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
     void run(
-      () => api('/auth/restablecimiento', { method: 'POST', body: { ...values, token } }),
+      async () => {
+        try {
+          await api('/auth/restablecimiento', { method: 'POST', body: { ...values, token } });
+        } catch (error) {
+          if (error && typeof error === 'object' && 'codigo' in error && error.codigo === 'ENLACE_EXPIRADO') {
+            navigate('/iniciar-sesion?aviso=enlace-expirado', { replace: true });
+            return;
+          }
+          throw error;
+        }
+      },
       () => navigate('/iniciar-sesion?aviso=contrasena-restablecida', { replace: true }),
     );
   }
@@ -52,7 +75,7 @@ export function ResetPasswordPage() {
           autoComplete="new-password"
           error={fieldErrors.nueva_contrasena}
           errorId="new-password-error"
-          hint="De 8 a 25 caracteres, con mayúscula, número y carácter especial."
+          onChange={(e) => setPassword(e.target.value)}
         />
         <AuthField
           label="Confirmar contraseña"
@@ -64,7 +87,9 @@ export function ResetPasswordPage() {
           autoComplete="new-password"
           error={fieldErrors.confirmar_contrasena}
           errorId="reset-confirmar-contrasena-error"
+          onChange={(e) => setConfirmPassword(e.target.value)}
         />
+        <PasswordRequirements password={password} confirmPassword={confirmPassword} />
         <SubmitButton busy={isSubmitting}>
           {isSubmitting ? 'Actualizando...' : 'Actualizar contraseña'}
         </SubmitButton>
