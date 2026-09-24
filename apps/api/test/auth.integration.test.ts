@@ -103,6 +103,91 @@ integration('autenticación con servicios reales', () => {
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
   });
+
+  it('rechaza credenciales inválidas sin revelar cuál dato falló (RF 1.2.3/1.2.5, RNF 1.2.2)', async () => {
+    await authService.register(registration, context);
+    await db.query("UPDATE usuario SET estado = 'activo' WHERE correo_institucional = $1", [
+      registration.correo_institucional,
+    ]);
+
+    // Contraseña incorrecta con correo válido.
+    const wrongPassword = authService.login(
+      { identificador: registration.correo_institucional, contrasena: 'ClaveIncorrecta1!' },
+      context,
+    );
+    await expect(wrongPassword).rejects.toMatchObject({ code: 'CREDENCIALES_INVALIDAS' });
+
+    // Identificador que no existe en el sistema.
+    const unknownIdentifier = authService.login(
+      { identificador: 'nadie@uady.mx', contrasena: registration.contrasena },
+      context,
+    );
+    await expect(unknownIdentifier).rejects.toMatchObject({ code: 'CREDENCIALES_INVALIDAS' });
+
+    // Mismo mensaje en ambos casos: no debe distinguir si falló el
+    // identificador o la contraseña (RNF 1.2.2).
+    const [primero, segundo] = await Promise.allSettled([wrongPassword, unknownIdentifier]);
+    const mensaje = (result: PromiseSettledResult<unknown>) =>
+      result.status === 'rejected' ? (result.reason as { message?: string }).message : undefined;
+    expect(mensaje(primero)).toBe(mensaje(segundo));
+
+    // Login válido sigue funcionando después de los intentos fallidos.
+    const success = await authService.login(
+      { identificador: registration.correo_institucional, contrasena: registration.contrasena },
+      context,
+    );
+    expect(success.accessToken).toBeTruthy();
+  });
+
+  it('revoca la sesión y elimina los datos de sesión al cerrar sesión (RF 1.3.5, RNF 1.3.3)', async () => {
+    await authService.register(registration, context);
+    await db.query("UPDATE usuario SET estado = 'activo' WHERE correo_institucional = $1", [
+      registration.correo_institucional,
+    ]);
+    const user = await db.query<{ id: string }>(
+      'SELECT id FROM usuario WHERE correo_institucional = $1',
+      [registration.correo_institucional],
+    );
+    const userId = user.rows[0]?.id;
+    if (!userId) throw new Error('User was not created.');
+
+    const session = await authService.login(
+      { identificador: registration.correo_institucional, contrasena: registration.contrasena },
+      context,
+    );
+
+    await authService.logout(userId, session.refreshToken, context);
+
+    // RNF 1.3.3 — la sesión queda revocada de inmediato en la base de datos.
+    const revoked = await db.query<{ revocado_en: Date | null }>(
+      'SELECT revocado_en FROM sesion WHERE id_usuario = $1',
+      [userId],
+    );
+    expect(revoked.rows[0]?.revocado_en).not.toBeNull();
+
+    // RF 1.3.5 — una vez cerrada la sesión, el refresh token ya no sirve.
+    await expect(authService.refresh(session.refreshToken, context)).rejects.toMatchObject({
+      code: 'SESION_INVALIDA',
+    });
+  });
+
+  it('el logout no falla si el refresh token ya expiró o es inválido', async () => {
+    await authService.register(registration, context);
+    await db.query("UPDATE usuario SET estado = 'activo' WHERE correo_institucional = $1", [
+      registration.correo_institucional,
+    ]);
+    const user = await db.query<{ id: string }>(
+      'SELECT id FROM usuario WHERE correo_institucional = $1',
+      [registration.correo_institucional],
+    );
+    const userId = user.rows[0]?.id;
+    if (!userId) throw new Error('User was not created.');
+
+    // No debe lanzar aunque el refresh token sea basura o esté ausente:
+    // el logout debe completarse siempre desde el punto de vista del usuario.
+    await expect(authService.logout(userId, 'token-invalido', context)).resolves.toBeUndefined();
+    await expect(authService.logout(userId, undefined, context)).resolves.toBeUndefined();
+  });
 });
 
 afterAll(async () => {

@@ -242,7 +242,7 @@ export const authService = {
         const payload = tokenService.verifyRefreshToken(refreshToken);
         if (payload.sub === userId) await authRepository.revokeSession(payload.jti);
       } catch {
-        // The access token is valid; clearing an expired refresh cookie still completes logout.
+        // El token de acceso es válido; eliminar cookie de actualización caducada completa igualmente el cierre de sesión.
       }
     }
     await authRepository.audit({ ...context, userId, event: 'logout' });
@@ -264,6 +264,13 @@ export const authService = {
     });
     await mailService.sendRecoveryLink(user.correo_institucional, `${selector}.${secret}`);
     await authRepository.audit({ ...context, userId: user.id, event: 'recuperacion_solicitada' });
+  },
+
+  async verifyRecoveryToken(token: string) {
+    const [selector] = token.split('.');
+    if (!selector) return { valid: false };
+    const isValid = await authRepository.checkRecoveryToken(selector);
+    return { valid: isValid };
   },
 
   async resetPassword(token: string, password: string, context: RequestContext) {
