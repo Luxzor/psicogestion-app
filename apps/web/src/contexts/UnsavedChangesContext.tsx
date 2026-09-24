@@ -17,6 +17,7 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useUnsavedChanges() {
   const context = useContext(UnsavedChangesContext);
   if (!context) {
