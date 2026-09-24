@@ -21,7 +21,6 @@ export function ResetPasswordPage() {
     const tokenFromUrl = params.get('token');
     if (!tokenFromUrl) return;
     
-    // Validate token immediately on load
     api<{ valid: boolean }>(`/auth/restablecimiento/verificar?token=${tokenFromUrl}`)
       .then((res) => {
         if (!res.valid) {
