@@ -15,7 +15,15 @@ export function DashboardHomePage({ session }: { session: Session }) {
       <h2>¡Hola, {nombre ? `${nombre.split(' ')[0]}` : 'usuario'}!</h2>
       <p>Selecciona una opción del menú para comenzar a gestionar la clínica SEAP.</p>
 
-      <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.8 }}>
+      <div
+        style={{
+          marginTop: '2rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          opacity: 0.8,
+        }}
+      >
         <input
           type="checkbox"
           id="unsaved-toggle"
@@ -29,4 +37,3 @@ export function DashboardHomePage({ session }: { session: Session }) {
     </div>
   );
 }
-

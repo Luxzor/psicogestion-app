@@ -20,7 +20,7 @@ export function ResetPasswordPage() {
   useEffect(() => {
     const tokenFromUrl = params.get('token');
     if (!tokenFromUrl) return;
-    
+
     api<{ valid: boolean }>(`/auth/restablecimiento/verificar?token=${tokenFromUrl}`)
       .then((res) => {
         if (!res.valid) {
@@ -40,7 +40,12 @@ export function ResetPasswordPage() {
         try {
           await api('/auth/restablecimiento', { method: 'POST', body: { ...values, token } });
         } catch (error) {
-          if (error && typeof error === 'object' && 'codigo' in error && error.codigo === 'ENLACE_EXPIRADO') {
+          if (
+            error &&
+            typeof error === 'object' &&
+            'codigo' in error &&
+            error.codigo === 'ENLACE_EXPIRADO'
+          ) {
             navigate('/iniciar-sesion?aviso=enlace-expirado', { replace: true });
             return;
           }

@@ -26,4 +26,3 @@ export function SidebarItem({ to, icon, label, badge, collapsed }: SidebarItemPr
     </li>
   );
 }
-

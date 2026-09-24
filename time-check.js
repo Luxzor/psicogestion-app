@@ -1,1 +1,9 @@
-import { Pool } from 'pg'; const pool = new Pool({ connectionString: 'postgresql://postgres:postgres@localhost:5432/psicogestion' }); pool.query('SELECT now() AS db_time').then(res => { console.log('Node time:', new Date().toISOString()); console.log('DB time:  ', res.rows[0].db_time.toISOString()); pool.end(); });
+import { Pool } from 'pg';
+const pool = new Pool({
+  connectionString: 'postgresql://postgres:postgres@localhost:5432/psicogestion',
+});
+pool.query('SELECT now() AS db_time').then((res) => {
+  console.log('Node time:', new Date().toISOString());
+  console.log('DB time:  ', res.rows[0].db_time.toISOString());
+  pool.end();
+});
