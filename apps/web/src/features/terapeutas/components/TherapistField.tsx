@@ -136,4 +136,3 @@ export function TherapistField(props: TextProps | DateProps) {
     </div>
   );
 }
-

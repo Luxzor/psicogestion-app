@@ -122,4 +122,3 @@ describe('rutas de terapeutas sin dependencias externas (EDT 4.3.4)', () => {
     expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
   });
 });
-

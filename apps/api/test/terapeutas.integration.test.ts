@@ -234,4 +234,3 @@ integration('registro de terapeutas con servicios reales (EDT 4.3.4)', () => {
     expect(getAfterDelete.status).toBe(404);
   });
 });
-

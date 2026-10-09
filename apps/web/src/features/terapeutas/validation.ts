@@ -164,4 +164,3 @@ export function toPayload(values: TherapistFormValues): TherapistPayload {
     cedula_profesional: values.cedula.trim(),
   };
 }
-

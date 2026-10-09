@@ -119,4 +119,3 @@ export const therapistRepository = {
     return result.rows[0] ?? null;
   },
 };
-
