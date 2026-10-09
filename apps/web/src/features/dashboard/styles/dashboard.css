@@ -335,6 +335,17 @@
   font-weight: 700;
 }
 
+.dashboard-header__breadcrumb .crumb-link {
+  color: var(--color-muted);
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+.dashboard-header__breadcrumb .crumb-link:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
 .dashboard-header__actions {
   display: flex;
   align-items: center;

@@ -13,6 +13,7 @@ import { ConfiguracionPage } from './features/configuracion/pages/ConfiguracionP
 import { DashboardHomePage } from './features/dashboard/pages/DashboardHomePage';
 import { DashboardLayout } from './features/dashboard/layouts/DashboardLayout';
 import { PacientesPage } from './features/pacientes/pages/PacientesPage';
+import { RegistroPacientePage } from './features/pacientes/pages/RegistroPacientePage';
 import { SalasPage } from './features/salas/pages/SalasPage';
 import { TerapeutasPage } from './features/terapeutas/pages/TerapeutasPage';
 import { UnsavedChangesProvider } from './contexts/UnsavedChangesContext';
@@ -77,6 +78,7 @@ export function App() {
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="citas" element={<CitasPage />} />
         <Route path="pacientes" element={<PacientesPage />} />
+        <Route path="pacientes/nuevo" element={<RegistroPacientePage session={session!} />} />
         <Route path="terapeutas" element={<TerapeutasPage />} />
         <Route path="salas" element={<SalasPage />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />

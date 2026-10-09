@@ -11,7 +11,7 @@
     "lint": "eslint src test",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:integration": "NODE_ENV=test RUN_INTEGRATION_TESTS=1 vitest run test/auth.integration.test.ts",
+    "test:integration": "NODE_ENV=test RUN_INTEGRATION_TESTS=1 vitest run integration",
     "migrate": "tsx src/platform/migrate.ts",
     "migrate:production": "node dist/platform/migrate.js"
   },
