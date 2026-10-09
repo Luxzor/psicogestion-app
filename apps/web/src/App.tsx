@@ -15,6 +15,7 @@ import { DashboardLayout } from './features/dashboard/layouts/DashboardLayout';
 import { PacientesPage } from './features/pacientes/pages/PacientesPage';
 import { RegistroPacientePage } from './features/pacientes/pages/RegistroPacientePage';
 import { SalasPage } from './features/salas/pages/SalasPage';
+import { RegistroTerapeutaPage } from './features/terapeutas/pages/RegistroTerapeutaPage';
 import { TerapeutasPage } from './features/terapeutas/pages/TerapeutasPage';
 import { UnsavedChangesProvider } from './contexts/UnsavedChangesContext';
 
@@ -80,6 +81,7 @@ export function App() {
         <Route path="pacientes" element={<PacientesPage />} />
         <Route path="pacientes/nuevo" element={<RegistroPacientePage session={session!} />} />
         <Route path="terapeutas" element={<TerapeutasPage />} />
+        <Route path="terapeutas/nuevo" element={<RegistroTerapeutaPage session={session!} />} />
         <Route path="salas" element={<SalasPage />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>
