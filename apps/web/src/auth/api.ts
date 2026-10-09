@@ -10,6 +10,12 @@ type Options = {
   body?: unknown;
   accessToken?: string;
   signal?: AbortSignal;
+  headers?: Record<string, string>;
+};
+
+export const NETWORK_ERROR: ApiError = {
+  codigo: 'SIN_CONEXION',
+  mensaje: 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.',
 };
 
 const isApiError = (payload: unknown): payload is ApiError =>
@@ -23,16 +29,24 @@ const parsePayload = async (response: Response): Promise<unknown> => {
 };
 
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
-  const response = await fetch(`/api/v1${path}`, {
-    method: options.method ?? 'GET',
-    credentials: 'include',
-    headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(options.accessToken ? { Authorization: `Bearer ${options.accessToken}` } : {}),
-    },
-    signal: options.signal,
-    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`/api/v1${path}`, {
+      method: options.method ?? 'GET',
+      credentials: 'include',
+      headers: {
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.accessToken ? { Authorization: `Bearer ${options.accessToken}` } : {}),
+        ...options.headers,
+      },
+      signal: options.signal,
+      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+    });
+  } catch (error) {
+    // Una cancelación no es una falla de red: se propaga tal cual.
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    throw NETWORK_ERROR;
+  }
 
   const payload = await parsePayload(response);
   if (!response.ok) {

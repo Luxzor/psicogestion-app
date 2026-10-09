@@ -1,0 +1,368 @@
+/* Módulo de pacientes. Estilos de PG-DSN-002-INT v0.1.0 (componentes de la Iteración 2). */
+
+/* Página */
+.page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding-bottom: 5.5rem;
+}
+
+.page--narrow {
+  max-width: 46rem;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.page-head--form {
+  margin-bottom: 1rem;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.page-title__icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 12px;
+  background: rgb(0 46 95 / 0.08);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.page-title h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 820;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.page-title p {
+  margin: 0.2rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0 0 0.8rem -0.2rem;
+  padding: 0.2rem 0.4rem 0.2rem 0.2rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.back-link:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--tint-soft);
+}
+
+/* Contenedores */
+.panel {
+  background: var(--color-surface);
+  border-radius: 16px;
+  box-shadow: var(--card-ring);
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 3.2rem 1.5rem;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.empty__icon {
+  opacity: 0.35;
+}
+
+.empty h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 760;
+  color: var(--color-text);
+}
+
+.empty p {
+  margin: 0;
+  max-width: 26rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.fab {
+  position: absolute;
+  right: 1.6rem;
+  bottom: 1.4rem;
+  z-index: 5;
+  min-height: 2.9rem;
+  padding: 0.7rem 1.2rem 0.7rem 1rem;
+  font-size: 0.86rem;
+  text-decoration: none;
+  box-shadow: 0 14px 30px rgb(0 46 95 / 28%);
+}
+
+/* Avisos */
+.notice--block {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+}
+
+.notice--block:focus {
+  outline: none;
+}
+
+.notice--block svg {
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.notice.info {
+  color: var(--color-primary);
+  background: var(--info-bg);
+}
+
+[data-theme='dark'] .page .notice.error {
+  background: var(--error-bg);
+}
+
+[data-theme='dark'] .page .notice.success {
+  background: var(--success-bg);
+}
+
+.notice__body {
+  flex: 1;
+}
+
+.notice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.notice__actions .button {
+  min-height: 2rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.76rem;
+}
+
+.notice__close {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0.1rem;
+  border-radius: 6px;
+  opacity: 0.7;
+}
+
+.notice__close:hover {
+  opacity: 1;
+}
+
+.dialog .notice {
+  margin: 0.5rem 0 0;
+}
+
+/* Formulario */
+.form-panel {
+  padding: 0.25rem 0 0;
+}
+
+.form-section {
+  padding: 1.15rem 1.35rem 1.25rem;
+}
+
+.form-section + .form-section {
+  border-top: 1px solid var(--color-line);
+}
+
+.form-section h2 {
+  margin: 0 0 1rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.15rem 1.6rem;
+}
+
+.form-grid .is-full {
+  grid-column: 1 / -1;
+}
+
+.form-grid .field {
+  align-content: start;
+}
+
+.field__label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.field__label small {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.field__opt {
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.field input.is-mono {
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.field select {
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.38rem 1.6rem 0.38rem 0;
+  border: 0;
+  border-bottom: 1px solid #aab3bf;
+  border-radius: 0;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235c6675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 0.15rem center;
+  color: var(--color-text);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.field select:focus {
+  border-color: var(--color-primary);
+  outline: 0;
+}
+
+.field select[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+[data-theme='dark'] .field select option {
+  background: #1a1d27;
+}
+
+.field input:disabled,
+.field select:disabled {
+  color: var(--color-muted);
+}
+
+.field-hint[hidden] {
+  display: none;
+}
+
+.field-error:empty {
+  display: none;
+}
+
+.field-checking {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.field-checking svg {
+  animation: pacientes-spin 0.9s linear infinite;
+}
+
+.field-native-date {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.form-panel .checkbox {
+  font-size: 0.8rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 1rem 1.35rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.form-actions__status {
+  margin-right: auto;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.button .spin {
+  animation: pacientes-spin 0.9s linear infinite;
+}
+
+[data-theme='dark'] .page .button--primary {
+  color: #0f0e14;
+}
+
+[data-theme='dark'] .page .button--secondary {
+  background: rgb(107 163 224 / 0.12);
+}
+
+@keyframes pacientes-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 56rem) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-head {
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button .spin,
+  .field-checking svg {
+    animation: none;
+  }
+}
