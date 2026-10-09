@@ -29,6 +29,18 @@ const envSchema = z
     RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(900),
     RATE_LIMIT_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
     RATE_LIMIT_KEY_SECRET: z.string().min(32).optional(),
+    CLINIC_TIME_ZONE: z
+      .string()
+      .default('America/Merida')
+      .refine((value) => {
+        try {
+          new Intl.DateTimeFormat('es-MX', { timeZone: value });
+          return true;
+        } catch {
+          return false;
+        }
+      }, 'CLINIC_TIME_ZONE debe ser una zona horaria IANA válida.'),
+    IDEMPOTENCY_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
   })
   .superRefine((value, context) => {
     if (value.NODE_ENV === 'production' && !value.RATE_LIMIT_KEY_SECRET) {

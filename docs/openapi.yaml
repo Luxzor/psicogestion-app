@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: PsicoGestión API
   version: 0.1.0
-  description: 'Contrato REST de la Iteración 1: administración de cuentas.'
+  description: 'Contrato REST de PsicoGestión: administración de cuentas (Iteración 1) y registro de pacientes (Iteración 2, EDT 4.3.1).'
 servers:
   - url: https://localhost:8443/api/v1
 security:
@@ -139,7 +139,75 @@ paths:
         '200': { $ref: '#/components/responses/PasswordUpdated' }
         '400': { $ref: '#/components/responses/ValidationError' }
         '410': { $ref: '#/components/responses/ExpiredError' }
+  /pacientes:
+    post:
+      summary: Registra un paciente activo (RF 3.1.1 a RF 3.1.14)
+      description: >
+        Requiere sesión activa. Si el CURP pertenece a un paciente dado de baja responde 409
+        PACIENTE_DADO_DE_BAJA con el identificador del perfil para ofrecer su reactivación.
+        Con Idempotency-Key, un reintento con los mismos datos devuelve la respuesta original sin
+        crear otro registro (ADR-13).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PatientRequest' }
+      responses:
+        '201': { $ref: '#/components/responses/PatientRegistered' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+        '409': { $ref: '#/components/responses/PatientConflict' }
+        '422': { $ref: '#/components/responses/IdempotencyMismatch' }
+  /pacientes/validaciones:
+    post:
+      summary: Verifica de forma anticipada si un CURP o teléfono ya está registrado
+      description: >
+        No expone datos de otros pacientes (CA-3.1-03). Un CURP de un paciente dado de baja se
+        informa como disponible con dado_de_baja verdadero, porque al guardar se ofrece reactivar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AvailabilityRequest' }
+      responses:
+        '200':
+          description: Resultado de la verificación.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AvailabilityResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+  /pacientes/{id}/reactivacion:
+    post:
+      summary: Reactiva un paciente dado de baja con los datos capturados en el registro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PatientRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/PatientReactivated' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/PatientConflict' }
+        '422': { $ref: '#/components/responses/IdempotencyMismatch' }
 components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Llave única por intento de guardado; se reutiliza al reintentar tras una falla de red.
+      schema: { type: string, pattern: '^[A-Za-z0-9-]{8,64}$' }
   securitySchemes:
     bearerAuth:
       type: http
@@ -252,6 +320,102 @@ components:
       properties:
         codigo: { type: string }
         mensaje: { type: string }
+    PatientRequest:
+      type: object
+      required: [nombre_completo, curp, sexo, fecha_nacimiento, telefono]
+      properties:
+        nombre_completo: { type: string, minLength: 1, maxLength: 50 }
+        curp:
+          type: string
+          description: Se normaliza a mayúsculas y sin espacios.
+          pattern: '^[A-Z][AEIOUX][A-Z]{2}[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[HMX][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9][0-9]$'
+        sexo:
+          type: string
+          enum: [F, M, O]
+          description: F femenino, M masculino, O otro.
+        fecha_nacimiento:
+          type: string
+          format: date
+          description: AAAA-MM-DD. Anterior a la fecha de registro y con al menos 7 años cumplidos.
+        telefono: { type: string, pattern: '^[0-9]{10}$' }
+        correo: { type: [string, 'null'], format: email, maxLength: 100 }
+        consentimiento: { type: boolean, default: false }
+    Patient:
+      type: object
+      required:
+        [
+          id,
+          nombre_completo,
+          curp,
+          sexo,
+          fecha_nacimiento,
+          telefono,
+          correo,
+          consentimiento,
+          activo,
+          fecha_baja,
+          fecha_registro,
+          version,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        nombre_completo: { type: string }
+        curp: { type: string }
+        sexo: { type: string, enum: [F, M, O] }
+        fecha_nacimiento: { type: string, format: date }
+        telefono: { type: string }
+        correo: { type: [string, 'null'] }
+        consentimiento: { type: boolean }
+        activo: { type: boolean }
+        fecha_baja: { type: [string, 'null'], format: date }
+        fecha_registro: { type: string, format: date }
+        version: { type: integer, minimum: 1 }
+    PatientResponse:
+      type: object
+      required: [codigo, paciente]
+      properties:
+        codigo: { type: string, enum: [PACIENTE_REGISTRADO, PACIENTE_REACTIVADO] }
+        paciente: { $ref: '#/components/schemas/Patient' }
+    PatientConflictError:
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+        - type: object
+          properties:
+            codigo:
+              type: string
+              enum:
+                [
+                  CURP_EN_USO,
+                  TELEFONO_EN_USO,
+                  DATOS_EN_USO,
+                  PACIENTE_DADO_DE_BAJA,
+                  PACIENTE_ACTIVO,
+                  SOLICITUD_EN_PROCESO,
+                ]
+            paciente:
+              type: object
+              description: Solo en PACIENTE_DADO_DE_BAJA.
+              properties:
+                id: { type: string, format: uuid }
+                nombre_completo: { type: string }
+                fecha_baja: { type: string, format: date }
+    AvailabilityRequest:
+      type: object
+      required: [campo, valor]
+      properties:
+        campo: { type: string, enum: [curp, telefono] }
+        valor: { type: string }
+        curp:
+          type: string
+          description: Solo para telefono; excluye al paciente dado de baja que se reactivaría con ese CURP.
+    AvailabilityResponse:
+      type: object
+      required: [campo, disponible]
+      properties:
+        campo: { type: string, enum: [curp, telefono] }
+        disponible: { type: boolean }
+        dado_de_baja: { type: boolean }
+        mensaje: { type: string }
   responses:
     RegistrationCreated:
       description: Cuenta creada y código enviado.
@@ -315,6 +479,31 @@ components:
           schema: { $ref: '#/components/schemas/ApiError' }
     ServiceUnavailable:
       description: Una dependencia crítica no está disponible.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    PatientRegistered:
+      description: Paciente registrado y activo.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PatientResponse' }
+    PatientReactivated:
+      description: Paciente reactivado con los datos capturados.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PatientResponse' }
+    PatientConflict:
+      description: CURP o teléfono en uso, paciente dado de baja o solicitud en proceso.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PatientConflictError' }
+    IdempotencyMismatch:
+      description: La llave de idempotencia ya se usó con otros datos.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    NotFoundError:
+      description: El recurso no existe.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ApiError' }
