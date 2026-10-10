@@ -11,10 +11,12 @@ const ROUTE_LABELS: Record<string, string> = {
   '/inicio/salas': 'Salas',
   '/inicio/configuracion': 'Configuración',
   '/inicio/pacientes/nuevo': 'Nuevo paciente',
+  '/inicio/terapeutas/nuevo': 'Nuevo terapeuta',
 };
 
 const PARENT_ROUTES: Record<string, { label: string; to: string }> = {
   '/inicio/pacientes/nuevo': { label: 'Pacientes', to: '/inicio/pacientes' },
+  '/inicio/terapeutas/nuevo': { label: 'Terapeutas', to: '/inicio/terapeutas' },
 };
 
 export function Header() {

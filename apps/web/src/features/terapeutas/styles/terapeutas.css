@@ -1,0 +1,131 @@
+/* Módulo de terapeutas. Estilos de PG-DSN-002-INT v0.1.0 (EDT 4.3.4). */
+
+/* Selector de fotografía */
+.photo-up {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.photo-up__preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 999px;
+  background: var(--tint-soft);
+  color: var(--color-muted);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.photo-up__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-up__body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.photo-up__drop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.8rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px dashed var(--color-line);
+  border-radius: 14px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.photo-up__drop.is-over {
+  border-color: var(--color-primary);
+  background: var(--info-bg);
+}
+
+.photo-up__drop.is-error {
+  border-color: var(--color-error);
+}
+
+.photo-up__drop .button {
+  min-height: 2rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.76rem;
+}
+
+.photo-up__file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  font-size: 0.74rem;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.photo-up__file strong {
+  color: var(--color-text);
+}
+
+.progress {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--tint-soft);
+  overflow: hidden;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 0.2s;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.text-button {
+  padding: 0;
+  border: 0;
+  color: var(--color-primary);
+  background: transparent;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.22em;
+  cursor: pointer;
+}
+
+.text-button:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.text-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 56rem) {
+  .photo-up {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
