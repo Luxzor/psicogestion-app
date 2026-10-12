@@ -6,7 +6,7 @@ export type ApiError = {
 };
 
 type Options = {
-  method?: 'GET' | 'POST' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
   accessToken?: string;
   signal?: AbortSignal;
@@ -29,18 +29,21 @@ const parsePayload = async (response: Response): Promise<unknown> => {
 };
 
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   let response: Response;
   try {
     response = await fetch(`/api/v1${path}`, {
       method: options.method ?? 'GET',
       credentials: 'include',
       headers: {
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
         ...(options.accessToken ? { Authorization: `Bearer ${options.accessToken}` } : {}),
         ...options.headers,
       },
       signal: options.signal,
-      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+      ...(options.body
+        ? { body: isFormData ? (options.body as FormData) : JSON.stringify(options.body) }
+        : {}),
     });
   } catch (error) {
     // Una cancelación no es una falla de red: se propaga tal cual.

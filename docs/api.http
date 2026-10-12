@@ -71,3 +71,27 @@ Content-Type: application/json
   "campo": "curp",
   "valor": "KUEV090825MYNXSLA3"
 }
+
+### Registro de terapeuta (EDT 4.3.4). Usa el access_token del inicio de sesión.
+POST {{baseUrl}}/terapeutas
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+Idempotency-Key: e1a2b3c4-d5e6-7890-abcd-ef1234567890
+
+{
+  "nombre_completo": "Victoria Méndez Rosado",
+  "telefono": "9997845213",
+  "correo_electronico": "victoria.mendez@correo.uady.mx",
+  "fecha_nacimiento": "1988-05-19",
+  "cedula_profesional": "7845213"
+}
+
+### Verificación anticipada de unicidad de teléfono, correo o cédula
+POST {{baseUrl}}/terapeutas/validaciones
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "campo": "telefono",
+  "valor": "9997845213"
+}

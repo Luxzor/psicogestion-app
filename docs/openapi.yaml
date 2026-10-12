@@ -199,7 +199,109 @@ paths:
         '401': { $ref: '#/components/responses/InvalidSessionError' }
         '404': { $ref: '#/components/responses/NotFoundError' }
         '409': { $ref: '#/components/responses/PatientConflict' }
+  /terapeutas:
+    post:
+      summary: Registra un terapeuta activo (RF 2.1.1 a RF 2.1.15)
+      description: >
+        Requiere sesión activa. Valida formato de campos, fecha anterior al registro, cédula
+        profesional de 7 u 8 dígitos y unicidad de teléfono, correo y cédula. Con Idempotency-Key,
+        un reintento con los mismos datos devuelve la respuesta original sin crear otro registro.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TherapistRequest' }
+      responses:
+        '201': { $ref: '#/components/responses/TherapistRegistered' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+        '409': { $ref: '#/components/responses/TherapistConflict' }
         '422': { $ref: '#/components/responses/IdempotencyMismatch' }
+  /terapeutas/validaciones:
+    post:
+      summary: Verifica de forma anticipada si un teléfono, correo o cédula ya está registrado
+      description: >
+        No expone datos de otros terapeutas (CA-2.1-03).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TherapistAvailabilityRequest' }
+      responses:
+        '200':
+          description: Resultado de la verificación.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TherapistAvailabilityResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+  /terapeutas/{id}/foto:
+    put:
+      summary: Carga o actualiza la fotografía de perfil del terapeuta (RF 2.1.11 a RF 2.1.13)
+      description: >
+        Acepta imágenes JPEG o PNG de hasta 5 MB y de al menos 200 x 200 píxeles (CA-2.1-05).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [foto]
+              properties:
+                foto: { type: string, format: binary }
+      responses:
+        '200':
+          description: Fotografía actualizada con éxito.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TherapistPhotoResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '413': { $ref: '#/components/responses/PhotoTooLarge' }
+        '415': { $ref: '#/components/responses/PhotoInvalidFormat' }
+        '422': { $ref: '#/components/responses/PhotoInvalidDimensions' }
+    get:
+      summary: Descarga la fotografía de perfil del terapeuta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Archivo de fotografía en formato JPEG o PNG.
+          headers:
+            ETag: { schema: { type: string } }
+            Cache-Control: { schema: { type: string } }
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+        '304':
+          description: La imagen no ha cambiado (If-None-Match coincide).
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+    delete:
+      summary: Elimina la fotografía de perfil del terapeuta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Fotografía eliminada con éxito.
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
 components:
   parameters:
     IdempotencyKey:
@@ -416,6 +518,78 @@ components:
         disponible: { type: boolean }
         dado_de_baja: { type: boolean }
         mensaje: { type: string }
+    TherapistRequest:
+      type: object
+      required:
+        [nombre_completo, telefono, correo_electronico, fecha_nacimiento, cedula_profesional]
+      properties:
+        nombre_completo: { type: string, minLength: 1, maxLength: 50 }
+        telefono: { type: string, pattern: '^\d{10}$' }
+        correo_electronico: { type: string, format: email, maxLength: 100 }
+        fecha_nacimiento: { type: string, format: date }
+        cedula_profesional: { type: string, pattern: '^\d{7,8}$' }
+    Therapist:
+      type: object
+      required:
+        [
+          id,
+          nombre_completo,
+          telefono,
+          correo_electronico,
+          fecha_nacimiento,
+          cedula_profesional,
+          activo,
+          version,
+        ]
+      properties:
+        id: { type: string, format: uuid }
+        nombre_completo: { type: string }
+        telefono: { type: string }
+        correo_electronico: { type: string }
+        fecha_nacimiento: { type: string, format: date }
+        cedula_profesional: { type: string }
+        foto_perfil: { type: [string, 'null'] }
+        foto_actualizada_en: { type: [string, 'null'], format: date-time }
+        activo: { type: boolean }
+        fecha_baja: { type: [string, 'null'], format: date }
+        fecha_registro: { type: string, format: date }
+        version: { type: integer, minimum: 1 }
+    TherapistResponse:
+      type: object
+      required: [codigo, terapeuta]
+      properties:
+        codigo: { type: string, const: TERAPEUTA_REGISTRADO }
+        terapeuta: { $ref: '#/components/schemas/Therapist' }
+    TherapistPhotoResponse:
+      type: object
+      required: [codigo, terapeuta]
+      properties:
+        codigo: { type: string, const: FOTO_ACTUALIZADA }
+        terapeuta: { $ref: '#/components/schemas/Therapist' }
+    TherapistAvailabilityRequest:
+      type: object
+      required: [campo, valor]
+      properties:
+        campo:
+          type: string
+          enum: [telefono, correo, correo_electronico, cedula, cedula_profesional]
+        valor: { type: string }
+    TherapistAvailabilityResponse:
+      type: object
+      required: [campo, disponible]
+      properties:
+        campo: { type: string }
+        disponible: { type: boolean }
+        mensaje: { type: string }
+    TherapistConflictError:
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+        - type: object
+          properties:
+            codigo:
+              type: string
+              enum:
+                [TELEFONO_EN_USO, CORREO_EN_USO, CEDULA_EN_USO, DATOS_EN_USO, SOLICITUD_EN_PROCESO]
   responses:
     RegistrationCreated:
       description: Cuenta creada y código enviado.
@@ -504,6 +678,31 @@ components:
           schema: { $ref: '#/components/schemas/ApiError' }
     NotFoundError:
       description: El recurso no existe.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    TherapistRegistered:
+      description: Terapeuta registrado y activo.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/TherapistResponse' }
+    TherapistConflict:
+      description: Teléfono, correo o cédula profesional ya registrados.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/TherapistConflictError' }
+    PhotoTooLarge:
+      description: La fotografía excede los 5 MB.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    PhotoInvalidFormat:
+      description: La fotografía no tiene formato JPEG o PNG.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    PhotoInvalidDimensions:
+      description: La fotografía mide menos de 200 x 200 píxeles.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ApiError' }
