@@ -87,7 +87,7 @@ export function usePatientForm(options: UsePatientFormOptions) {
 
   // Los valores con los que arrancó el formulario: contra ellos se mide si está sucio. Van en
   // estado y no en una referencia porque se leen durante el render.
-  const [initialSnapshot] = useState(initialValues);
+  const [initialSnapshot, setInitialSnapshot] = useState(initialValues);
 
   const valuesRef = useRef(values);
   const formatErrorsRef = useRef(formatErrors);
@@ -264,10 +264,23 @@ export function usePatientForm(options: UsePatientFormOptions) {
     onFieldBlur: handleBlur,
   });
 
+  /**
+   * Reajusta el punto de partida y los valores visibles. Lo usa la edición tras un conflicto de
+   * versión: se recarga el perfil vigente y se reaplica encima lo que el usuario había
+   * capturado (PG-DSN-002 §5.6).
+   */
+  function rebase(nextInitial: PatientFormValues, nextValues: PatientFormValues) {
+    setInitialSnapshot(nextInitial);
+    valuesRef.current = nextValues;
+    setValues(nextValues);
+  }
+
   return {
     values,
     /** Valores más recientes, sin esperar al siguiente render. */
     getValues: () => valuesRef.current,
+    initialValues: initialSnapshot,
+    rebase,
     dirty,
     notice,
     setNotice,

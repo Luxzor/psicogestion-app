@@ -1,5 +1,6 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { UnsavedChangesProvider } from '../../../contexts/UnsavedChangesContext';
 import { PacientesPage } from './PacientesPage';
@@ -40,19 +41,41 @@ const patient = {
   version: 1,
 };
 
+/**
+ * Doble de la vista de perfil. Desde la EDT 4.3.2 el alta redirige al perfil del paciente
+ * (PG-DSN-002 §5.5); estas pruebas solo comprueban el destino y su aviso, no el perfil mismo.
+ */
+function PerfilStub() {
+  const { id } = useParams();
+  const flash = (useLocation().state as { flash?: { text: string } } | null)?.flash;
+  return (
+    <div>
+      <h1>Perfil del paciente {id}</h1>
+      {flash ? <p>{flash.text}</p> : null}
+    </div>
+  );
+}
+
 function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={['/inicio/pacientes/nuevo']}>
-      <UnsavedChangesProvider>
-        <Routes>
-          <Route path="/inicio/pacientes" element={<PacientesPage />} />
-          <Route
-            path="/inicio/pacientes/nuevo"
-            element={<RegistroPacientePage session={{ token: 'token-de-prueba' }} />}
-          />
-        </Routes>
-      </UnsavedChangesProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/inicio/pacientes/nuevo']}>
+        <UnsavedChangesProvider>
+          <Routes>
+            <Route
+              path="/inicio/pacientes"
+              element={<PacientesPage session={{ token: 'token-de-prueba' }} />}
+            />
+            <Route
+              path="/inicio/pacientes/nuevo"
+              element={<RegistroPacientePage session={{ token: 'token-de-prueba' }} />}
+            />
+            <Route path="/inicio/pacientes/:id" element={<PerfilStub />} />
+          </Routes>
+        </UnsavedChangesProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -163,6 +186,10 @@ describe('registro de paciente (EDT 4.3.1)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar paciente' }));
 
     expect(await screen.findByText('Paciente registrado.')).toBeInTheDocument();
+    // Desde la EDT 4.3.2 el alta termina en el perfil del paciente creado (§5.5).
+    expect(
+      screen.getByRole('heading', { name: `Perfil del paciente ${patient.id}` }),
+    ).toBeInTheDocument();
     const [[, init]] = postsTo(fetchMock, '/api/v1/pacientes');
     expect(JSON.parse(String(init?.body))).toEqual({
       nombre_completo: 'Valeria Ku Escalante',

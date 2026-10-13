@@ -60,9 +60,10 @@ export function RegistroPacientePage({ session }: { session: Session }) {
     return ref.current.key;
   }
 
-  function finish(flash: Flash) {
+  /** Al guardar se va al perfil del paciente con el aviso de confirmación (§5.5). */
+  function finish(id: string, flash: Flash) {
     form.clearUnsavedChanges();
-    navigate(LIST_PATH, { state: { flash } });
+    navigate(`${LIST_PATH}/${id}`, { state: { flash } });
   }
 
   async function submit(event?: FormEvent<HTMLFormElement>) {
@@ -75,8 +76,8 @@ export function RegistroPacientePage({ session }: { session: Session }) {
     setSaving(true);
     form.setNotice(null);
     try {
-      await patientsApi.register(payload, session.token, key);
-      finish({ type: 'success', text: 'Paciente registrado.' });
+      const created = await patientsApi.register(payload, session.token, key);
+      finish(created.paciente.id, { type: 'success', text: 'Paciente registrado.' });
     } catch (error) {
       setSaving(false);
       if (!isApiError(error)) {
@@ -115,7 +116,7 @@ export function RegistroPacientePage({ session }: { session: Session }) {
     setReactivation({ ...reactivation, busy: true, error: undefined });
     try {
       await patientsApi.reactivate(reactivation.patient.id, payload, session.token, key);
-      finish({ type: 'success', text: 'Paciente reactivado.' });
+      finish(reactivation.patient.id, { type: 'success', text: 'Paciente reactivado.' });
     } catch (error) {
       const text = isApiError(error)
         ? error.mensaje

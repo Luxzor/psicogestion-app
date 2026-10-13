@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { api } from './auth/api';
+import { queryClient } from './lib/queryClient';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { RecoveryPage } from './features/auth/pages/RecoveryPage';
 import { RegisterPage } from './features/auth/pages/RegisterPage';
@@ -12,7 +13,9 @@ import { CitasPage } from './features/citas/pages/CitasPage';
 import { ConfiguracionPage } from './features/configuracion/pages/ConfiguracionPage';
 import { DashboardHomePage } from './features/dashboard/pages/DashboardHomePage';
 import { DashboardLayout } from './features/dashboard/layouts/DashboardLayout';
+import { EditarPacientePage } from './features/pacientes/pages/EditarPacientePage';
 import { PacientesPage } from './features/pacientes/pages/PacientesPage';
+import { PerfilPacientePage } from './features/pacientes/pages/PerfilPacientePage';
 import { RegistroPacientePage } from './features/pacientes/pages/RegistroPacientePage';
 import { SalasPage } from './features/salas/pages/SalasPage';
 import { RegistroTerapeutaPage } from './features/terapeutas/pages/RegistroTerapeutaPage';
@@ -38,6 +41,15 @@ export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
 
+  /**
+   * Termina la sesión en el cliente. Vacía la caché de TanStack Query para que no queden datos
+   * de pacientes en el navegador (ADR-12, RNF 1.3.3, R01).
+   */
+  const endSession = useCallback(() => {
+    setSession(null);
+    queryClient.clear();
+  }, []);
+
   useEffect(() => {
     if (typeof fetch !== 'function') return;
     const controller = new AbortController();
@@ -48,9 +60,11 @@ export function App() {
       .then((result) => setSession({ token: result.access_token }))
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return;
+        // Sesión expirada o sin refresh válido: no hay sesión y tampoco caché que conservar.
+        endSession();
       });
     return () => controller.abort();
-  }, []);
+  }, [endSession]);
 
   const logout = async () => {
     if (!session) return;
@@ -59,7 +73,7 @@ export function App() {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      setSession(null);
+      endSession();
       navigate('/iniciar-sesion');
     }
   };
@@ -78,8 +92,10 @@ export function App() {
         <Route index element={<DashboardHomePage session={session!} />} />
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="citas" element={<CitasPage />} />
-        <Route path="pacientes" element={<PacientesPage />} />
+        <Route path="pacientes" element={<PacientesPage session={session!} />} />
         <Route path="pacientes/nuevo" element={<RegistroPacientePage session={session!} />} />
+        <Route path="pacientes/:id" element={<PerfilPacientePage session={session!} />} />
+        <Route path="pacientes/:id/editar" element={<EditarPacientePage session={session!} />} />
         <Route path="terapeutas" element={<TerapeutasPage />} />
         <Route path="terapeutas/nuevo" element={<RegistroTerapeutaPage session={session!} />} />
         <Route path="salas" element={<SalasPage />} />

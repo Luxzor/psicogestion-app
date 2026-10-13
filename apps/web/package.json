@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage --config vitest.config.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "5.104.2",
     "lucide-react": "1.47.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
