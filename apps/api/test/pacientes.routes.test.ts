@@ -66,4 +66,94 @@ describe('rutas de pacientes sin dependencias externas', () => {
     expect(response.status).toBe(400);
     expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
   });
+
+  it('rechaza el listado y el perfil sin una sesión activa (CA-3.2-05)', async () => {
+    const lista = await request(createApp()).get('/api/v1/pacientes');
+    expect(lista.status).toBe(401);
+    expect(lista.body.codigo).toBe('SESION_INVALIDA');
+
+    const perfil = await request(createApp()).get(`/api/v1/pacientes/${randomUUID()}`);
+    expect(perfil.status).toBe(401);
+
+    const edicion = await request(createApp())
+      .patch(`/api/v1/pacientes/${randomUUID()}`)
+      .send({ version: 1 });
+    expect(edicion.status).toBe(401);
+  });
+
+  it('valida el identificador antes de consultar o editar el perfil', async () => {
+    const perfil = await request(createApp())
+      .get('/api/v1/pacientes/no-es-un-uuid')
+      .set('Authorization', `Bearer ${token}`);
+    expect(perfil.status).toBe(400);
+    expect(perfil.body.codigo).toBe('VALIDACION_INVALIDA');
+
+    const edicion = await request(createApp())
+      .patch('/api/v1/pacientes/no-es-un-uuid')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ version: 1 });
+    expect(edicion.status).toBe(400);
+  });
+
+  describe('parámetros del listado (EDT 4.3.2)', () => {
+    const get = (query: string) =>
+      request(createApp()).get(`/api/v1/pacientes${query}`).set('Authorization', `Bearer ${token}`);
+
+    it('rechaza un tamaño de página mayor a 100', async () => {
+      const response = await get('?tamano=101');
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
+    });
+
+    it('rechaza un tamaño de página de 0', async () => {
+      expect((await get('?tamano=0')).status).toBe(400);
+    });
+
+    it('rechaza una página inválida', async () => {
+      expect((await get('?pagina=0')).status).toBe(400);
+      expect((await get('?pagina=abc')).status).toBe(400);
+    });
+
+    it('rechaza un orden desconocido', async () => {
+      expect((await get('?orden=curp')).status).toBe(400);
+    });
+
+    it('rechaza el parámetro estado: el filtro de inactivos es de la EDT 4.3.3', async () => {
+      const response = await get('?estado=inactivos');
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe('edición de pacientes (EDT 4.3.2, ADR-10)', () => {
+    const patch = (body: unknown) =>
+      request(createApp())
+        .patch(`/api/v1/pacientes/${randomUUID()}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(body as object);
+
+    it('rechaza un PATCH sin la versión del perfil', async () => {
+      const response = await patch({ telefono: '9991234567' });
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
+    });
+
+    it('rechaza un cuerpo con solo version antes de tocar la base de datos (SIN_CAMBIOS)', async () => {
+      // El servicio corta antes de cualquier consulta, así que no hace falta un paciente real.
+      const response = await patch({ version: 1 });
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('SIN_CAMBIOS');
+    });
+
+    it('rechaza campos desconocidos o de solo lectura en el cuerpo', async () => {
+      expect((await patch({ version: 1, activo: false })).status).toBe(400);
+      expect((await patch({ version: 1, id: randomUUID() })).status).toBe(400);
+      expect((await patch({ version: 1, created_by: randomUUID() })).status).toBe(400);
+    });
+
+    it('rechaza una fecha de nacimiento con formato inválido', async () => {
+      const response = await patch({ version: 1, fecha_nacimiento: '08/10/2026' });
+      expect(response.status).toBe(400);
+      expect(response.body.campos.fecha_nacimiento).toBeDefined();
+    });
+  });
 });
