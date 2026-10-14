@@ -41,6 +41,13 @@ integration('registro de pacientes con servicios reales', () => {
     if (key) call.set('Idempotency-Key', key);
     return call.send(body as object);
   };
+  const get = (path: string) =>
+    request(app).get(`/api/v1/pacientes${path}`).set('Authorization', `Bearer ${token}`);
+  const patch = (id: string, body: unknown) =>
+    request(app)
+      .patch(`/api/v1/pacientes/${id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(body as object);
 
   beforeEach(async () => {
     await db.query(
@@ -223,5 +230,232 @@ integration('registro de pacientes con servicios reales', () => {
          VALUES ('X', 'NOVALIDO', 'F', '2000-01-01', '9990000000')`,
       ),
     ).rejects.toMatchObject({ code: '23514' });
+  });
+
+  describe('consulta y edición de pacientes (EDT 4.3.2)', () => {
+    it('lista solo pacientes activos sin exponer CURP ni correo (RF 3.2.1)', async () => {
+      await post('', patient);
+      const inactive = await post('', other);
+      await db.query('UPDATE paciente SET activo = false, fecha_baja = now() WHERE id = $1', [
+        inactive.body.paciente.id,
+      ]);
+
+      const started = Date.now();
+      const response = await get('');
+
+      expect(response.status).toBe(200);
+      expect(Date.now() - started).toBeLessThan(2000); // CA-3.2-01
+      expect(response.body.datos).toHaveLength(1);
+      expect(response.body.datos[0]).toMatchObject({
+        nombre_completo: patient.nombre_completo,
+        telefono: patient.telefono,
+        activo: true,
+      });
+      expect(response.body.datos[0]).not.toHaveProperty('curp');
+      expect(response.body.datos[0]).not.toHaveProperty('correo');
+      expect(response.body.datos[0].edad).toBeTypeOf('number');
+    });
+
+    it('pagina el listado y reporta el total real (RF 3.2.1)', async () => {
+      for (let n = 0; n < 30; n += 1) {
+        await post('', {
+          ...other,
+          nombre_completo: `Paciente Lote ${String(n).padStart(2, '0')}`,
+          curp: `LOTE${String(n).padStart(2, '0')}0101MYNXSLA${n % 10}`,
+          telefono: `999000${String(n).padStart(4, '0')}`,
+          correo: undefined,
+        });
+      }
+
+      const first = await get('?pagina=1&tamano=25');
+      expect(first.body).toMatchObject({ pagina: 1, tamano: 25, total: 30 });
+      expect(first.body.datos).toHaveLength(25);
+
+      const second = await get('?pagina=2&tamano=25');
+      expect(second.body).toMatchObject({ pagina: 2, tamano: 25, total: 30 });
+      expect(second.body.datos).toHaveLength(5);
+
+      const outOfRange = await get('?pagina=99&tamano=25');
+      expect(outOfRange.body).toMatchObject({ pagina: 99, total: 30 });
+      expect(outOfRange.body.datos).toHaveLength(0);
+    });
+
+    it('busca por nombre sin acentos, por CURP y por teléfono (PG-DSN-002 §5.4)', async () => {
+      await post('', {
+        nombre_completo: 'Íñigo Muñoz Ñuñez',
+        curp: 'MUNI900101HYNXSL05',
+        sexo: 'M',
+        fecha_nacimiento: '1990-01-01',
+        telefono: '9995551234',
+      });
+      await post('', other);
+
+      const sinAcentos = await get('?q=inigo%20munoz%20nunez');
+      expect(sinAcentos.body.datos).toHaveLength(1);
+      expect(sinAcentos.body.datos[0].nombre_completo).toBe('Íñigo Muñoz Ñuñez');
+
+      const porCurp = await get(`?q=${other.curp.slice(0, 6)}`);
+      expect(porCurp.body.datos).toHaveLength(1);
+      expect(porCurp.body.datos[0].nombre_completo).toBe(other.nombre_completo);
+
+      const porTelefono = await get(`?q=${other.telefono.slice(0, 6)}`);
+      expect(porTelefono.body.datos).toHaveLength(1);
+      expect(porTelefono.body.datos[0].nombre_completo).toBe(other.nombre_completo);
+
+      const sinResultado = await get('?q=zzzzz');
+      expect(sinResultado.body.datos).toHaveLength(0);
+      expect(sinResultado.body.total).toBe(0);
+    });
+
+    it('muestra el perfil completo y audita la consulta con solo el id (RF 3.2.2–3.2.3)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+
+      const response = await get(`/${id}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.paciente).toMatchObject({
+        id,
+        nombre_completo: other.nombre_completo,
+        curp: other.curp,
+        sexo: other.sexo,
+        telefono: other.telefono,
+        correo: other.correo,
+        activo: true,
+      });
+      expect(response.body.paciente.edad).toBeTypeOf('number');
+
+      const log = await db.query(
+        "SELECT detalle FROM bitacora_acceso WHERE evento = 'paciente_consultado'",
+      );
+      expect(log.rows).toEqual([{ detalle: id }]);
+      expect(JSON.stringify(log.rows)).not.toContain(other.nombre_completo);
+    });
+
+    it('responde 404 al consultar un paciente inexistente', async () => {
+      const response = await get(`/${crypto.randomUUID()}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body.codigo).toBe('PACIENTE_NO_ENCONTRADO');
+    });
+
+    it('edita un campo y audita solo los nombres de los campos modificados (CA-3.2-03)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+
+      const started = Date.now();
+      const response = await patch(id, { version: 1, telefono: '9991112222' });
+
+      expect(response.status).toBe(200);
+      expect(Date.now() - started).toBeLessThan(3000); // CA-3.2-03
+      expect(response.body.codigo).toBe('PACIENTE_ACTUALIZADO');
+      expect(response.body.paciente).toMatchObject({
+        telefono: '9991112222',
+        nombre_completo: other.nombre_completo, // los campos no enviados se conservan
+        version: 2,
+      });
+
+      const log = await db.query(
+        "SELECT detalle FROM bitacora_acceso WHERE evento = 'paciente_actualizado'",
+      );
+      expect(log.rows).toEqual([{ detalle: `${id} campos=telefono` }]);
+      expect(JSON.stringify(log.rows)).not.toContain('9991112222');
+    });
+
+    it('responde 404 al editar un paciente inexistente', async () => {
+      const response = await patch(crypto.randomUUID(), { version: 1, telefono: '9991110000' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.codigo).toBe('PACIENTE_NO_ENCONTRADO');
+    });
+
+    it('al editar, la edad mínima se mide contra la fecha de registro, no contra hoy (§4.5)', async () => {
+      const created = await post('', other); // se registra hoy
+      const id = created.body.paciente.id;
+
+      const sevenToday = await patch(id, { version: 1, fecha_nacimiento: isoYearsAgo(7) });
+      expect(sevenToday.status).toBe(200);
+
+      const sixToday = await patch(id, { version: 2, fecha_nacimiento: isoYearsAgo(6) });
+      expect(sixToday.status).toBe(400);
+      expect(sixToday.body.campos.fecha_nacimiento).toBe(
+        'El paciente debe tener al menos 7 años cumplidos.',
+      );
+    });
+
+    it('rechaza un PATCH sin cambios reales (SIN_CAMBIOS)', async () => {
+      const created = await post('', other);
+
+      const response = await patch(created.body.paciente.id, { version: 1 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('SIN_CAMBIOS');
+    });
+
+    it('rechaza una versión desfasada con el conflicto y la versión vigente (ADR-10)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      await patch(id, { version: 1, telefono: '9991110000' }); // version pasa a 2
+
+      const response = await patch(id, { version: 1, telefono: '9992220000' });
+
+      expect(response.status).toBe(409);
+      expect(response.body.codigo).toBe('CONFLICTO_VERSION');
+      expect(response.body.version_actual).toBe(2);
+
+      const stored = await db.query('SELECT telefono FROM paciente WHERE id = $1', [id]);
+      expect(stored.rows[0].telefono).toBe('9991110000'); // el intento fallido no se aplicó
+    });
+
+    it('impide editar a un paciente dado de baja (PACIENTE_INACTIVO)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      await db.query('UPDATE paciente SET activo = false, fecha_baja = now() WHERE id = $1', [id]);
+
+      const response = await patch(id, { version: 1, telefono: '9991110000' });
+
+      expect(response.status).toBe(409);
+      expect(response.body.codigo).toBe('PACIENTE_INACTIVO');
+    });
+
+    it('al editar con CURP y teléfono de otro paciente, antepone CURP_EN_USO (§5.12.6)', async () => {
+      await post('', other);
+      const created = await post('', patient);
+
+      const response = await patch(created.body.paciente.id, {
+        version: 1,
+        curp: other.curp,
+        telefono: other.telefono,
+      });
+
+      expect(response.status).toBe(409);
+      expect(response.body.codigo).toBe('CURP_EN_USO');
+      expect(response.body.campos).toEqual({
+        curp: 'Este CURP ya está registrado.',
+        telefono: 'Este teléfono ya está registrado en otro paciente.',
+      });
+    });
+
+    it('la verificación de unicidad excluye al propio paciente al editar (excluir_id, RF 3.2.5)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+
+      const propio = await post('/validaciones', {
+        campo: 'curp',
+        valor: other.curp,
+        excluir_id: id,
+      });
+      expect(propio.body.disponible).toBe(true);
+
+      const propioTelefono = await post('/validaciones', {
+        campo: 'telefono',
+        valor: other.telefono,
+        excluir_id: id,
+      });
+      expect(propioTelefono.body.disponible).toBe(true);
+
+      const ajeno = await post('/validaciones', { campo: 'curp', valor: other.curp });
+      expect(ajeno.body.disponible).toBe(false);
+    });
   });
 });

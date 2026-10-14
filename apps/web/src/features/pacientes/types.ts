@@ -23,6 +23,33 @@ export type Patient = Omit<PatientPayload, 'correo'> & {
   version: number;
 };
 
+/** Perfil completo (RF 3.2.3); el servidor agrega la edad calculada y el sello de cambio. */
+export type PatientProfile = Patient & { edad: number; updated_at: string };
+
+/** Cuerpo del PATCH: solo los campos modificados más la versión leída (ADR-10). */
+export type PatientUpdatePayload = Partial<PatientPayload> & { version: number };
+
+/**
+ * Elemento del listado. El servidor no envía CURP ni correo en la lista (minimización de
+ * datos, R01 y PG-DSN-002 §5.4).
+ */
+export type PatientListItem = {
+  id: string;
+  nombre_completo: string;
+  telefono: string;
+  edad: number;
+  activo: boolean;
+};
+
+export type PatientListParams = { pagina: number; tamano: number; q?: string };
+
+export type PatientListResponse = {
+  datos: PatientListItem[];
+  pagina: number;
+  tamano: number;
+  total: number;
+};
+
 export type InactivePatient = { id: string; nombre_completo: string; fecha_baja: string | null };
 
 export type Availability = {

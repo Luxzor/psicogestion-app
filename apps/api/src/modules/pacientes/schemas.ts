@@ -91,6 +91,14 @@ const fechaNacimiento = (registrationDate: () => string) =>
       }
     });
 
+/**
+ * Valida solo la fecha de nacimiento. Al editar, el límite de 7 años se mide contra la fecha de
+ * registro del paciente y no contra hoy, porque RF 3.1.9 habla de la edad "al momento del
+ * registro" (PG-DSN-002 §4.5).
+ */
+export const createBirthDateSchema = (registrationDate: () => string) =>
+  fechaNacimiento(registrationDate);
+
 export const createPatientSchema = (registrationDate: () => string = () => todayInClinic()) =>
   z.object({
     nombre_completo: nombre,
@@ -107,10 +115,15 @@ export const createPatientSchema = (registrationDate: () => string = () => today
 
 export const patientSchema = createPatientSchema();
 
+export const patientIdSchema = z.uuid('El identificador del paciente no es válido.');
+
+/** Excluye al propio paciente de la verificación de unicidad al editar (RF 3.2.5). */
+const excluirId = patientIdSchema.optional();
+
 export const availabilitySchema = z.discriminatedUnion(
   'campo',
   [
-    z.object({ campo: z.literal('curp'), valor: curp }),
+    z.object({ campo: z.literal('curp'), valor: curp, excluir_id: excluirId }),
     z.object({
       campo: z.literal('telefono'),
       valor: telefono,
@@ -120,12 +133,87 @@ export const availabilitySchema = z.discriminatedUnion(
         .string()
         .transform((value) => value.replace(/\s/g, '').toUpperCase())
         .optional(),
+      excluir_id: excluirId,
     }),
   ],
   { error: 'Indica un campo válido para verificar: curp o telefono.' },
 );
 
-export const patientIdSchema = z.uuid('El identificador del paciente no es válido.');
+/**
+ * EDT 4.3.2. Parámetros del listado de pacientes (PG-DSN-002 §5.12.1).
+ * El esquema es estricto: el filtro por estado llega con la baja lógica (EDT 4.3.3), de modo que
+ * hoy un parámetro desconocido se rechaza en lugar de ignorarse en silencio.
+ */
+export const DEFAULT_PAGE = 1;
+export const DEFAULT_PAGE_SIZE = 25;
+export const MAX_PAGE_SIZE = 100;
+export const SEARCH_MAX_LENGTH = 100;
+export const SORT_ORDERS = ['nombre_completo', '-fecha_registro'] as const;
+export const DEFAULT_SORT_ORDER = 'nombre_completo';
+
+export const listQuerySchema = z.strictObject({
+  pagina: z.coerce
+    .number({ error: 'La página debe ser un número entero.' })
+    .int('La página debe ser un número entero.')
+    .min(DEFAULT_PAGE, 'La página debe ser mayor o igual a 1.')
+    .default(DEFAULT_PAGE),
+  tamano: z.coerce
+    .number({ error: 'El tamaño de página debe ser un número entero.' })
+    .int('El tamaño de página debe ser un número entero.')
+    .min(1, 'El tamaño de página debe ser mayor o igual a 1.')
+    .max(MAX_PAGE_SIZE, `El tamaño de página no puede ser mayor que ${MAX_PAGE_SIZE}.`)
+    .default(DEFAULT_PAGE_SIZE),
+  q: z
+    .string({ error: 'El texto de búsqueda no es válido.' })
+    .max(SEARCH_MAX_LENGTH, `La búsqueda no puede tener más de ${SEARCH_MAX_LENGTH} caracteres.`)
+    .optional()
+    .transform((value) => {
+      const trimmed = value?.trim() ?? '';
+      return trimmed === '' ? undefined : trimmed;
+    }),
+  orden: z
+    .enum(SORT_ORDERS, { error: 'El orden solicitado no es válido.' })
+    .default(DEFAULT_SORT_ORDER),
+});
+
+/** Campos que la edición puede modificar (RF 3.2.4, vista "Nombre Paciente" de RF 3.2.3). */
+export const EDITABLE_FIELDS = [
+  'nombre_completo',
+  'curp',
+  'sexo',
+  'fecha_nacimiento',
+  'telefono',
+  'correo',
+] as const;
+
+export type EditableField = (typeof EDITABLE_FIELDS)[number];
+
+const editableSelection = Object.fromEntries(
+  EDITABLE_FIELDS.map((field) => [field, true as const]),
+) as Record<EditableField, true>;
+
+/**
+ * Edición parcial con control de versión optimista (ADR-10). Se deriva del esquema del alta para
+ * no duplicar ninguna regla de formato ni de normalización: todos los campos son opcionales y el
+ * cuerpo es estricto, de modo que un campo desconocido o de solo lectura se rechaza.
+ */
+export const createUpdatePatientSchema = (registrationDate: () => string = () => todayInClinic()) =>
+  createPatientSchema(registrationDate)
+    .pick(editableSelection)
+    .partial()
+    .extend({
+      // Sin coerción deliberadamente: un booleano o una cadena en este campo es un error del
+      // cliente, no una versión válida.
+      version: z
+        .number({ error: 'Indica la versión del perfil que estás editando.' })
+        .int('La versión debe ser un número entero.')
+        .positive('La versión debe ser un número entero positivo.'),
+    })
+    .strict();
+
+export const updatePatientSchema = createUpdatePatientSchema();
 
 export type PatientInput = z.infer<typeof patientSchema>;
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;
+export type ListQuery = z.infer<typeof listQuerySchema>;
+export type UpdatePatientInput = z.infer<typeof updatePatientSchema>;

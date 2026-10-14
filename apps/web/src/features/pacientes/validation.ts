@@ -1,4 +1,4 @@
-import type { PatientFormValues, PatientPayload, FieldKey } from './types';
+import type { PatientFormValues, PatientPayload, FieldKey, PatientProfile } from './types';
 
 /** Reglas de PG-ERS-001 v0.6.1, sección 3.1; el servidor vuelve a validarlas (autoridad final). */
 export const CURP_PATTERN =
@@ -118,6 +118,68 @@ export function validateField(field: FieldKey, values: PatientFormValues, today 
       }
       return '';
   }
+}
+
+/** Prellena el formulario de edición con el perfil que devuelve el servidor (RNF 3.2.2). */
+export function toFormValues(patient: PatientProfile): PatientFormValues {
+  return {
+    nombre: patient.nombre_completo,
+    curp: patient.curp,
+    sexo: patient.sexo,
+    fechaNacimiento: displayFromIso(patient.fecha_nacimiento),
+    telefono: patient.telefono,
+    correo: patient.correo ?? '',
+  };
+}
+
+/** Normaliza un campo al formato que espera la API. */
+const fieldToApi = (field: FieldKey, values: PatientFormValues) => {
+  switch (field) {
+    case 'nombre':
+      return values.nombre.trim().replace(/\s+/g, ' ');
+    case 'curp':
+      return values.curp.trim();
+    case 'sexo':
+      return values.sexo as PatientPayload['sexo'];
+    case 'fechaNacimiento':
+      return parseDisplayDate(values.fechaNacimiento.trim()).iso ?? '';
+    case 'telefono':
+      return values.telefono.trim();
+    case 'correo':
+      return values.correo.trim().toLowerCase() || null;
+  }
+};
+
+const API_FIELD: Record<FieldKey, keyof PatientPayload> = {
+  nombre: 'nombre_completo',
+  curp: 'curp',
+  sexo: 'sexo',
+  fechaNacimiento: 'fecha_nacimiento',
+  telefono: 'telefono',
+  correo: 'correo',
+};
+
+/**
+ * Campos del formulario que cambiaron respecto al punto de partida. Es la base del cuerpo del
+ * PATCH, que solo lleva lo modificado (RNF 3.2.2, ADR-10).
+ */
+export function changedFields(initial: PatientFormValues, current: PatientFormValues): FieldKey[] {
+  return (Object.keys(API_FIELD) as FieldKey[]).filter(
+    (field) => current[field] !== initial[field],
+  );
+}
+
+/** Cuerpo del PATCH con solo los campos modificados; `version` lo agrega quien lo envía. */
+export function diffPayload(
+  initial: PatientFormValues,
+  current: PatientFormValues,
+): Partial<PatientPayload> {
+  const changes: Partial<PatientPayload> = {};
+  for (const field of changedFields(initial, current)) {
+    // La llave y el valor provienen del mismo campo, por eso el tipo se ensancha aquí.
+    Object.assign(changes, { [API_FIELD[field]]: fieldToApi(field, current) });
+  }
+  return changes;
 }
 
 export function toPayload(values: PatientFormValues, consentimiento: boolean): PatientPayload {

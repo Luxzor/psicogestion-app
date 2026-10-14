@@ -4,7 +4,13 @@ import { asyncRoute } from '../../middleware/async-route.js';
 import { requireAuth } from '../../middleware/require-auth.js';
 import { validationError } from '../../platform/errors.js';
 import { readIdempotencyKey, runIdempotent } from '../../platform/idempotency.js';
-import { availabilitySchema, patientIdSchema, patientSchema } from './schemas.js';
+import {
+  availabilitySchema,
+  listQuerySchema,
+  patientIdSchema,
+  patientSchema,
+  updatePatientSchema,
+} from './schemas.js';
 import { patientService, type RequestContext } from './service.js';
 
 const requestContext = (request: Request, response: Response): RequestContext => ({
@@ -43,12 +49,56 @@ patientsRouter.post(
   }),
 );
 
+/** RF 3.2.1. Listado paginado de pacientes activos (PG-DSN-002 §5.12.3). */
+patientsRouter.get(
+  '/',
+  asyncRoute(async (request, response) => {
+    const parsed = listQuerySchema.safeParse(request.query);
+    if (!parsed.success) throw validationError(parsed.error);
+    response.json(await patientService.list(parsed.data));
+  }),
+);
+
 patientsRouter.post(
   '/validaciones',
   asyncRoute(async (request, response) => {
     const parsed = availabilitySchema.safeParse(request.body);
     if (!parsed.success) throw validationError(parsed.error);
     response.json(await patientService.checkAvailability(parsed.data));
+  }),
+);
+
+/** RF 3.2.2–3.2.3. Perfil del paciente, activo o dado de baja. */
+patientsRouter.get(
+  '/:id',
+  asyncRoute(async (request, response) => {
+    const id = patientIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    response.json({
+      paciente: await patientService.getById(id.data, requestContext(request, response)),
+    });
+  }),
+);
+
+/**
+ * RF 3.2.4–3.2.6. Edición parcial con control de versión (ADR-10). No lleva Idempotency-Key:
+ * la versión ya hace que un reintento no pueda aplicar el cambio dos veces.
+ */
+patientsRouter.patch(
+  '/:id',
+  asyncRoute(async (request, response) => {
+    const id = patientIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const parsed = updatePatientSchema.safeParse(request.body);
+    if (!parsed.success) throw validationError(parsed.error);
+    response.json({
+      codigo: 'PACIENTE_ACTUALIZADO',
+      paciente: await patientService.update(
+        id.data,
+        parsed.data,
+        requestContext(request, response),
+      ),
+    });
   }),
 );
 

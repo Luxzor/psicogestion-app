@@ -6,7 +6,7 @@ export type ApiError = {
 };
 
 type Options = {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   accessToken?: string;
   signal?: AbortSignal;
