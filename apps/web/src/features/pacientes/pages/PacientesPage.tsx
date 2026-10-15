@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from 'react';
 import { useEffect, useState } from 'react';
-import { RotateCw, Search, UserCheck, UserPlus, Users, UserX } from 'lucide-react';
+import { ChevronRight, RotateCw, Search, UserCheck, UserPlus, Users, UserX, X } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Session } from '../../auth/types';
 import { FormNotice } from '../components/FormNotice';
@@ -8,6 +8,7 @@ import { StatusFilter } from '../components/StatusFilter';
 import { useFlash } from '../hooks/useFlash';
 import { usePatientList } from '../hooks/usePacientes';
 import type { PatientListItem, PatientListState } from '../types';
+import { iniciales } from '../validation';
 import '../styles/pacientes.css';
 
 const PAGE_SIZE = 25;
@@ -92,7 +93,7 @@ export function PacientesPage({ session }: { session: Session }) {
         </div>
         <div className="page-tools">
           <StatusFilter value={estado} onChange={changeState} label="Mostrar pacientes" />
-          <div className="search">
+          <div className="search" role="search">
             <Search size={16} aria-hidden="true" />
             <input
               type="search"
@@ -101,7 +102,18 @@ export function PacientesPage({ session }: { session: Session }) {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por nombre, CURP o teléfono"
               aria-label="Buscar por nombre, CURP o teléfono"
+              autoComplete="off"
             />
+            {search ? (
+              <button
+                type="button"
+                className="search__clear"
+                onClick={() => setSearch('')}
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -145,13 +157,19 @@ export function PacientesPage({ session }: { session: Session }) {
                 <th scope="col" className="is-secondary">
                   Edad
                 </th>
+                <th scope="col">
+                  <span className="sr-only">Abrir</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {Array.from({ length: SKELETON_ROWS }, (_, row) => (
                 <tr key={row} aria-hidden="true">
                   <td>
-                    <span className="skeleton skeleton--wide" />
+                    <div className="person">
+                      <span className="skeleton skeleton--circle" />
+                      <span className="skeleton skeleton--wide" />
+                    </div>
                   </td>
                   <td>
                     <span className="skeleton" />
@@ -159,6 +177,7 @@ export function PacientesPage({ session }: { session: Session }) {
                   <td className="is-secondary">
                     <span className="skeleton skeleton--narrow" />
                   </td>
+                  <td className="chev" />
                 </tr>
               ))}
             </tbody>
@@ -202,6 +221,9 @@ export function PacientesPage({ session }: { session: Session }) {
                 <th scope="col" className="is-secondary">
                   Edad
                 </th>
+                <th scope="col">
+                  <span className="sr-only">Abrir</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -215,16 +237,31 @@ export function PacientesPage({ session }: { session: Session }) {
                   aria-label={`Abrir el perfil de ${paciente.nombre_completo}`}
                 >
                   <td>
-                    <span className="data-table__name">{paciente.nombre_completo}</span>
-                    {!paciente.activo ? (
-                      <span className="badge badge--off">
-                        <UserX size={12} aria-hidden="true" />
-                        Dado de baja
+                    <div className="person">
+                      <span
+                        className={`avatar avatar--sm${paciente.activo ? '' : ' is-muted'}`}
+                        aria-hidden="true"
+                      >
+                        {iniciales(paciente.nombre_completo)}
                       </span>
-                    ) : null}
+                      <span>
+                        <span className="person__name data-table__name">
+                          {paciente.nombre_completo}
+                        </span>
+                        {!paciente.activo ? (
+                          <span className="badge badge--off">
+                            <UserX size={12} aria-hidden="true" />
+                            Dado de baja
+                          </span>
+                        ) : null}
+                      </span>
+                    </div>
                   </td>
-                  <td>{paciente.telefono}</td>
-                  <td className="is-secondary">{paciente.edad} años</td>
+                  <td className="num">{paciente.telefono}</td>
+                  <td className="num is-secondary">{paciente.edad} años</td>
+                  <td className="chev">
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </td>
                 </tr>
               ))}
             </tbody>

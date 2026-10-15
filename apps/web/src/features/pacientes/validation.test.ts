@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { PatientFormValues } from './types';
-import { maskDate, normalizeInput, parseDisplayDate, toPayload, validateField } from './validation';
+import {
+  maskDate,
+  normalizeInput,
+  parseDisplayDate,
+  toPayload,
+  validateField,
+  iniciales,
+} from './validation';
 
 const today = '2026-10-08';
 const values: PatientFormValues = {
@@ -59,5 +66,12 @@ describe('validación del formulario de pacientes', () => {
       correo: null,
       consentimiento: true,
     });
+  });
+
+  it('obtiene iniciales de 2 letras para el avatar', () => {
+    expect(iniciales('Valeria Ku Escalante')).toBe('VK');
+    expect(iniciales('Ana Sofía')).toBe('AS');
+    expect(iniciales('Emiliano')).toBe('E');
+    expect(iniciales('')).toBe('U');
   });
 });

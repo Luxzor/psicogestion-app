@@ -18,7 +18,7 @@ import { useFlash } from '../hooks/useFlash';
 import { useDischargePatient, usePatient, useRestorePatient } from '../hooks/usePacientes';
 import { newIdempotencyKey } from '../idempotency';
 import type { PatientProfile } from '../types';
-import { displayFromIso, SEXO_OPTIONS } from '../validation';
+import { displayFromIso, iniciales, SEXO_OPTIONS } from '../validation';
 import '../styles/pacientes.css';
 
 const LIST_PATH = '/inicio/pacientes';
@@ -99,36 +99,53 @@ function PerfilPaciente({
   const listPath = paciente.activo ? LIST_PATH : `${LIST_PATH}?estado=inactivos`;
 
   return (
-    <div className="page page--narrow">
+    <div className="page page--narrow page--profile">
       <Link to={listPath} className="back-link">
         <ChevronLeft size={16} aria-hidden="true" />
         Pacientes
       </Link>
 
-      <div className="page-head">
-        <div className="page-title">
-          <span className="page-title__icon">
-            <UserRound size={22} aria-hidden="true" />
+      {flash ? (
+        <FormNotice type={flash.type} onClose={dismiss}>
+          {flash.text}
+        </FormNotice>
+      ) : null}
+
+      {!paciente.activo ? (
+        <FormNotice type="info">
+          <span className="notice__with-icon">
+            <UserX size={15} aria-hidden="true" />
+            Este paciente fue dado de baja
+            {paciente.fecha_baja ? ` el ${displayFromIso(paciente.fecha_baja)}` : ''}. Sus datos se
+            conservan en el sistema.
           </span>
-          <div>
-            <div className="page-title__row">
-              <h1>{paciente.nombre_completo}</h1>
-              {paciente.activo ? (
-                <span className="badge badge--ok">
-                  <CircleCheck size={12} aria-hidden="true" />
-                  Activo
-                </span>
-              ) : (
-                <span className="badge badge--off">
-                  <UserX size={12} aria-hidden="true" />
-                  Dado de baja
-                </span>
-              )}
-            </div>
-            <p>Perfil del paciente</p>
-          </div>
+        </FormNotice>
+      ) : null}
+
+      <section className="panel profile-head">
+        <span
+          className={`avatar avatar--lg${paciente.activo ? '' : ' is-muted'}`}
+          aria-hidden="true"
+        >
+          {iniciales(paciente.nombre_completo)}
+        </span>
+        <div className="profile-head__main">
+          <h1 aria-label={paciente.nombre_completo}>
+            <span>{paciente.nombre_completo}</span>{' '}
+            {paciente.activo ? (
+              <span className="badge badge--ok">
+                <CircleCheck size={12} aria-hidden="true" />
+                Activo
+              </span>
+            ) : (
+              <span className="badge badge--off">
+                <UserX size={12} aria-hidden="true" />
+                Dado de baja
+              </span>
+            )}
+          </h1>
         </div>
-        <div className="page-actions">
+        <div className="profile-head__actions">
           {paciente.activo ? (
             <>
               <Link
@@ -159,54 +176,38 @@ function PerfilPaciente({
             </button>
           )}
         </div>
-      </div>
+      </section>
 
-      {flash ? (
-        <FormNotice type={flash.type} onClose={dismiss}>
-          {flash.text}
-        </FormNotice>
-      ) : null}
-
-      {!paciente.activo ? (
-        <FormNotice type="info">
-          <span className="notice__with-icon">
-            <UserX size={15} aria-hidden="true" />
-            Este paciente fue dado de baja
-            {paciente.fecha_baja ? ` el ${displayFromIso(paciente.fecha_baja)}` : ''}. Sus datos se
-            conservan en el sistema.
-          </span>
-        </FormNotice>
-      ) : null}
-
-      <section className="panel profile">
-        <h2 className="sr-only">Datos del paciente</h2>
-        <dl className="profile__grid">
-          <div className="profile__item">
+      <section className="panel">
+        <h2 className="panel__title">Datos de identificación</h2>
+        <dl className="data-grid">
+          <div>
             <dt>Nombre completo</dt>
             <dd>{paciente.nombre_completo}</dd>
           </div>
-          <div className="profile__item">
+          <div>
             <dt>Fecha de nacimiento</dt>
             <dd>
-              {displayFromIso(paciente.fecha_nacimiento)}{' '}
-              <span className="profile__muted">({paciente.edad} años)</span>
+              {displayFromIso(paciente.fecha_nacimiento)} <small>({paciente.edad} años)</small>
             </dd>
           </div>
-          <div className="profile__item">
+          <div>
             <dt>CURP</dt>
             <dd className="is-mono">{paciente.curp}</dd>
           </div>
-          <div className="profile__item">
+          <div>
             <dt>Sexo</dt>
             <dd>{sexoLabel(paciente.sexo)}</dd>
           </div>
-          <div className="profile__item">
+          <div>
             <dt>Teléfono</dt>
             <dd>{paciente.telefono}</dd>
           </div>
-          <div className="profile__item">
+          <div className="is-wide">
             <dt>Correo electrónico</dt>
-            <dd>{paciente.correo ?? <span className="profile__muted">No registrado</span>}</dd>
+            <dd className={paciente.correo ? 'is-wide' : 'is-empty is-wide'}>
+              {paciente.correo ?? 'No registrado'}
+            </dd>
           </div>
         </dl>
       </section>
