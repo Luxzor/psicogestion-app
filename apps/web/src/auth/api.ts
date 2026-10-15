@@ -28,6 +28,42 @@ const parsePayload = async (response: Response): Promise<unknown> => {
   return response.json();
 };
 
+type UnauthorizedHandler = () => void;
+type TokenRefreshedHandler = (token: string) => void;
+
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+let tokenRefreshedHandler: TokenRefreshedHandler | null = null;
+
+export const setOnUnauthorized = (handler: UnauthorizedHandler | null) => {
+  unauthorizedHandler = handler;
+};
+
+export const setOnTokenRefreshed = (handler: TokenRefreshedHandler | null) => {
+  tokenRefreshedHandler = handler;
+};
+
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefreshToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch('/api/v1/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { access_token?: string };
+      return data.access_token ?? null;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
+}
+
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   let response: Response;
@@ -49,6 +85,17 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
     // Una cancelación no es una falla de red: se propaga tal cual.
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
     throw NETWORK_ERROR;
+  }
+
+  // Manejo de sesión expirada o inválida (401) en peticiones autenticadas:
+  if (response.status === 401 && path !== '/auth/iniciar-sesion' && path !== '/auth/refresh') {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      tokenRefreshedHandler?.(newToken);
+      return api<T>(path, { ...options, accessToken: newToken });
+    }
+    // Si el refresco falló o no fue posible, terminar la sesión y notificar
+    unauthorizedHandler?.();
   }
 
   const payload = await parsePayload(response);
