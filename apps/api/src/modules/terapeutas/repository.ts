@@ -254,6 +254,50 @@ export const therapistRepository = {
     return result.rows[0] ?? null;
   },
 
+  /**
+   * EDT 4.3.5. Baja lógica (RF 2.3.1): el registro se conserva con activo = false, la fecha de la
+   * baja y quién la hizo (baja_por); ningún otro dato del perfil cambia y la fotografía no se
+   * toca. Solo afecta a un terapeuta activo, de modo que una segunda baja no cambia la fecha de la
+   * primera. Sube la versión (ADR-10) para que una edición abierta en otra pestaña detecte que el
+   * perfil cambió.
+   */
+  async discharge(id: string, userId: string, client: Queryable = db) {
+    const result = await client.query<TherapistRecord>(
+      `UPDATE terapeuta SET
+         activo = false,
+         fecha_baja = now(),
+         baja_por = $2,
+         version = version + 1,
+         updated_at = now(),
+         updated_by = $2
+       WHERE id = $1 AND activo = true
+       RETURNING ${therapistFields}`,
+      [id, userId],
+    );
+    return result.rows[0] ?? null;
+  },
+
+  /**
+   * EDT 4.3.5. Reactivación desde el perfil (RF 2.3.4): el terapeuta vuelve a estar activo;
+   * fecha_baja y baja_por se limpian. No hace falta verificar unicidad porque las restricciones
+   * únicas de teléfono, correo y cédula ya abarcan a los terapeutas dados de baja.
+   */
+  async restore(id: string, userId: string, client: Queryable = db) {
+    const result = await client.query<TherapistRecord>(
+      `UPDATE terapeuta SET
+         activo = true,
+         fecha_baja = NULL,
+         baja_por = NULL,
+         version = version + 1,
+         updated_at = now(),
+         updated_by = $2
+       WHERE id = $1 AND activo = false
+       RETURNING ${therapistFields}`,
+      [id, userId],
+    );
+    return result.rows[0] ?? null;
+  },
+
   async updatePhoto(id: string, storageKey: string, userId: string, client: Queryable = db) {
     const result = await client.query<TherapistRecord>(
       `UPDATE terapeuta

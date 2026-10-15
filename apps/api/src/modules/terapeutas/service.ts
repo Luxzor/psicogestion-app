@@ -169,6 +169,21 @@ function versionConflictError(currentVersion: number) {
   );
 }
 
+/** EDT 4.3.5. Dar de baja a un terapeuta que ya estaba dado de baja (por ejemplo, en otra pestaña). */
+function alreadyDischargedError(therapist: TherapistSummary) {
+  return new AppError(
+    409,
+    'TERAPEUTA_INACTIVO',
+    'Este terapeuta ya estaba dado de baja. El perfil no cambió.',
+    undefined,
+    { fecha_baja: therapist.fecha_baja },
+  );
+}
+
+function alreadyActiveError() {
+  return new AppError(409, 'TERAPEUTA_ACTIVO', 'El terapeuta ya está activo.');
+}
+
 /** Día de registro del terapeuta en la zona de la clínica, nunca en UTC. */
 const registrationDateOf = (therapist: TherapistSummary) => todayInClinic(therapist.created_at);
 
@@ -335,6 +350,50 @@ export const therapistService = {
       );
       return updated;
     }, translateEditUniqueViolation);
+  },
+
+  /**
+   * EDT 4.3.5. Baja lógica del terapeuta (RF 2.3.1 a RF 2.3.3). El perfil se conserva completo con
+   * activo = false y la fecha de la baja; deja de aparecer en la lista de activos y ya no puede
+   * editarse hasta reactivarlo. No toca la fotografía. La bitácora guarda solo el identificador.
+   */
+  async discharge(id: string, context: RequestContext) {
+    return inTransaction(async (client) => {
+      const current = await therapistRepository.findSummaryById(id, client, true);
+      if (!current) throw notFoundError();
+      if (!current.activo) throw alreadyDischargedError(current);
+
+      const updated = await therapistRepository.discharge(id, context.userId, client);
+      // Con el bloqueo FOR UPDATE no debería ocurrir; se informa la causa real por si acaso.
+      if (!updated) throw alreadyDischargedError(current);
+
+      await audit(
+        { ...auditContext(context), event: 'terapeuta_dado_de_baja', detail: updated.id },
+        client,
+      );
+      return updated;
+    });
+  },
+
+  /**
+   * EDT 4.3.5. Reactivación de un terapeuta dado de baja (RF 2.3.4): vuelve a la lista de activos
+   * con los datos que tenía, incluida la fotografía (la baja nunca la borró).
+   */
+  async restore(id: string, context: RequestContext) {
+    return inTransaction(async (client) => {
+      const current = await therapistRepository.findSummaryById(id, client, true);
+      if (!current) throw notFoundError();
+      if (current.activo) throw alreadyActiveError();
+
+      const updated = await therapistRepository.restore(id, context.userId, client);
+      if (!updated) throw alreadyActiveError();
+
+      await audit(
+        { ...auditContext(context), event: 'terapeuta_reactivado', detail: updated.id },
+        client,
+      );
+      return updated;
+    });
   },
 
   /** Carga y valida la fotografía de perfil del terapeuta (RF 2.1.11 a 2.1.13, CA-2.1-05). */

@@ -207,6 +207,16 @@ export const createUpdateTherapistSchema = (
 
 export const updateTherapistSchema = createUpdateTherapistSchema();
 
+/**
+ * EDT 4.3.5. Cuerpo de la baja y de la reactivación (RF 2.3.1, RF 2.3.4). Ninguna de las dos
+ * modifica datos del perfil, así que el cuerpo es un objeto vacío y estricto, de modo que un
+ * intento de colar datos (por ejemplo `activo` o `fecha_baja`) se rechaza en lugar de ignorarse.
+ */
+export const dischargeSchema = z.strictObject(
+  {},
+  { error: 'Esta operación no recibe datos en el cuerpo de la solicitud.' },
+);
+
 export type TherapistInput = z.infer<typeof therapistSchema>;
 export type TherapistAvailabilityInput = z.infer<typeof therapistAvailabilitySchema>;
 export type ListQuery = z.infer<typeof listQuerySchema>;
