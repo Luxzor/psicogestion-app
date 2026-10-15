@@ -217,6 +217,24 @@ export const dischargeSchema = z.strictObject(
   { error: 'Esta operación no recibe datos en el cuerpo de la solicitud.' },
 );
 
+/**
+ * EDT 4.3.5. Parámetro `tam` de la entrega de la fotografía (PG-DSN-002 5.12.2 y 5.12.5). El
+ * contrato distingue perfil de miniatura; el servicio sirve hoy el mismo archivo para los dos
+ * valores (4.3.4 nunca generó una miniatura real), así que aquí solo se valida que el valor sea
+ * uno de los dos permitidos.
+ */
+export const PHOTO_SIZES = ['perfil', 'miniatura'] as const;
+export const DEFAULT_PHOTO_SIZE = 'perfil';
+
+export const photoQuerySchema = z.strictObject({
+  tam: z
+    .enum(PHOTO_SIZES, { error: 'El tamaño solicitado no es válido: perfil o miniatura.' })
+    .default(DEFAULT_PHOTO_SIZE),
+});
+
+export type PhotoSize = (typeof PHOTO_SIZES)[number];
+export type PhotoQuery = z.infer<typeof photoQuerySchema>;
+
 export type TherapistInput = z.infer<typeof therapistSchema>;
 export type TherapistAvailabilityInput = z.infer<typeof therapistAvailabilitySchema>;
 export type ListQuery = z.infer<typeof listQuerySchema>;

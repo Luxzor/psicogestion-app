@@ -8,6 +8,7 @@ import { extractMultipartFile } from '../../platform/images.js';
 import {
   dischargeSchema,
   listQuerySchema,
+  photoQuerySchema,
   therapistAvailabilitySchema,
   therapistIdSchema,
   therapistSchema,
@@ -192,11 +193,18 @@ therapistsRouter.put(
   }),
 );
 
+/**
+ * RNF 2.2.2. Entrega de la fotografía (PG-DSN-002 5.12.2 y 5.12.5). `tam` solo se valida aquí:
+ * perfil y miniatura sirven el mismo archivo (ver nota de photoQuerySchema), así que no se pasa
+ * al servicio.
+ */
 therapistsRouter.get(
   '/:id/foto',
   asyncRoute(async (request, response) => {
     const id = therapistIdSchema.safeParse(request.params.id);
     if (!id.success) throw validationError(id.error);
+    const tam = photoQuerySchema.safeParse(request.query);
+    if (!tam.success) throw validationError(tam.error);
 
     const { buffer, contentType, etag } = await therapistService.getPhoto(id.data);
 

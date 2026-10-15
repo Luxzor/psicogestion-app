@@ -423,7 +423,12 @@ export const therapistService = {
     return updated;
   },
 
-  /** Descarga la fotografía de perfil de un terapeuta (RF 2.2.2). */
+  /**
+   * Descarga la fotografía de perfil de un terapeuta (RF 2.2.2). El contrato distingue
+   * ?tam=perfil de ?tam=miniatura (EDT 4.3.5), pero como 4.3.4 nunca generó una miniatura
+   * real (sin librería de imágenes ni redimensionado), se sirve el mismo archivo para ambos;
+   * routes.ts valida `tam` y no lo pasa aquí.
+   */
   async getPhoto(therapistId: string) {
     const therapist = await therapistRepository.findById(therapistId);
     if (!therapist || !therapist.foto_perfil) {
