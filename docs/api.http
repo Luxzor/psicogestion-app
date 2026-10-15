@@ -72,6 +72,21 @@ Content-Type: application/json
   "valor": "KUEV090825MYNXSLA3"
 }
 
+### Lista de pacientes dados de baja (EDT 4.3.3). Sin estado se listan los activos.
+GET {{baseUrl}}/pacientes?estado=inactivos&pagina=1&tamano=25
+Authorization: Bearer {{accessToken}}
+
+### Baja lógica de un paciente (EDT 4.3.3). Sin cuerpo; el perfil se conserva.
+@pacienteId = pega_aqui_el_id_del_paciente
+POST {{baseUrl}}/pacientes/{{pacienteId}}/baja
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: 7b2d9c1e-4f3a-4e8b-9d6c-2a1f0e5b8c73
+
+### Reactivación desde el perfil (EDT 4.3.3). Sin cuerpo: conserva los datos anteriores.
+POST {{baseUrl}}/pacientes/{{pacienteId}}/reactivacion
+Authorization: Bearer {{accessToken}}
+Idempotency-Key: 0c8e4a7d-2b6f-4d1c-8e3a-9f5b7d2c6e14
+
 ### Registro de terapeuta (EDT 4.3.4). Usa el access_token del inicio de sesión.
 POST {{baseUrl}}/terapeutas
 Authorization: Bearer {{accessToken}}
