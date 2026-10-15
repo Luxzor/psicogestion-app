@@ -5,7 +5,13 @@ import { requireAuth } from '../../middleware/require-auth.js';
 import { validationError } from '../../platform/errors.js';
 import { readIdempotencyKey, runIdempotent } from '../../platform/idempotency.js';
 import { extractMultipartFile } from '../../platform/images.js';
-import { therapistAvailabilitySchema, therapistIdSchema, therapistSchema } from './schemas.js';
+import {
+  listQuerySchema,
+  therapistAvailabilitySchema,
+  therapistIdSchema,
+  therapistSchema,
+  updateTherapistSchema,
+} from './schemas.js';
 import { therapistService, type RequestContext } from './service.js';
 
 const requestContext = (request: Request, response: Response): RequestContext => ({
@@ -44,12 +50,56 @@ therapistsRouter.post(
   }),
 );
 
+/** RF 2.2.1. Listado paginado de terapeutas (PG-DSN-002 5.12.2). Por omisión solo activos. */
+therapistsRouter.get(
+  '/',
+  asyncRoute(async (request, response) => {
+    const parsed = listQuerySchema.safeParse(request.query);
+    if (!parsed.success) throw validationError(parsed.error);
+    response.json(await therapistService.list(parsed.data));
+  }),
+);
+
 therapistsRouter.post(
   '/validaciones',
   asyncRoute(async (request, response) => {
     const parsed = therapistAvailabilitySchema.safeParse(request.body);
     if (!parsed.success) throw validationError(parsed.error);
     response.json(await therapistService.checkAvailability(parsed.data));
+  }),
+);
+
+/** RF 2.2.2. Perfil del terapeuta, activo o dado de baja. */
+therapistsRouter.get(
+  '/:id',
+  asyncRoute(async (request, response) => {
+    const id = therapistIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    response.json({
+      terapeuta: await therapistService.getById(id.data, requestContext(request, response)),
+    });
+  }),
+);
+
+/**
+ * RF 2.2.3–2.2.5. Edición parcial con control de versión (ADR-10). No lleva Idempotency-Key:
+ * la versión ya hace que un reintento no pueda aplicar el cambio dos veces.
+ */
+therapistsRouter.patch(
+  '/:id',
+  asyncRoute(async (request, response) => {
+    const id = therapistIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const parsed = updateTherapistSchema.safeParse(request.body);
+    if (!parsed.success) throw validationError(parsed.error);
+    response.json({
+      codigo: 'TERAPEUTA_ACTUALIZADO',
+      terapeuta: await therapistService.update(
+        id.data,
+        parsed.data,
+        requestContext(request, response),
+      ),
+    });
   }),
 );
 
