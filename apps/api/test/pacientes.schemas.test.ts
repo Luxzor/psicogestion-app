@@ -4,6 +4,8 @@ import {
   availabilitySchema,
   createPatientSchema,
   createUpdatePatientSchema,
+  dischargeSchema,
+  isEmptyBody,
   listQuerySchema,
 } from '../src/modules/pacientes/schemas.js';
 
@@ -148,7 +150,12 @@ describe('utilidades de fecha de la clínica', () => {
 describe('esquema de parámetros de listado (EDT 4.3.2)', () => {
   it('acepta pagina y tamano por defecto cuando no se envían', () => {
     const result = listQuerySchema.parse({});
-    expect(result).toMatchObject({ pagina: 1, tamano: 25, orden: 'nombre_completo' });
+    expect(result).toMatchObject({
+      pagina: 1,
+      tamano: 25,
+      orden: 'nombre_completo',
+      estado: 'activos',
+    });
     expect(result.q).toBeUndefined();
   });
 
@@ -171,8 +178,8 @@ describe('esquema de parámetros de listado (EDT 4.3.2)', () => {
     expect(listQuerySchema.safeParse({ orden: '-fecha_registro' }).success).toBe(true);
   });
 
-  it('rechaza un parámetro desconocido (el filtro de estado llega con la EDT 4.3.3)', () => {
-    expect(listQuerySchema.safeParse({ estado: 'inactivos' }).success).toBe(false);
+  it('rechaza un parámetro desconocido', () => {
+    expect(listQuerySchema.safeParse({ activo: 'false' }).success).toBe(false);
   });
 
   it('recorta la búsqueda y la convierte en undefined si queda vacía', () => {
@@ -261,5 +268,29 @@ describe('esquema de edición de pacientes (EDT 4.3.2, ADR-10)', () => {
     expect(
       registeredSevenYearsAgo.safeParse({ version: 1, fecha_nacimiento: '2013-10-09' }).success,
     ).toBe(false);
+  });
+});
+
+describe('baja lógica y filtro por estado (EDT 4.3.3)', () => {
+  it('acepta estado activos o inactivos y rechaza cualquier otro valor', () => {
+    expect(listQuerySchema.parse({ estado: 'inactivos' }).estado).toBe('inactivos');
+    expect(listQuerySchema.parse({ estado: 'activos' }).estado).toBe('activos');
+    expect(listQuerySchema.safeParse({ estado: 'todos' }).success).toBe(false);
+    expect(listQuerySchema.safeParse({ estado: 'INACTIVOS' }).success).toBe(false);
+  });
+
+  it('el cuerpo de la baja es un objeto vacío y estricto', () => {
+    expect(dischargeSchema.safeParse({}).success).toBe(true);
+    expect(dischargeSchema.safeParse({ activo: false }).success).toBe(false);
+    expect(dischargeSchema.safeParse({ fecha_baja: '2026-10-14' }).success).toBe(false);
+    expect(dischargeSchema.safeParse([]).success).toBe(false);
+  });
+
+  it('distingue la reactivación sin cuerpo de la reactivación con datos', () => {
+    expect(isEmptyBody(undefined)).toBe(true);
+    expect(isEmptyBody(null)).toBe(true);
+    expect(isEmptyBody({})).toBe(true);
+    expect(isEmptyBody([])).toBe(false);
+    expect(isEmptyBody({ nombre_completo: 'Valeria Ku Escalante' })).toBe(false);
   });
 });
