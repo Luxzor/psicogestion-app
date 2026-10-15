@@ -5,7 +5,8 @@ import { LoaderCircle } from 'lucide-react';
 export type DialogAction = {
   label: string;
   busyLabel?: string;
-  variant: 'primary' | 'secondary';
+  /** `danger` marca una acción destructiva; el texto del botón también lo dice (no solo el color). */
+  variant: 'primary' | 'secondary' | 'danger';
   onClick: () => void;
   initialFocus?: boolean;
   busy?: boolean;

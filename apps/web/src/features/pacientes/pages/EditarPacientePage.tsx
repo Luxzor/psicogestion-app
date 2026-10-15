@@ -92,7 +92,10 @@ export function EditarPacientePage({ session }: { session: Session }) {
               <UserRound size={44} aria-hidden="true" />
             </span>
             <h2>Este paciente está dado de baja</h2>
-            <p>Sus datos se conservan, pero no pueden editarse mientras el perfil esté inactivo.</p>
+            <p>
+              Sus datos se conservan, pero no pueden editarse mientras el perfil esté inactivo.
+              Reactívalo desde su perfil para volver a editarlo.
+            </p>
             <Link to={`${LIST_PATH}/${paciente.id}`} className="button button--primary">
               Ir al perfil
             </Link>

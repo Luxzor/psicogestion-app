@@ -11,15 +11,17 @@ import type {
 
 type PatientResponse = { codigo: string; paciente: Patient };
 type ProfileResponse = { paciente: PatientProfile };
+type ProfileActionResponse = { codigo: string; paciente: PatientProfile };
 
 export const patientsApi = {
-  /** RF 3.2.1. Listado paginado de pacientes activos. */
+  /** RF 3.2.1. Listado paginado de pacientes activos o dados de baja (EDT 4.3.3). */
   list(params: PatientListParams, accessToken: string, signal?: AbortSignal) {
     const query = new URLSearchParams({
       pagina: String(params.pagina),
       tamano: String(params.tamano),
     });
     if (params.q) query.set('q', params.q);
+    if (params.estado && params.estado !== 'activos') query.set('estado', params.estado);
     return api<PatientListResponse>(`/pacientes?${query.toString()}`, { accessToken, signal });
   },
 
@@ -56,6 +58,25 @@ export const patientsApi = {
       accessToken,
       headers: { 'Idempotency-Key': idempotencyKey },
     });
+  },
+
+  /** EDT 4.3.3. Baja lógica: el perfil se conserva con activo en falso (RF 3.3.1). */
+  async discharge(id: string, accessToken: string, idempotencyKey: string) {
+    const result = await api<ProfileActionResponse>(`/pacientes/${encodeURIComponent(id)}/baja`, {
+      method: 'POST',
+      accessToken,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return result.paciente;
+  },
+
+  /** EDT 4.3.3. Reactivación desde el perfil, sin cuerpo: conserva los datos anteriores. */
+  async restore(id: string, accessToken: string, idempotencyKey: string) {
+    const result = await api<ProfileActionResponse>(
+      `/pacientes/${encodeURIComponent(id)}/reactivacion`,
+      { method: 'POST', accessToken, headers: { 'Idempotency-Key': idempotencyKey } },
+    );
+    return result.paciente;
   },
 
   checkAvailability(

@@ -6,7 +6,7 @@ const FLASH_DURATION_MS = 7000;
 
 /**
  * Aviso de confirmación que viaja en el estado de la navegación ("Paciente registrado",
- * "Cambios guardados"). Se limpia del historial para que no reaparezca al recargar o al volver.
+ * "Cambios guardados", "Paciente dado de baja"). Se limpia del historial para que no reaparezca al recargar o al volver.
  */
 export function useFlash() {
   const location = useLocation();
@@ -27,5 +27,6 @@ export function useFlash() {
     return () => clearTimeout(timer);
   }, [flash]);
 
-  return { flash, dismiss: () => setFlash(null) };
+  // `show` publica un aviso sin navegar, por ejemplo tras reactivar desde el mismo perfil.
+  return { flash, dismiss: () => setFlash(null), show: setFlash };
 }
