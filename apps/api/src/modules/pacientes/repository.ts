@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg';
+import { env } from '../../config/env.js';
 import { db } from '../../platform/db.js';
 import {
   EDITABLE_FIELDS,
@@ -50,6 +51,19 @@ export type PatientSummary = Pick<
   'id' | 'nombre_completo' | 'curp' | 'activo' | 'fecha_baja' | 'version'
 > & { created_at: Date };
 
+/**
+ * Zona horaria de la clínica como literal de SQL. `env` ya validó que es un nombre IANA válido;
+ * aun así se duplican las comillas para que nunca pueda cerrar el literal.
+ */
+const clinicZone = `'${env.CLINIC_TIME_ZONE.replace(/'/g, "''")}'`;
+
+/**
+ * Día de la baja en la zona de la clínica (EDT 4.3.3). `fecha_baja` es timestamptz: sin la
+ * conversión, una baja hecha después de las 18:00 en Mérida se mostraría con la fecha del día
+ * siguiente, porque la sesión de PostgreSQL trabaja en UTC.
+ */
+const dischargeDate = `to_char(fecha_baja AT TIME ZONE ${clinicZone}, 'YYYY-MM-DD') AS fecha_baja`;
+
 const patientFields = `
   id,
   nombre_completo,
@@ -60,7 +74,7 @@ const patientFields = `
   correo,
   consentimiento,
   activo,
-  to_char(fecha_baja, 'YYYY-MM-DD') AS fecha_baja,
+  ${dischargeDate},
   to_char(created_at, 'YYYY-MM-DD') AS fecha_registro,
   version`;
 
@@ -69,7 +83,7 @@ const summaryFields = `
   nombre_completo,
   curp,
   activo,
-  to_char(fecha_baja, 'YYYY-MM-DD') AS fecha_baja,
+  ${dischargeDate},
   version,
   created_at`;
 
@@ -81,12 +95,13 @@ const ageExpression = (todayParam: string) =>
 const escapeForLike = (value: string) => value.replace(/[\\%_]/g, (match) => `\\${match}`);
 
 /**
- * Filtro del listado: solo activos (el filtro por estado llega con la EDT 4.3.3) y, si hay
+ * Filtro del listado: pacientes activos o dados de baja según `estado` (EDT 4.3.3) y, si hay
  * búsqueda, nombre sin acentos, prefijo de CURP o prefijo de teléfono (PG-DSN-002 §5.4).
- * Recibe las posiciones de los parámetros para poder reutilizarse en el conteo.
+ * Recibe las posiciones de los parámetros para poder reutilizarse en el conteo. El filtro por
+ * `activo` va primero para aprovechar el índice (activo, nombre_completo COLLATE es_mx_icu).
  */
-const matchClause = (searchParam: string, phoneParam: string) => `
-  activo
+const matchClause = (activeParam: string, searchParam: string, phoneParam: string) => `
+  activo = ${activeParam}::boolean
   AND (${searchParam}::text IS NULL
        OR f_sin_acentos(lower(nombre_completo))
             LIKE '%' || f_sin_acentos(lower(${searchParam})) || '%'
@@ -123,11 +138,13 @@ export const patientRepository = {
   },
 
   /**
-   * Listado paginado de pacientes activos (RF 3.2.1). El total viaja en la misma consulta con
+   * Listado paginado de pacientes activos (RF 3.2.1) o dados de baja (EDT 4.3.3, filtro
+   * "Dados de baja" de PG-DSN-002 §5.4). El total viaja en la misma consulta con
    * count(*) OVER() para no pagar un segundo viaje (presupuesto de RNF 3.2.1, PG-DSN-002 §3.6).
    * La búsqueda acepta nombre sin acentos, prefijo de CURP o prefijo de teléfono (§5.4).
    */
   async list(query: ListQuery, today: string, client: Queryable = db) {
+    const active = query.estado === 'activos';
     const search = query.q ? escapeForLike(query.q) : null;
     const phonePrefix = search && /^\d+$/.test(search) ? search : null;
     const orderBy =
@@ -143,10 +160,10 @@ export const patientRepository = {
               activo,
               count(*) OVER() AS total
        FROM paciente
-       WHERE ${matchClause('$2', '$3')}
+       WHERE ${matchClause('$2', '$3', '$4')}
        ORDER BY ${orderBy}
-       LIMIT $4 OFFSET $5`,
-      [today, search, phonePrefix, query.tamano, (query.pagina - 1) * query.tamano],
+       LIMIT $5 OFFSET $6`,
+      [today, active, search, phonePrefix, query.tamano, (query.pagina - 1) * query.tamano],
     );
 
     // Se copian los campos uno por uno: la lista no expone el CURP ni el correo (R01, §4.6).
@@ -163,8 +180,8 @@ export const patientRepository = {
     // que preguntar el total aparte para que el cliente pueda corregir la paginación.
     if (query.pagina === 1) return { datos, total: 0 };
     const counted = await client.query<{ total: string }>(
-      `SELECT count(*)::text AS total FROM paciente WHERE ${matchClause('$1', '$2')}`,
-      [search, phonePrefix],
+      `SELECT count(*)::text AS total FROM paciente WHERE ${matchClause('$1', '$2', '$3')}`,
+      [active, search, phonePrefix],
     );
     return { datos, total: Number(counted.rows[0].total) };
   },
@@ -274,6 +291,51 @@ export const patientRepository = {
         data.consentimiento,
         userId,
       ],
+    );
+    return result.rows[0] ?? null;
+  },
+
+  /**
+   * EDT 4.3.3. Baja lógica (RF 3.3.1): el registro se conserva con activo = false y la fecha de
+   * la baja; ningún dato del perfil se borra ni se modifica. Solo afecta a un paciente activo, de
+   * modo que una segunda baja no cambia la fecha de la primera. Sube la versión (ADR-10) para que
+   * una edición abierta en otra pestaña detecte que el perfil cambió.
+   */
+  async discharge(id: string, userId: string, today: string, client: Queryable = db) {
+    const result = await client.query<PatientProfile>(
+      `UPDATE paciente SET
+         activo = false,
+         fecha_baja = now(),
+         version = version + 1,
+         updated_at = now(),
+         updated_by = $2
+       WHERE id = $1 AND activo = true
+       RETURNING ${patientFields},
+                 ${ageExpression('$3')},
+                 updated_at`,
+      [id, userId, today],
+    );
+    return result.rows[0] ?? null;
+  },
+
+  /**
+   * EDT 4.3.3. Reactivación desde el perfil: el paciente vuelve a estar activo con los mismos
+   * datos que tenía. No hace falta verificar la unicidad de CURP ni de teléfono porque las
+   * restricciones únicas abarcan también a los pacientes dados de baja.
+   */
+  async restore(id: string, userId: string, today: string, client: Queryable = db) {
+    const result = await client.query<PatientProfile>(
+      `UPDATE paciente SET
+         activo = true,
+         fecha_baja = NULL,
+         version = version + 1,
+         updated_at = now(),
+         updated_by = $2
+       WHERE id = $1 AND activo = false
+       RETURNING ${patientFields},
+                 ${ageExpression('$3')},
+                 updated_at`,
+      [id, userId, today],
     );
     return result.rows[0] ?? null;
   },

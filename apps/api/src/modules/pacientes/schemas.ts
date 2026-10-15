@@ -140,9 +140,10 @@ export const availabilitySchema = z.discriminatedUnion(
 );
 
 /**
- * EDT 4.3.2. Parámetros del listado de pacientes (PG-DSN-002 §5.12.1).
- * El esquema es estricto: el filtro por estado llega con la baja lógica (EDT 4.3.3), de modo que
- * hoy un parámetro desconocido se rechaza en lugar de ignorarse en silencio.
+ * EDT 4.3.2 y 4.3.3. Parámetros del listado de pacientes (PG-DSN-002 §5.12.1).
+ * El esquema es estricto: un parámetro desconocido se rechaza en lugar de ignorarse en silencio.
+ * `estado` llega con la baja lógica (EDT 4.3.3): por omisión se listan solo los activos, que es
+ * lo que la lista mostraba en la EDT 4.3.2, de modo que los clientes anteriores no cambian.
  */
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_PAGE_SIZE = 25;
@@ -150,6 +151,8 @@ export const MAX_PAGE_SIZE = 100;
 export const SEARCH_MAX_LENGTH = 100;
 export const SORT_ORDERS = ['nombre_completo', '-fecha_registro'] as const;
 export const DEFAULT_SORT_ORDER = 'nombre_completo';
+export const LIST_STATES = ['activos', 'inactivos'] as const;
+export const DEFAULT_LIST_STATE = 'activos';
 
 export const listQuerySchema = z.strictObject({
   pagina: z.coerce
@@ -174,7 +177,30 @@ export const listQuerySchema = z.strictObject({
   orden: z
     .enum(SORT_ORDERS, { error: 'El orden solicitado no es válido.' })
     .default(DEFAULT_SORT_ORDER),
+  estado: z
+    .enum(LIST_STATES, { error: 'El estado solicitado no es válido: activos o inactivos.' })
+    .default(DEFAULT_LIST_STATE),
 });
+
+/**
+ * EDT 4.3.3. Cuerpo de la baja lógica (RF 3.3.1). La baja no modifica ningún dato del perfil,
+ * así que no recibe campos: el cuerpo es un objeto vacío y estricto, de modo que un intento de
+ * colar datos (por ejemplo `activo` o `fecha_baja`) se rechaza en lugar de ignorarse.
+ */
+export const dischargeSchema = z.strictObject(
+  {},
+  { error: 'La baja no recibe datos en el cuerpo de la solicitud.' },
+);
+
+/**
+ * Indica si el cuerpo de una reactivación viene vacío. Desde el perfil (EDT 4.3.3) se reactiva
+ * conservando los datos anteriores y no se envía cuerpo; desde el registro (EDT 4.3.1) se envían
+ * los datos capturados, que reemplazan a los anteriores.
+ */
+export const isEmptyBody = (body: unknown) =>
+  body === undefined ||
+  body === null ||
+  (typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length === 0);
 
 /** Campos que la edición puede modificar (RF 3.2.4, vista "Nombre Paciente" de RF 3.2.3). */
 export const EDITABLE_FIELDS = [

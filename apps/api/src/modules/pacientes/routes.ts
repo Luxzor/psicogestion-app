@@ -6,6 +6,8 @@ import { validationError } from '../../platform/errors.js';
 import { readIdempotencyKey, runIdempotent } from '../../platform/idempotency.js';
 import {
   availabilitySchema,
+  dischargeSchema,
+  isEmptyBody,
   listQuerySchema,
   patientIdSchema,
   patientSchema,
@@ -49,7 +51,10 @@ patientsRouter.post(
   }),
 );
 
-/** RF 3.2.1. Listado paginado de pacientes activos (PG-DSN-002 §5.12.3). */
+/**
+ * RF 3.2.1. Listado paginado de pacientes (PG-DSN-002 §5.12.3). Por omisión solo activos; con
+ * `estado=inactivos`, los dados de baja (EDT 4.3.3).
+ */
 patientsRouter.get(
   '/',
   asyncRoute(async (request, response) => {
@@ -102,11 +107,70 @@ patientsRouter.patch(
   }),
 );
 
+/**
+ * EDT 4.3.3. Baja lógica del paciente (RF 3.3.1 a RF 3.3.3). Acepta Idempotency-Key (ADR-13):
+ * si la respuesta se pierde y el usuario reintenta con la misma llave, recibe la respuesta
+ * original en lugar de un 409 por un paciente que ya quedó dado de baja.
+ */
+patientsRouter.post(
+  '/:id/baja',
+  asyncRoute(async (request, response) => {
+    const id = patientIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const parsed = dischargeSchema.safeParse(request.body ?? {});
+    if (!parsed.success) throw validationError(parsed.error);
+    const context = requestContext(request, response);
+    const result = await runIdempotent(
+      {
+        scope: `pacientes:baja:${id.data}`,
+        userId: context.userId,
+        key: readIdempotencyKey(request.get('idempotency-key')),
+        payload: parsed.data,
+      },
+      async () => ({
+        status: 200,
+        body: {
+          codigo: 'BAJA_REGISTRADA',
+          paciente: await patientService.discharge(id.data, context),
+        },
+      }),
+    );
+    response.status(result.status).json(result.body);
+  }),
+);
+
+/**
+ * Reactivación de un paciente dado de baja. Sin cuerpo, reactiva conservando sus datos (desde el
+ * perfil, EDT 4.3.3); con los datos del registro, los reemplaza (CURP de un paciente dado de
+ * baja capturado en el alta, EDT 4.3.1). Ambas aceptan Idempotency-Key (ADR-13).
+ */
 patientsRouter.post(
   '/:id/reactivacion',
   asyncRoute(async (request, response) => {
     const id = patientIdSchema.safeParse(request.params.id);
     if (!id.success) throw validationError(id.error);
+
+    if (isEmptyBody(request.body)) {
+      const context = requestContext(request, response);
+      const result = await runIdempotent(
+        {
+          scope: `pacientes:reactivacion:${id.data}`,
+          userId: context.userId,
+          key: readIdempotencyKey(request.get('idempotency-key')),
+          payload: {},
+        },
+        async () => ({
+          status: 200,
+          body: {
+            codigo: 'PACIENTE_REACTIVADO',
+            paciente: await patientService.restore(id.data, context),
+          },
+        }),
+      );
+      response.status(result.status).json(result.body);
+      return;
+    }
+
     const parsed = patientSchema.safeParse(request.body);
     if (!parsed.success) throw validationError(parsed.error);
     const context = requestContext(request, response);

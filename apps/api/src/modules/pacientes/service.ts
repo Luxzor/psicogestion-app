@@ -153,6 +153,21 @@ function inactiveError() {
   );
 }
 
+/** EDT 4.3.3. Dar de baja a un paciente que ya estaba dado de baja (por ejemplo, en otra pestaña). */
+function alreadyDischargedError(patient: PatientSummary) {
+  return new AppError(
+    409,
+    'PACIENTE_INACTIVO',
+    'Este paciente ya estaba dado de baja. El perfil no cambió.',
+    undefined,
+    { fecha_baja: patient.fecha_baja },
+  );
+}
+
+function alreadyActiveError() {
+  return new AppError(409, 'PACIENTE_ACTIVO', 'El paciente ya está activo.');
+}
+
 function versionConflictError(currentVersion: number) {
   return new AppError(
     409,
@@ -249,7 +264,10 @@ export const patientService = {
       : { campo: input.campo, disponible: true };
   },
 
-  /** RF 3.2.1. Listado paginado de pacientes activos; los listados no se auditan (§4.3.3). */
+  /**
+   * RF 3.2.1. Listado paginado de pacientes activos o, con `estado=inactivos`, de los dados de
+   * baja (EDT 4.3.3). Los listados no se auditan (§4.3.3).
+   */
   async list(query: ListQuery) {
     const { datos, total } = await patientRepository.list(query, todayInClinic());
     return { datos, pagina: query.pagina, tamano: query.tamano, total };
@@ -344,5 +362,59 @@ export const patientService = {
       );
       return updated;
     }, translateEditUniqueViolation);
+  },
+
+  /**
+   * EDT 4.3.3. Baja lógica o administrativa del paciente (RF 3.3.1 a RF 3.3.3). El perfil se
+   * conserva completo con activo = false y la fecha de la baja; deja de aparecer en la lista de
+   * activos y ya no puede editarse hasta reactivarlo. La bitácora guarda solo el identificador.
+   */
+  async discharge(id: string, context: RequestContext) {
+    return inTransaction(async (client) => {
+      const current = await patientRepository.findSummaryById(id, client, true);
+      if (!current) throw notFoundError();
+      if (!current.activo) throw alreadyDischargedError(current);
+
+      const updated = await patientRepository.discharge(
+        id,
+        context.userId,
+        todayInClinic(),
+        client,
+      );
+      // Con el bloqueo FOR UPDATE no debería ocurrir; se informa la causa real por si acaso.
+      if (!updated) throw alreadyDischargedError(current);
+
+      await audit(
+        { ...auditContext(context), event: 'paciente_dado_de_baja', detail: updated.id },
+        client,
+      );
+      return updated;
+    });
+  },
+
+  /**
+   * EDT 4.3.3. Reactivación desde el perfil: el paciente vuelve a la lista de activos con los
+   * datos que tenía (PG-DSN-002 §5.6). Se distingue en la bitácora de la reactivación con datos
+   * nuevos que ofrece el registro (EDT 4.3.1), sin registrar ningún valor del perfil.
+   */
+  async restore(id: string, context: RequestContext) {
+    return inTransaction(async (client) => {
+      const current = await patientRepository.findSummaryById(id, client, true);
+      if (!current) throw notFoundError();
+      if (current.activo) throw alreadyActiveError();
+
+      const updated = await patientRepository.restore(id, context.userId, todayInClinic(), client);
+      if (!updated) throw alreadyActiveError();
+
+      await audit(
+        {
+          ...auditContext(context),
+          event: 'paciente_reactivado',
+          detail: `${updated.id} datos=conservados`,
+        },
+        client,
+      );
+      return updated;
+    });
   },
 };
