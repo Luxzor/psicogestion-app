@@ -28,14 +28,20 @@ import { UnsavedChangesProvider } from './contexts/UnsavedChangesContext';
 function ProtectedLayout({
   session,
   onLogout,
+  onIdleTimeout,
 }: {
   session: Session | null;
   onLogout: () => Promise<void>;
+  onIdleTimeout: () => void;
 }) {
   if (!session) return <Navigate to="/iniciar-sesion" replace />;
   return (
     <UnsavedChangesProvider>
-      <DashboardLayout session={session} onLogout={onLogout} />
+      <DashboardLayout
+        session={session}
+        onLogout={onLogout}
+        onIdleTimeout={onIdleTimeout}
+      />
     </UnsavedChangesProvider>
   );
 }
@@ -109,6 +115,11 @@ export function App() {
     }
   };
 
+  const handleIdleTimeout = () => {
+    endSession();
+    navigate('/iniciar-sesion?aviso=inactividad', { replace: true });
+  };
+
   return (
     <Routes>
       {/* Auth */}
@@ -119,7 +130,16 @@ export function App() {
       <Route path="/restablecer" element={<ResetPasswordPage />} />
 
       {/* Dashboard */}
-      <Route path="/inicio" element={<ProtectedLayout session={session} onLogout={logout} />}>
+      <Route
+        path="/inicio"
+        element={
+          <ProtectedLayout
+            session={session}
+            onLogout={logout}
+            onIdleTimeout={handleIdleTimeout}
+          />
+        }
+      >
         <Route index element={<DashboardHomePage session={session!} />} />
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="citas" element={<CitasPage />} />

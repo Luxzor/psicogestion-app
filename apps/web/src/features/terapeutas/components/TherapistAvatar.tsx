@@ -1,6 +1,6 @@
 import { useTherapistPhoto } from '../hooks/useTherapistPhoto';
 
-type Size = 'sm' | 'lg';
+type Size = 'sm' | 'lg' | 'xl';
 
 /** Iniciales del nombre (primer y último nombre), igual que la maqueta de PG-DSN-002 §5.2. */
 function initialsOf(nombreCompleto: string) {
@@ -28,7 +28,7 @@ export function TherapistAvatar({
   accessToken: string;
   size?: Size;
 }) {
-  const tam = size === 'lg' ? 'perfil' : 'miniatura';
+  const tam = size === 'sm' ? 'miniatura' : 'perfil';
   const url = useTherapistPhoto(therapistId, tam, fotoActualizadaEn, accessToken);
 
   return (

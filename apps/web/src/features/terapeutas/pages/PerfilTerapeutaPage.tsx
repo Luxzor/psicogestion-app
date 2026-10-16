@@ -98,40 +98,54 @@ function PerfilTerapeuta({
   const listPath = terapeuta.activo ? LIST_PATH : `${LIST_PATH}?estado=inactivos`;
 
   return (
-    <div className="page page--narrow">
+    <div className="page page--narrow page--profile">
       <Link to={listPath} className="back-link">
         <ChevronLeft size={16} aria-hidden="true" />
         Terapeutas
       </Link>
 
-      <div className="page-head">
-        <div className="page-title">
-          <TherapistAvatar
-            therapistId={terapeuta.id}
-            nombreCompleto={terapeuta.nombre_completo}
-            fotoActualizadaEn={terapeuta.foto_actualizada_en}
-            accessToken={session.token}
-            size="lg"
-          />
-          <div>
-            <div className="page-title__row">
-              <h1>{terapeuta.nombre_completo}</h1>
-              {terapeuta.activo ? (
-                <span className="badge badge--ok">
-                  <CircleCheck size={12} aria-hidden="true" />
-                  Activo
-                </span>
-              ) : (
-                <span className="badge badge--off">
-                  <UserX size={12} aria-hidden="true" />
-                  Dado de baja
-                </span>
-              )}
-            </div>
-            <p>Perfil del terapeuta</p>
-          </div>
+      {flash ? (
+        <FormNotice type={flash.type} onClose={dismiss}>
+          {flash.text}
+        </FormNotice>
+      ) : null}
+
+      {!terapeuta.activo ? (
+        <FormNotice type="info">
+          <span className="notice__with-icon">
+            <UserX size={15} aria-hidden="true" />
+            Este terapeuta fue dado de baja
+            {terapeuta.fecha_baja ? ` el ${displayFromIso(terapeuta.fecha_baja)}` : ''}. Sus datos
+            y su fotografía se conservan en el sistema.
+          </span>
+        </FormNotice>
+      ) : null}
+
+      <section className="panel profile-head">
+        <TherapistAvatar
+          therapistId={terapeuta.id}
+          nombreCompleto={terapeuta.nombre_completo}
+          fotoActualizadaEn={terapeuta.foto_actualizada_en}
+          accessToken={session.token}
+          size="xl"
+        />
+        <div className="profile-head__main">
+          <h1 aria-label={terapeuta.nombre_completo}>
+            <span>{terapeuta.nombre_completo}</span>{' '}
+            {terapeuta.activo ? (
+              <span className="badge badge--ok">
+                <CircleCheck size={12} aria-hidden="true" />
+                Activo
+              </span>
+            ) : (
+              <span className="badge badge--off">
+                <UserX size={12} aria-hidden="true" />
+                Dado de baja
+              </span>
+            )}
+          </h1>
         </div>
-        <div className="page-actions">
+        <div className="profile-head__actions">
           {terapeuta.activo ? (
             <>
               <Link
@@ -162,45 +176,28 @@ function PerfilTerapeuta({
             </button>
           )}
         </div>
-      </div>
+      </section>
 
-      {flash ? (
-        <FormNotice type={flash.type} onClose={dismiss}>
-          {flash.text}
-        </FormNotice>
-      ) : null}
-
-      {!terapeuta.activo ? (
-        <FormNotice type="info">
-          <span className="notice__with-icon">
-            <UserX size={15} aria-hidden="true" />
-            Este terapeuta fue dado de baja
-            {terapeuta.fecha_baja ? ` el ${displayFromIso(terapeuta.fecha_baja)}` : ''}. Sus datos
-            se conservan en el sistema.
-          </span>
-        </FormNotice>
-      ) : null}
-
-      <section className="panel profile">
-        <h2 className="sr-only">Datos del terapeuta</h2>
-        <dl className="profile__grid">
-          <div className="profile__item">
+      <section className="panel">
+        <h2 className="panel__title">Datos del terapeuta</h2>
+        <dl className="data-grid">
+          <div>
             <dt>Nombre completo</dt>
             <dd>{terapeuta.nombre_completo}</dd>
           </div>
-          <div className="profile__item">
+          <div>
             <dt>Fecha de nacimiento</dt>
             <dd>{displayFromIso(terapeuta.fecha_nacimiento)}</dd>
           </div>
-          <div className="profile__item">
+          <div>
             <dt>Cédula profesional</dt>
             <dd className="is-mono">{terapeuta.cedula_profesional}</dd>
           </div>
-          <div className="profile__item">
+          <div>
             <dt>Teléfono</dt>
             <dd>{terapeuta.telefono}</dd>
           </div>
-          <div className="profile__item">
+          <div className="is-wide">
             <dt>Correo electrónico</dt>
             <dd>{terapeuta.correo_electronico}</dd>
           </div>

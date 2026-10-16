@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from 'react';
 import { useEffect, useState } from 'react';
-import { RotateCw, Search, Stethoscope, UserCheck, UserPlus, UserX } from 'lucide-react';
+import { RotateCw, Search, Stethoscope, UserCheck, UserPlus, UserX, X } from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Session } from '../../auth/types';
 import { FormNotice } from '../../pacientes/components/FormNotice';
@@ -118,7 +118,18 @@ export function TerapeutasPage({ session }: { session: Session }) {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por nombre, cédula, teléfono o correo"
               aria-label="Buscar por nombre, cédula, teléfono o correo"
+              autoComplete="off"
             />
+            {search ? (
+              <button
+                type="button"
+                className="search__clear"
+                onClick={() => setSearch('')}
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
