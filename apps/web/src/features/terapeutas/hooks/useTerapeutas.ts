@@ -51,3 +51,47 @@ export function useSyncTherapistProfile(id: string) {
     void queryClient.invalidateQueries({ queryKey: therapistKeys.listas });
   };
 }
+
+/**
+ * EDT 4.3.5. Baja lógica y reactivación desde el perfil. Al terminar, el perfil en caché se
+ * reemplaza por el que devuelve el servidor y se invalidan las listas, de modo que la lista de
+ * activos y la de dados de baja reflejen el cambio sin recargar la página (RNF 2.3.1).
+ */
+function useTherapistStateChange(
+  id: string,
+  change: (id: string, accessToken: string, idempotencyKey: string) => Promise<Therapist>,
+  accessToken: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (idempotencyKey: string) => change(id, accessToken, idempotencyKey),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(therapistKeys.detalle(id), updated);
+      void queryClient.invalidateQueries({ queryKey: therapistKeys.listas });
+    },
+    onError: (error) => {
+      // Si otra persona ya cambió el estado, el perfil en caché quedó desfasado: se vuelve a
+      // leer. Ante una falla de red no se invalida, para conservar el perfil que se muestra.
+      if (isStateConflict(error)) {
+        void queryClient.invalidateQueries({ queryKey: therapistKeys.detalle(id) });
+        void queryClient.invalidateQueries({ queryKey: therapistKeys.listas });
+      }
+    },
+  });
+}
+
+const STATE_CONFLICTS = new Set(['TERAPEUTA_INACTIVO', 'TERAPEUTA_ACTIVO']);
+
+const isStateConflict = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'codigo' in error &&
+  STATE_CONFLICTS.has(String(error.codigo));
+
+export function useDischargeTherapist(id: string, accessToken: string) {
+  return useTherapistStateChange(id, therapistsApi.discharge, accessToken);
+}
+
+export function useRestoreTherapist(id: string, accessToken: string) {
+  return useTherapistStateChange(id, therapistsApi.restore, accessToken);
+}

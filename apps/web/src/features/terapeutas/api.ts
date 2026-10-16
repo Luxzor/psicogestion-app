@@ -110,6 +110,24 @@ export const therapistsApi = {
     });
   },
 
+  /** EDT 4.3.5. Baja lógica: el perfil se conserva con activo en falso (RF 2.3.1 a RF 2.3.3). */
+  async discharge(id: string, accessToken: string, idempotencyKey: string) {
+    const result = await api<{ codigo: string; terapeuta: Therapist }>(
+      `/terapeutas/${encodeURIComponent(id)}/baja`,
+      { method: 'POST', accessToken, headers: { 'Idempotency-Key': idempotencyKey } },
+    );
+    return result.terapeuta;
+  },
+
+  /** RF 2.3.4. Reactivación de un terapeuta dado de baja, sin cuerpo. */
+  async restore(id: string, accessToken: string, idempotencyKey: string) {
+    const result = await api<{ codigo: string; terapeuta: Therapist }>(
+      `/terapeutas/${encodeURIComponent(id)}/reactivar`,
+      { method: 'POST', accessToken, headers: { 'Idempotency-Key': idempotencyKey } },
+    );
+    return result.terapeuta;
+  },
+
   /** RF 2.2.1. Listado paginado de terapeutas activos o dados de baja (EDT 4.3.5). */
   list(params: TherapistListParams, accessToken: string, signal?: AbortSignal) {
     const query = new URLSearchParams({
