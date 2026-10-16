@@ -12,6 +12,12 @@ function formatSize(bytes: number) {
 
 type PhotoUploaderProps = {
   photo: PhotoData | null;
+  /**
+   * Vista previa de la fotografía ya guardada en el servidor, cuando no hay un archivo local
+   * seleccionado (EDT 4.3.5, edición). El registro (EDT 4.3.4) no la usa: por omisión es
+   * `undefined`, así que su comportamiento no cambia.
+   */
+  existingPreviewUrl?: string | null;
   error?: string;
   uploadProgress?: number | null;
   disabled?: boolean;
@@ -25,6 +31,7 @@ type PhotoUploaderProps = {
  */
 export function PhotoUploader({
   photo,
+  existingPreviewUrl,
   error,
   uploadProgress,
   disabled,
@@ -33,6 +40,7 @@ export function PhotoUploader({
 }: PhotoUploaderProps) {
   const [isOver, setIsOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasPhoto = Boolean(photo) || Boolean(existingPreviewUrl);
 
   function handleFile(file: File) {
     onPhotoSelect(file);
@@ -63,6 +71,8 @@ export function PhotoUploader({
       <div className="photo-up__preview">
         {photo ? (
           <img src={photo.previewUrl} alt="Vista previa de la fotografía" />
+        ) : existingPreviewUrl ? (
+          <img src={existingPreviewUrl} alt="Fotografía de perfil actual" />
         ) : (
           <Camera size={30} aria-hidden="true" />
         )}
@@ -83,15 +93,15 @@ export function PhotoUploader({
             disabled={disabled || isUploading}
             onClick={() => inputRef.current?.click()}
           >
-            {photo ? (
+            {hasPhoto ? (
               <ImageIcon size={15} aria-hidden="true" />
             ) : (
               <Upload size={15} aria-hidden="true" />
             )}
-            {photo ? 'Cambiar fotografía' : 'Elegir fotografía'}
+            {hasPhoto ? 'Cambiar fotografía' : 'Elegir fotografía'}
           </button>
 
-          {photo ? (
+          {hasPhoto ? (
             <button
               type="button"
               className="text-button"

@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import type { TherapistFormValues } from './types';
+import type { Therapist, TherapistFormValues } from './types';
 import {
   CEDULA_PATTERN,
+  changedFields,
+  diffPayload,
+  EDITABLE_FIELDS,
   EMAIL_PATTERN,
   maskDate,
   NAME_MAX,
   normalizeInput,
   parseDisplayDate,
   PHONE_PATTERN,
+  toFormValues,
   toPayload,
   validateField,
 } from './validation';
@@ -106,5 +110,64 @@ describe('validación en cliente de terapeutas (EDT 4.3.4)', () => {
       cedula_profesional: '7845213',
     });
     expect(parseDisplayDate('19/05/1988').iso).toBe('1988-05-19');
+  });
+});
+
+describe('validación en cliente de edición de terapeutas (EDT 4.3.5)', () => {
+  const therapist: Therapist = {
+    id: '7b2e1a3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c',
+    nombre_completo: 'Victoria Méndez Rosado',
+    telefono: '9997845213',
+    correo_electronico: 'victoria.mendez@correo.uady.mx',
+    fecha_nacimiento: '1988-05-19',
+    cedula_profesional: '7845213',
+    foto_perfil: null,
+    foto_actualizada_en: null,
+    activo: true,
+    fecha_baja: null,
+    fecha_registro: '2026-01-01',
+    version: 1,
+  };
+
+  it('prellena el formulario con los campos del perfil (RF 2.2.3)', () => {
+    expect(toFormValues(therapist)).toEqual({
+      nombre: 'Victoria Méndez Rosado',
+      telefono: '9997845213',
+      correo: 'victoria.mendez@correo.uady.mx',
+      fechaNacimiento: '19/05/1988',
+      cedula: '7845213',
+    });
+  });
+
+  it('no detecta diferencias cuando los valores no cambiaron', () => {
+    const initial = toFormValues(therapist);
+    expect(changedFields(initial, { ...initial })).toEqual([]);
+    expect(diffPayload(initial, { ...initial })).toEqual({});
+  });
+
+  it('detecta solo los campos que cambiaron, en el orden de EDITABLE_FIELDS (RNF 2.2.3, ADR-10)', () => {
+    const initial = toFormValues(therapist);
+    const current = { ...initial, telefono: '9991112222', cedula: '12345678' };
+    expect(changedFields(initial, current)).toEqual(['telefono', 'cedula']);
+    expect(EDITABLE_FIELDS).toEqual(['nombre', 'telefono', 'correo', 'fechaNacimiento', 'cedula']);
+  });
+
+  it('arma el cuerpo del PATCH solo con los campos modificados, normalizados como la API espera', () => {
+    const initial = toFormValues(therapist);
+    const current = {
+      ...initial,
+      nombre: '  Victoria   Méndez  ',
+      correo: ' Nuevo.Correo@Uady.Mx ',
+    };
+    expect(diffPayload(initial, current)).toEqual({
+      nombre_completo: 'Victoria Méndez',
+      correo_electronico: 'nuevo.correo@uady.mx',
+    });
+  });
+
+  it('convierte la fecha de nacimiento editada al formato ISO que espera la API', () => {
+    const initial = toFormValues(therapist);
+    const current = { ...initial, fechaNacimiento: '01/01/1990' };
+    expect(diffPayload(initial, current)).toEqual({ fecha_nacimiento: '1990-01-01' });
   });
 });

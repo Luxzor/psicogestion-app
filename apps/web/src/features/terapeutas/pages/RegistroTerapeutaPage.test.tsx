@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,18 +43,24 @@ const therapist = {
 };
 
 function renderPage() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={['/inicio/terapeutas/nuevo']}>
-      <UnsavedChangesProvider>
-        <Routes>
-          <Route path="/inicio/terapeutas" element={<TerapeutasPage />} />
-          <Route
-            path="/inicio/terapeutas/nuevo"
-            element={<RegistroTerapeutaPage session={{ token: 'token-terapeuta-test' }} />}
-          />
-        </Routes>
-      </UnsavedChangesProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/inicio/terapeutas/nuevo']}>
+        <UnsavedChangesProvider>
+          <Routes>
+            <Route
+              path="/inicio/terapeutas"
+              element={<TerapeutasPage session={{ token: 'token-terapeuta-test' }} />}
+            />
+            <Route
+              path="/inicio/terapeutas/nuevo"
+              element={<RegistroTerapeutaPage session={{ token: 'token-terapeuta-test' }} />}
+            />
+          </Routes>
+        </UnsavedChangesProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

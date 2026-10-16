@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   createTherapistSchema,
+  createUpdateTherapistSchema,
+  dischargeSchema,
+  listQuerySchema,
+  photoQuerySchema,
   therapistAvailabilitySchema,
+  therapistIdSchema,
+  updateTherapistSchema,
 } from '../src/modules/terapeutas/schemas.js';
 
 const registrationDate = '2026-10-09';
@@ -177,5 +183,194 @@ describe('esquema de registro de terapeutas (EDT 4.3.4)', () => {
     expect(
       therapistAvailabilitySchema.safeParse({ campo: 'curp', valor: 'ABCD900101HDFRRN01' }).success,
     ).toBe(false);
+  });
+
+  it('acepta excluir_id como un UUID opcional y rechaza uno con formato inválido (RF 2.2.4)', () => {
+    const validId = '7b2e1a3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c';
+    expect(
+      therapistAvailabilitySchema.safeParse({ campo: 'telefono', valor: '9997845213' }).success,
+    ).toBe(true);
+    expect(
+      therapistAvailabilitySchema.safeParse({
+        campo: 'telefono',
+        valor: '9997845213',
+        excluir_id: validId,
+      }).success,
+    ).toBe(true);
+    expect(
+      therapistAvailabilitySchema.safeParse({
+        campo: 'telefono',
+        valor: '9997845213',
+        excluir_id: 'no-es-un-uuid',
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('esquema de parámetros de listado (EDT 4.3.5)', () => {
+  it('acepta pagina y tamano por defecto cuando no se envían', () => {
+    const result = listQuerySchema.parse({});
+    expect(result).toMatchObject({
+      pagina: 1,
+      tamano: 25,
+      orden: 'nombre_completo',
+      estado: 'activos',
+    });
+    expect(result.q).toBeUndefined();
+  });
+
+  it('acepta los tres valores de estado: activos, inactivos y todos (CA-2.2-01)', () => {
+    expect(listQuerySchema.parse({ estado: 'activos' }).estado).toBe('activos');
+    expect(listQuerySchema.parse({ estado: 'inactivos' }).estado).toBe('inactivos');
+    expect(listQuerySchema.parse({ estado: 'todos' }).estado).toBe('todos');
+    expect(listQuerySchema.safeParse({ estado: 'baja' }).success).toBe(false);
+    expect(listQuerySchema.safeParse({ estado: 'ACTIVOS' }).success).toBe(false);
+  });
+
+  it('acepta el tamaño mínimo (1) y el máximo (100), rechaza 0 y 101 (RNF 2.2.1)', () => {
+    expect(listQuerySchema.safeParse({ tamano: '1' }).success).toBe(true);
+    expect(listQuerySchema.safeParse({ tamano: '25' }).success).toBe(true);
+    expect(listQuerySchema.safeParse({ tamano: '100' }).success).toBe(true);
+    expect(listQuerySchema.safeParse({ tamano: '0' }).success).toBe(false);
+    expect(listQuerySchema.safeParse({ tamano: '101' }).success).toBe(false);
+  });
+
+  it('rechaza una página inválida', () => {
+    expect(listQuerySchema.safeParse({ pagina: '0' }).success).toBe(false);
+    expect(listQuerySchema.safeParse({ pagina: 'abc' }).success).toBe(false);
+    expect(listQuerySchema.safeParse({ pagina: '2' }).success).toBe(true);
+  });
+
+  it('rechaza un orden que no sea nombre_completo o -fecha_registro', () => {
+    expect(listQuerySchema.safeParse({ orden: 'cedula_profesional' }).success).toBe(false);
+    expect(listQuerySchema.safeParse({ orden: '-fecha_registro' }).success).toBe(true);
+  });
+
+  it('rechaza un parámetro desconocido', () => {
+    expect(listQuerySchema.safeParse({ activo: 'false' }).success).toBe(false);
+  });
+
+  it('recorta la búsqueda y la convierte en undefined si queda vacía', () => {
+    expect(listQuerySchema.parse({ q: '  Victoria  ' }).q).toBe('Victoria');
+    expect(listQuerySchema.parse({ q: '   ' }).q).toBeUndefined();
+  });
+});
+
+describe('esquema de edición de terapeutas (EDT 4.3.5, ADR-10)', () => {
+  const update = createUpdateTherapistSchema(() => registrationDate);
+
+  it('acepta un cuerpo parcial con un solo campo además de version', () => {
+    const result = update.safeParse({ version: 1, telefono: '9991234567' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({ version: 1, telefono: '9991234567' });
+    }
+  });
+
+  it('exige la versión; un cuerpo sin version se rechaza', () => {
+    const result = update.safeParse({ telefono: '9991234567' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.path.join('.'))).toContain('version');
+    }
+  });
+
+  it('acepta un cuerpo con solo version (SIN_CAMBIOS se decide en el servicio, no aquí)', () => {
+    expect(update.safeParse({ version: 1 }).success).toBe(true);
+  });
+
+  it('es estricto: rechaza campos desconocidos y de solo lectura', () => {
+    expect(update.safeParse({ version: 1, id: 'x' }).success).toBe(false);
+    expect(update.safeParse({ version: 1, activo: false }).success).toBe(false);
+    expect(update.safeParse({ version: 1, fecha_baja: '2026-10-14' }).success).toBe(false);
+    expect(update.safeParse({ version: 1, foto_perfil: 'x' }).success).toBe(false);
+    expect(update.safeParse({ version: 1, fecha_registro: '2026-01-01' }).success).toBe(false);
+  });
+
+  it('rechaza version no entera o no positiva, sin coerción de cadenas', () => {
+    expect(update.safeParse({ version: 0 }).success).toBe(false);
+    expect(update.safeParse({ version: 1.5 }).success).toBe(false);
+    expect(update.safeParse({ version: '1' }).success).toBe(false);
+  });
+
+  it('aplica las mismas reglas de formato del alta a cada campo editado', () => {
+    expect(update.safeParse({ version: 1, nombre_completo: '' }).success).toBe(false);
+    expect(update.safeParse({ version: 1, telefono: '99912345' }).success).toBe(false);
+    expect(update.safeParse({ version: 1, correo_electronico: 'no-valido' }).success).toBe(false);
+    expect(update.safeParse({ version: 1, cedula_profesional: '123456' }).success).toBe(false);
+  });
+
+  it('normaliza los campos editados igual que en el registro', () => {
+    const result = update.parse({
+      version: 1,
+      nombre_completo: '  Victoria   Méndez ',
+      correo_electronico: ' Victoria.Mendez@Uady.Mx ',
+    });
+    expect(result).toMatchObject({
+      nombre_completo: 'Victoria Méndez',
+      correo_electronico: 'victoria.mendez@uady.mx',
+    });
+  });
+
+  it('no acepta los alias cortos "correo" y "cedula" del registro: se derivó sin el alias', () => {
+    // A diferencia del alta, la edición exige los nombres canónicos de campo.
+    expect(update.safeParse({ version: 1, correo: 'victoria@uady.mx' }).success).toBe(false);
+    expect(update.safeParse({ version: 1, cedula: '7845213' }).success).toBe(false);
+  });
+
+  it('la fecha de nacimiento se valida contra el "hoy" inyectado, no contra la fecha real', () => {
+    // "hoy" inyectado es registrationDate (2026-10-09); esa misma fecha se rechaza aunque sea
+    // anterior a la fecha real de ejecución de la prueba.
+    const result = update.safeParse({ version: 1, fecha_nacimiento: registrationDate });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        'La fecha de nacimiento debe ser anterior a hoy.',
+      );
+    }
+  });
+
+  it('"anterior a la fecha de registro" se mide contra la fecha de registro, no contra hoy (RF 2.1.9, §4.5)', () => {
+    // El terapeuta se registró el 2020-01-01: una fecha de nacimiento posterior a ESE registro
+    // se rechaza aunque sea anterior al día de ejecución de la prueba.
+    const registeredInThePast = createUpdateTherapistSchema(() => '2020-01-01');
+    expect(
+      registeredInThePast.safeParse({ version: 1, fecha_nacimiento: '2019-12-31' }).success,
+    ).toBe(true);
+    expect(
+      registeredInThePast.safeParse({ version: 1, fecha_nacimiento: '2020-06-15' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('baja, reactivación y entrega de la fotografía (EDT 4.3.5)', () => {
+  it('el cuerpo de la baja y de la reactivación es un objeto vacío y estricto', () => {
+    expect(dischargeSchema.safeParse({}).success).toBe(true);
+    expect(dischargeSchema.safeParse({ activo: false }).success).toBe(false);
+    expect(dischargeSchema.safeParse({ fecha_baja: '2026-10-14' }).success).toBe(false);
+    expect(dischargeSchema.safeParse([]).success).toBe(false);
+  });
+
+  it('el updateTherapistSchema exportado por omisión mide "hoy" con el reloj real', () => {
+    // Cubre la instancia exportada (sin fábrica), a diferencia de las pruebas anteriores que usan
+    // createUpdateTherapistSchema con una fecha inyectada.
+    expect(updateTherapistSchema.safeParse({ version: 1 }).success).toBe(true);
+  });
+
+  it('acepta perfil o miniatura en tam, con perfil por defecto (PG-DSN-002 §5.12.2)', () => {
+    expect(photoQuerySchema.parse({}).tam).toBe('perfil');
+    expect(photoQuerySchema.parse({ tam: 'perfil' }).tam).toBe('perfil');
+    expect(photoQuerySchema.parse({ tam: 'miniatura' }).tam).toBe('miniatura');
+  });
+
+  it('rechaza un tam distinto de perfil o miniatura, y un parámetro desconocido', () => {
+    expect(photoQuerySchema.safeParse({ tam: 'original' }).success).toBe(false);
+    expect(photoQuerySchema.safeParse({ tam: 'PERFIL' }).success).toBe(false);
+    expect(photoQuerySchema.safeParse({ otro: '1' }).success).toBe(false);
+  });
+
+  it('valida el identificador del terapeuta como UUID', () => {
+    expect(therapistIdSchema.safeParse('7b2e1a3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c').success).toBe(true);
+    expect(therapistIdSchema.safeParse('no-es-un-uuid').success).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import type { TherapistFieldKey, TherapistFormValues, TherapistPayload } from './types';
+import type { Therapist, TherapistFieldKey, TherapistFormValues, TherapistPayload } from './types';
 
 export const PHONE_PATTERN = /^[0-9]{10}$/;
 export const CEDULA_PATTERN = /^[0-9]{7,8}$/;
@@ -163,4 +163,71 @@ export function toPayload(values: TherapistFormValues): TherapistPayload {
     fecha_nacimiento: parseDisplayDate(values.fechaNacimiento.trim()).iso ?? '',
     cedula_profesional: values.cedula.trim(),
   };
+}
+
+/** Campos editables del formulario, en el orden de la vista "Nombre Terapeuta" (RF 2.2.3). */
+export const EDITABLE_FIELDS: TherapistFieldKey[] = [
+  'nombre',
+  'telefono',
+  'correo',
+  'fechaNacimiento',
+  'cedula',
+];
+
+/** Prellena el formulario de edición con el perfil que devuelve el servidor (RNF 2.2.3). */
+export function toFormValues(therapist: Therapist): TherapistFormValues {
+  return {
+    nombre: therapist.nombre_completo,
+    telefono: therapist.telefono,
+    correo: therapist.correo_electronico,
+    fechaNacimiento: displayFromIso(therapist.fecha_nacimiento),
+    cedula: therapist.cedula_profesional,
+  };
+}
+
+/** Normaliza un campo al formato que espera la API. */
+const fieldToApi = (field: TherapistFieldKey, values: TherapistFormValues) => {
+  switch (field) {
+    case 'nombre':
+      return values.nombre.trim().replace(/\s+/g, ' ');
+    case 'telefono':
+      return values.telefono.trim();
+    case 'correo':
+      return values.correo.trim().toLowerCase();
+    case 'fechaNacimiento':
+      return parseDisplayDate(values.fechaNacimiento.trim()).iso ?? '';
+    case 'cedula':
+      return values.cedula.trim();
+  }
+};
+
+const API_FIELD: Record<TherapistFieldKey, keyof TherapistPayload> = {
+  nombre: 'nombre_completo',
+  telefono: 'telefono',
+  correo: 'correo_electronico',
+  fechaNacimiento: 'fecha_nacimiento',
+  cedula: 'cedula_profesional',
+};
+
+/**
+ * Campos del formulario que cambiaron respecto al punto de partida. Es la base del cuerpo del
+ * PATCH, que solo lleva lo modificado (RNF 2.2.3, ADR-10).
+ */
+export function changedFields(
+  initial: TherapistFormValues,
+  current: TherapistFormValues,
+): TherapistFieldKey[] {
+  return EDITABLE_FIELDS.filter((field) => current[field] !== initial[field]);
+}
+
+/** Cuerpo del PATCH con solo los campos modificados; `version` lo agrega quien lo envía. */
+export function diffPayload(
+  initial: TherapistFormValues,
+  current: TherapistFormValues,
+): Partial<TherapistPayload> {
+  const changes: Partial<TherapistPayload> = {};
+  for (const field of changedFields(initial, current)) {
+    Object.assign(changes, { [API_FIELD[field]]: fieldToApi(field, current) });
+  }
+  return changes;
 }
