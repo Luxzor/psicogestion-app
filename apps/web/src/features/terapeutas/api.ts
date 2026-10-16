@@ -1,5 +1,12 @@
 import { api, NETWORK_ERROR, type ApiError } from '../../auth/api';
-import type { Therapist, TherapistAvailability, TherapistPayload } from './types';
+import type {
+  PhotoSize,
+  Therapist,
+  TherapistAvailability,
+  TherapistListParams,
+  TherapistListResponse,
+  TherapistPayload,
+} from './types';
 
 type TherapistResponse = { codigo: string; terapeuta: Therapist };
 
@@ -83,5 +90,52 @@ export const therapistsApi = {
       accessToken,
       signal,
     });
+  },
+
+  /** RF 2.2.1. Listado paginado de terapeutas activos o dados de baja (EDT 4.3.5). */
+  list(params: TherapistListParams, accessToken: string, signal?: AbortSignal) {
+    const query = new URLSearchParams({
+      pagina: String(params.pagina),
+      tamano: String(params.tamano),
+    });
+    if (params.q) query.set('q', params.q);
+    if (params.estado && params.estado !== 'activos') query.set('estado', params.estado);
+    return api<TherapistListResponse>(`/terapeutas?${query.toString()}`, { accessToken, signal });
+  },
+
+  /** RF 2.2.2. Perfil del terapeuta, activo o dado de baja. */
+  async getById(id: string, accessToken: string, signal?: AbortSignal) {
+    const result = await api<{ terapeuta: Therapist }>(`/terapeutas/${encodeURIComponent(id)}`, {
+      accessToken,
+      signal,
+    });
+    return result.terapeuta;
+  },
+
+  /**
+   * Descarga la fotografía como Blob (ERS 2.1.6: nada de URLs públicas; se muestra desde un
+   * Blob con fetch autenticado). No usa el helper `api()` porque la respuesta no es JSON. Trata
+   * cualquier falla (sin foto, sin conexión, error del servidor) igual: no hay imagen que
+   * mostrar y el avatar cae a las iniciales; una cancelación sí se propaga.
+   */
+  async getPhotoBlob(
+    therapistId: string,
+    tam: PhotoSize,
+    accessToken: string,
+    signal?: AbortSignal,
+  ): Promise<Blob | null> {
+    let response: Response;
+    try {
+      response = await fetch(`/api/v1/terapeutas/${encodeURIComponent(therapistId)}/foto?tam=${tam}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: 'include',
+        signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      return null;
+    }
+    if (!response.ok) return null;
+    return response.blob();
   },
 };

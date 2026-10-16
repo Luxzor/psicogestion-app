@@ -18,6 +18,7 @@ import { PacientesPage } from './features/pacientes/pages/PacientesPage';
 import { PerfilPacientePage } from './features/pacientes/pages/PerfilPacientePage';
 import { RegistroPacientePage } from './features/pacientes/pages/RegistroPacientePage';
 import { SalasPage } from './features/salas/pages/SalasPage';
+import { PerfilTerapeutaPage } from './features/terapeutas/pages/PerfilTerapeutaPage';
 import { RegistroTerapeutaPage } from './features/terapeutas/pages/RegistroTerapeutaPage';
 import { TerapeutasPage } from './features/terapeutas/pages/TerapeutasPage';
 import { UnsavedChangesProvider } from './contexts/UnsavedChangesContext';
@@ -96,8 +97,9 @@ export function App() {
         <Route path="pacientes/nuevo" element={<RegistroPacientePage session={session!} />} />
         <Route path="pacientes/:id" element={<PerfilPacientePage session={session!} />} />
         <Route path="pacientes/:id/editar" element={<EditarPacientePage session={session!} />} />
-        <Route path="terapeutas" element={<TerapeutasPage />} />
+        <Route path="terapeutas" element={<TerapeutasPage session={session!} />} />
         <Route path="terapeutas/nuevo" element={<RegistroTerapeutaPage session={session!} />} />
+        <Route path="terapeutas/:id" element={<PerfilTerapeutaPage session={session!} />} />
         <Route path="salas" element={<SalasPage />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>
