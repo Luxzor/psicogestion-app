@@ -190,6 +190,20 @@ export const patientService = {
       if (await patientRepository.isPhoneTaken(input.telefono, null, client)) {
         fields.telefono = PHONE_TAKEN;
       }
+
+      // Si existe un paciente idéntico activo con el mismo CURP y teléfono, y se trata de un reintento
+      // (por ejemplo tras una falla de red o de Redis posterior al commit), devolver el paciente confirmado.
+      if (
+        existing &&
+        existing.activo &&
+        fields.curp &&
+        fields.telefono &&
+        existing.nombre_completo === input.nombre_completo.trim().replace(/\s+/g, ' ')
+      ) {
+        const fullExisting = await patientRepository.findFullByCurp(input.curp, client);
+        if (fullExisting) return fullExisting;
+      }
+
       if (Object.keys(fields).length) throw duplicateError(fields);
 
       const created = await patientRepository.create(input, context.userId, client);

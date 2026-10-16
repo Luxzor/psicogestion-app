@@ -169,6 +169,82 @@ integration('registro de pacientes con servicios reales', () => {
     expect(retried.status).toBe(409);
   });
 
+  it('revierte la creación del paciente si falla la auditoría durante el alta (TC-I-005, CA-3.1-01)', async () => {
+    // Configurar trigger temporal para forzar error en bitacora_acceso durante el INSERT
+    await db.query(`
+      CREATE OR REPLACE FUNCTION forzar_error_bitacora() RETURNS trigger AS $$
+      BEGIN
+        IF NEW.evento = 'paciente_registrado' THEN
+          RAISE EXCEPTION 'Fallo simulado en auditoria';
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      CREATE TRIGGER trg_test_error_bitacora
+      BEFORE INSERT ON bitacora_acceso
+      FOR EACH ROW EXECUTE FUNCTION forzar_error_bitacora();
+    `);
+
+    try {
+      const response = await post('', patient);
+      expect(response.status).toBe(500);
+
+      // Verificar que el paciente NO fue creado en la base de datos (ROLLBACK completo)
+      const count = await db.query('SELECT count(*)::int AS total FROM paciente WHERE curp = $1', [
+        patient.curp,
+      ]);
+      expect(count.rows[0].total).toBe(0);
+    } finally {
+      await db.query(`
+        DROP TRIGGER IF EXISTS trg_test_error_bitacora ON bitacora_acceso;
+        DROP FUNCTION IF EXISTS forzar_error_bitacora();
+      `);
+    }
+  });
+
+  it('recupera la confirmación del alta sin duplicar si Redis falla al guardar la respuesta completada (TC-I-029, CA-3.1-01)', async () => {
+    const key = crypto.randomUUID();
+    const originalSet = redis.set.bind(redis);
+
+    // Simular que el primer intento ejecuta la operación en PostgreSQL (COMMIT exitoso),
+    // pero falla la escritura en Redis para marcar 'completado'.
+    let callCount = 0;
+    const redisAny = redis as unknown as Record<string, unknown>;
+    redisAny.set = async (...args: Parameters<typeof redis.set>) => {
+      callCount++;
+      if (callCount === 2) {
+        // La segunda llamada es para guardar 'completado' tras el commit de postgres
+        throw new Error('Redis connection lost after DB commit');
+      }
+      return Reflect.apply(originalSet, redis, args);
+    };
+
+    const first = await post('', patient, key);
+    // Restaurar redis.set
+    redis.set = originalSet;
+
+    expect(first.status).toBe(500);
+
+    // El paciente quedó confirmado en PostgreSQL
+    const checkPatient = await db.query<{ id: string }>(
+      'SELECT id, curp FROM paciente WHERE curp = $1',
+      [patient.curp],
+    );
+    expect(checkPatient.rows.length).toBe(1);
+    const existingPatientId = checkPatient.rows[0].id;
+
+    // Al reintentar con la misma llave y los mismos datos:
+    // El sistema no debe fallar con 409 duplicado ni crear un segundo paciente
+    const retry = await post('', patient, key);
+    expect(retry.status).toBe(201);
+    expect(retry.body.codigo).toBe('PACIENTE_REGISTRADO');
+    expect(retry.body.paciente.id).toBe(existingPatientId);
+
+    const totalCount = await db.query('SELECT count(*)::int AS total FROM paciente');
+    expect(totalCount.rows[0].total).toBe(1);
+  });
+
   it('ofrece y ejecuta la reactivación de un paciente dado de baja por CURP', async () => {
     const created = await post('', other);
     await db.query('UPDATE paciente SET activo = false, fecha_baja = now() WHERE id = $1', [

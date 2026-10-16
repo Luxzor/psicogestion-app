@@ -117,6 +117,14 @@ export const patientRepository = {
     return result.rows[0] ?? null;
   },
 
+  async findFullByCurp(curp: string, client: Queryable = db) {
+    const result = await client.query<PatientRecord>(
+      `SELECT ${patientFields} FROM paciente WHERE curp = $1`,
+      [curp],
+    );
+    return result.rows[0] ?? null;
+  },
+
   async findSummaryById(id: string, client: Queryable = db, lock = false) {
     const result = await client.query<PatientSummary>(
       `SELECT ${summaryFields} FROM paciente WHERE id = $1 ${lock ? 'FOR UPDATE' : ''}`,
