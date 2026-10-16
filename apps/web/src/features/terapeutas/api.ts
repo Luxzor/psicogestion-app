@@ -6,6 +6,7 @@ import type {
   TherapistListParams,
   TherapistListResponse,
   TherapistPayload,
+  TherapistUpdatePayload,
 } from './types';
 
 type TherapistResponse = { codigo: string; terapeuta: Therapist };
@@ -80,7 +81,7 @@ export const therapistsApi = {
   },
 
   checkAvailability(
-    body: { campo: 'telefono' | 'correo' | 'cedula'; valor: string },
+    body: { campo: 'telefono' | 'correo' | 'cedula'; valor: string; excluir_id?: string },
     accessToken: string,
     signal?: AbortSignal,
   ) {
@@ -89,6 +90,23 @@ export const therapistsApi = {
       body,
       accessToken,
       signal,
+    });
+  },
+
+  /** RF 2.2.3–2.2.5. Edición parcial con control de versión (ADR-10). */
+  async update(id: string, payload: TherapistUpdatePayload, accessToken: string) {
+    const result = await api<{ codigo: string; terapeuta: Therapist }>(
+      `/terapeutas/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: payload, accessToken },
+    );
+    return result.terapeuta;
+  },
+
+  /** Quita la fotografía de perfil del terapeuta (204 sin cuerpo). */
+  async deletePhoto(therapistId: string, accessToken: string) {
+    await api<void>(`/terapeutas/${encodeURIComponent(therapistId)}/foto`, {
+      method: 'DELETE',
+      accessToken,
     });
   },
 
