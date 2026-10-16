@@ -110,6 +110,12 @@ Las pantallas están disponibles en:
 - `/recuperar`
 - `/restablecer?token=...`
 
+## Módulo de pacientes. Iteración 2
+
+El registro de pacientes (EDT 4.3.1) está en `/inicio/pacientes/nuevo` y usa los endpoints `POST /api/v1/pacientes`, `POST /api/v1/pacientes/validaciones` y `POST /api/v1/pacientes/{id}/reactivacion`, documentados en `docs/openapi.yaml`. Todos requieren sesión activa. La trazabilidad contra el ERS está en `docs/trazabilidad-pacientes.md`.
+
+Después de actualizar el código, aplica la migración `0005_paciente.sql` con `npm run docker:up` (el servicio `migrate` la ejecuta) o con `npm run migrate -w @psicogestion/api`.
+
 ## Calidad
 
 - `npm run lint`

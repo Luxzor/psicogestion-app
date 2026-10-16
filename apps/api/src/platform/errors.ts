@@ -8,6 +8,7 @@ export class AppError extends Error {
     public readonly code: string,
     message: string,
     public readonly fields?: Record<string, string>,
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
   }
@@ -36,6 +37,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
       codigo: error.code,
       mensaje: error.message,
       ...(error.fields ? { campos: error.fields } : {}),
+      ...(error.details ?? {}),
       correlation_id: correlationId,
     });
     return;

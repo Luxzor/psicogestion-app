@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import { api } from './auth/api';
+import { api, setOnTokenRefreshed, setOnUnauthorized } from './auth/api';
+import { queryClient } from './lib/queryClient';
+
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { RecoveryPage } from './features/auth/pages/RecoveryPage';
 import { RegisterPage } from './features/auth/pages/RegisterPage';
@@ -12,22 +14,34 @@ import { CitasPage } from './features/citas/pages/CitasPage';
 import { ConfiguracionPage } from './features/configuracion/pages/ConfiguracionPage';
 import { DashboardHomePage } from './features/dashboard/pages/DashboardHomePage';
 import { DashboardLayout } from './features/dashboard/layouts/DashboardLayout';
+import { EditarPacientePage } from './features/pacientes/pages/EditarPacientePage';
 import { PacientesPage } from './features/pacientes/pages/PacientesPage';
+import { PerfilPacientePage } from './features/pacientes/pages/PerfilPacientePage';
+import { RegistroPacientePage } from './features/pacientes/pages/RegistroPacientePage';
 import { SalasPage } from './features/salas/pages/SalasPage';
+import { EditarTerapeutaPage } from './features/terapeutas/pages/EditarTerapeutaPage';
+import { PerfilTerapeutaPage } from './features/terapeutas/pages/PerfilTerapeutaPage';
+import { RegistroTerapeutaPage } from './features/terapeutas/pages/RegistroTerapeutaPage';
 import { TerapeutasPage } from './features/terapeutas/pages/TerapeutasPage';
 import { UnsavedChangesProvider } from './contexts/UnsavedChangesContext';
 
 function ProtectedLayout({
   session,
   onLogout,
+  onIdleTimeout,
 }: {
   session: Session | null;
   onLogout: () => Promise<void>;
+  onIdleTimeout: () => void;
 }) {
   if (!session) return <Navigate to="/iniciar-sesion" replace />;
   return (
     <UnsavedChangesProvider>
-      <DashboardLayout session={session} onLogout={onLogout} />
+      <DashboardLayout
+        session={session}
+        onLogout={onLogout}
+        onIdleTimeout={onIdleTimeout}
+      />
     </UnsavedChangesProvider>
   );
 }
@@ -35,6 +49,29 @@ function ProtectedLayout({
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
+
+  /**
+   * Termina la sesión en el cliente. Vacía la caché de TanStack Query para que no queden datos
+   * de pacientes en el navegador (ADR-12, RNF 1.3.3, R01).
+   */
+  const endSession = useCallback(() => {
+    setSession(null);
+    queryClient.clear();
+  }, []);
+
+  // Escucha cuando cualquier petición API recibe 401 y el refresh falla (sesión expirada/inválida)
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      endSession();
+    });
+    setOnTokenRefreshed((newToken) => {
+      setSession({ token: newToken });
+    });
+    return () => {
+      setOnUnauthorized(null);
+      setOnTokenRefreshed(null);
+    };
+  }, [endSession]);
 
   useEffect(() => {
     if (typeof fetch !== 'function') return;
@@ -46,9 +83,25 @@ export function App() {
       .then((result) => setSession({ token: result.access_token }))
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return;
+        // Sesión expirada o sin refresh válido: no hay sesión y tampoco caché que conservar.
+        endSession();
       });
     return () => controller.abort();
-  }, []);
+  }, [endSession]);
+
+  // Refresco proactivo del token de acceso (dura 15 min; refrescar a los 14 min mientras la pestaña siga abierta)
+  useEffect(() => {
+    if (!session) return;
+    const timer = setTimeout(
+      () => {
+        void api<{ access_token: string }>('/auth/refresh', { method: 'POST' })
+          .then((result) => setSession({ token: result.access_token }))
+          .catch(() => endSession());
+      },
+      14 * 60 * 1000,
+    );
+    return () => clearTimeout(timer);
+  }, [session, endSession]);
 
   const logout = async () => {
     if (!session) return;
@@ -57,9 +110,14 @@ export function App() {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      setSession(null);
+      endSession();
       navigate('/iniciar-sesion');
     }
+  };
+
+  const handleIdleTimeout = () => {
+    endSession();
+    navigate('/iniciar-sesion?aviso=inactividad', { replace: true });
   };
 
   return (
@@ -72,12 +130,27 @@ export function App() {
       <Route path="/restablecer" element={<ResetPasswordPage />} />
 
       {/* Dashboard */}
-      <Route path="/inicio" element={<ProtectedLayout session={session} onLogout={logout} />}>
+      <Route
+        path="/inicio"
+        element={
+          <ProtectedLayout
+            session={session}
+            onLogout={logout}
+            onIdleTimeout={handleIdleTimeout}
+          />
+        }
+      >
         <Route index element={<DashboardHomePage session={session!} />} />
         <Route path="agenda" element={<AgendaPage />} />
         <Route path="citas" element={<CitasPage />} />
-        <Route path="pacientes" element={<PacientesPage />} />
-        <Route path="terapeutas" element={<TerapeutasPage />} />
+        <Route path="pacientes" element={<PacientesPage session={session!} />} />
+        <Route path="pacientes/nuevo" element={<RegistroPacientePage session={session!} />} />
+        <Route path="pacientes/:id" element={<PerfilPacientePage session={session!} />} />
+        <Route path="pacientes/:id/editar" element={<EditarPacientePage session={session!} />} />
+        <Route path="terapeutas" element={<TerapeutasPage session={session!} />} />
+        <Route path="terapeutas/nuevo" element={<RegistroTerapeutaPage session={session!} />} />
+        <Route path="terapeutas/:id" element={<PerfilTerapeutaPage session={session!} />} />
+        <Route path="terapeutas/:id/editar" element={<EditarTerapeutaPage session={session!} />} />
         <Route path="salas" element={<SalasPage />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>

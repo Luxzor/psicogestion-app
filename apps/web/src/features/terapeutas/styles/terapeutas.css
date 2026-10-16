@@ -1,0 +1,279 @@
+/* Módulo de terapeutas. Estilos de PG-DSN-002-INT v0.1.0 (EDT 4.3.4). */
+
+/* Selector de fotografía */
+.photo-up {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.photo-up__preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 999px;
+  background: var(--tint-soft);
+  color: var(--color-muted);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.photo-up__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-up__body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.photo-up__drop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.8rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px dashed var(--color-line);
+  border-radius: 14px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.photo-up__drop.is-over {
+  border-color: var(--color-primary);
+  background: var(--info-bg);
+}
+
+.photo-up__drop.is-error {
+  border-color: var(--color-error);
+}
+
+.photo-up__drop .button {
+  min-height: 2rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.76rem;
+}
+
+.photo-up__file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  font-size: 0.74rem;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.photo-up__file strong {
+  color: var(--color-text);
+}
+
+.progress {
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--tint-soft);
+  overflow: hidden;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 0.2s;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.text-button {
+  padding: 0;
+  border: 0;
+  color: var(--color-primary);
+  background: transparent;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.22em;
+  cursor: pointer;
+}
+
+.text-button:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.text-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 56rem) {
+  .photo-up {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Avatar de terapeuta: lista y perfil (EDT 4.3.5, §5.2 y §5.7) */
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar--sm {
+  width: 2.1rem;
+  height: 2.1rem;
+  font-size: 0.68rem;
+}
+
+.avatar--lg {
+  width: 4.25rem;
+  height: 4.25rem;
+  font-size: 1.15rem;
+}
+
+.avatar--xl {
+  width: 6rem;
+  height: 6rem;
+  font-size: 1.55rem;
+}
+
+.skeleton--avatar {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+}
+
+.data-table .is-mono {
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  letter-spacing: 0.03em;
+}
+
+/* Selector de terapeuta para asignación de citas (TC-F-013, RF 2.3.5) */
+.therapist-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 36rem;
+}
+
+.therapist-selector__label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.therapist-selector__search {
+  margin-bottom: 0.25rem;
+}
+
+.therapist-selector__alert {
+  margin-bottom: 0.25rem;
+}
+
+.therapist-selector__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.therapist-selector__item {
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.therapist-selector__item--selected {
+  border-color: var(--color-primary);
+  background: var(--tint-soft);
+}
+
+.therapist-selector__item--inactive {
+  opacity: 0.65;
+  background: var(--surface-subtle, #f9f9f9);
+}
+
+.therapist-selector__button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  gap: 1rem;
+}
+
+.therapist-selector__button:disabled {
+  cursor: not-allowed;
+}
+
+.therapist-selector__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.therapist-selector__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.therapist-selector__cedula {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.therapist-selector__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.therapist-selector__empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
