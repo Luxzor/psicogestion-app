@@ -168,9 +168,6 @@ export function TerapeutasPage({ session }: { session: Session }) {
             <caption className="sr-only">Cargando terapeutas</caption>
             <thead>
               <tr>
-                <th scope="col" className="sr-only">
-                  Foto
-                </th>
                 <th scope="col">Nombre</th>
                 <th scope="col">Cédula profesional</th>
                 <th scope="col">Teléfono</th>
@@ -183,10 +180,10 @@ export function TerapeutasPage({ session }: { session: Session }) {
               {Array.from({ length: SKELETON_ROWS }, (_, row) => (
                 <tr key={row} aria-hidden="true">
                   <td>
-                    <span className="skeleton skeleton--avatar" />
-                  </td>
-                  <td>
-                    <span className="skeleton skeleton--wide" />
+                    <div className="person">
+                      <span className="skeleton skeleton--avatar" />
+                      <span className="skeleton skeleton--wide" />
+                    </div>
                   </td>
                   <td>
                     <span className="skeleton" />
@@ -235,9 +232,6 @@ export function TerapeutasPage({ session }: { session: Session }) {
             <caption className="sr-only">{listCaption}</caption>
             <thead>
               <tr>
-                <th scope="col" className="sr-only">
-                  Foto
-                </th>
                 <th scope="col">Nombre</th>
                 <th scope="col">Cédula profesional</th>
                 <th scope="col">Teléfono</th>
@@ -257,22 +251,26 @@ export function TerapeutasPage({ session }: { session: Session }) {
                   aria-label={`Abrir el perfil de ${terapeuta.nombre_completo}`}
                 >
                   <td>
-                    <TherapistAvatar
-                      therapistId={terapeuta.id}
-                      nombreCompleto={terapeuta.nombre_completo}
-                      fotoActualizadaEn={terapeuta.foto_actualizada_en}
-                      accessToken={session.token}
-                      size="sm"
-                    />
-                  </td>
-                  <td>
-                    <span className="data-table__name">{terapeuta.nombre_completo}</span>
-                    {!terapeuta.activo ? (
-                      <span className="badge badge--off">
-                        <UserX size={12} aria-hidden="true" />
-                        Dado de baja
+                    <div className="person">
+                      <TherapistAvatar
+                        therapistId={terapeuta.id}
+                        nombreCompleto={terapeuta.nombre_completo}
+                        fotoActualizadaEn={terapeuta.foto_actualizada_en}
+                        accessToken={session.token}
+                        size="sm"
+                      />
+                      <span>
+                        <span className="person__name data-table__name">
+                          {terapeuta.nombre_completo}
+                        </span>
+                        {!terapeuta.activo ? (
+                          <span className="badge badge--off">
+                            <UserX size={12} aria-hidden="true" />
+                            Dado de baja
+                          </span>
+                        ) : null}
                       </span>
-                    ) : null}
+                    </div>
                   </td>
                   <td className="is-mono">{terapeuta.cedula_profesional}</td>
                   <td>{terapeuta.telefono}</td>
