@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
-import { api } from './auth/api';
+import { api, setOnTokenRefreshed, setOnUnauthorized } from './auth/api';
 import { queryClient } from './lib/queryClient';
+
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { RecoveryPage } from './features/auth/pages/RecoveryPage';
 import { RegisterPage } from './features/auth/pages/RegisterPage';
@@ -50,6 +51,20 @@ export function App() {
     queryClient.clear();
   }, []);
 
+  // Escucha cuando cualquier petición API recibe 401 y el refresh falla (sesión expirada/inválida)
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      endSession();
+    });
+    setOnTokenRefreshed((newToken) => {
+      setSession({ token: newToken });
+    });
+    return () => {
+      setOnUnauthorized(null);
+      setOnTokenRefreshed(null);
+    };
+  }, [endSession]);
+
   useEffect(() => {
     if (typeof fetch !== 'function') return;
     const controller = new AbortController();
@@ -65,6 +80,20 @@ export function App() {
       });
     return () => controller.abort();
   }, [endSession]);
+
+  // Refresco proactivo del token de acceso (dura 15 min; refrescar a los 14 min mientras la pestaña siga abierta)
+  useEffect(() => {
+    if (!session) return;
+    const timer = setTimeout(
+      () => {
+        void api<{ access_token: string }>('/auth/refresh', { method: 'POST' })
+          .then((result) => setSession({ token: result.access_token }))
+          .catch(() => endSession());
+      },
+      14 * 60 * 1000,
+    );
+    return () => clearTimeout(timer);
+  }, [session, endSession]);
 
   const logout = async () => {
     if (!session) return;

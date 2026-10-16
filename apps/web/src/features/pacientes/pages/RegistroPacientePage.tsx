@@ -12,6 +12,7 @@ import { usePatientForm } from '../hooks/usePatientForm';
 import type { Flash, InactivePatient } from '../types';
 import { displayFromIso, toPayload } from '../validation';
 import '../styles/pacientes.css';
+import { newIdempotencyKey } from '../idempotency';
 
 const LIST_PATH = '/inicio/pacientes';
 
@@ -20,15 +21,6 @@ type PatientApiError = ApiError & { paciente?: InactivePatient };
 
 const isApiError = (error: unknown): error is PatientApiError =>
   typeof error === 'object' && error !== null && 'codigo' in error && 'mensaje' in error;
-
-function newIdempotencyKey() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
 
 /** EDT 4.3.1. Registro de paciente (PG-DSN-002-INT, pantalla /pacientes/nuevo). */
 export function RegistroPacientePage({ session }: { session: Session }) {

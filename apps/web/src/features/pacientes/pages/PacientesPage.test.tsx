@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PacientesPage } from './PacientesPage';
@@ -33,11 +33,11 @@ function PerfilStub() {
   return <h1>Perfil del paciente</h1>;
 }
 
-function renderPage() {
+function renderPage(entry = '/inicio/pacientes') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/inicio/pacientes']}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route
             path="/inicio/pacientes"
@@ -175,5 +175,103 @@ describe('lista de pacientes (EDT 4.3.2)', () => {
     fireEvent.click(within(fila).getByText('Paciente Número 1'));
 
     expect(await screen.findByRole('heading', { name: 'Perfil del paciente' })).toBeInTheDocument();
+  });
+});
+
+describe('filtro de pacientes dados de baja (EDT 4.3.3)', () => {
+  const baja = (n: number) => ({ ...item(n), activo: false });
+
+  it('por omisión lista los activos y no envía el parámetro estado', async () => {
+    const fetchMock = mockApi(() => ({
+      status: 200,
+      body: { datos: [item(1)], pagina: 1, tamano: 25, total: 1 },
+    }));
+    renderPage();
+
+    await screen.findByText('Paciente Número 1');
+    const filtro = screen.getByRole('group', { name: 'Mostrar pacientes' });
+    expect(within(filtro).getByRole('button', { name: 'Activos' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(fetchMock.mock.calls.every(([url]) => !String(url).includes('estado='))).toBe(true);
+    expect(screen.queryByText('Dado de baja')).not.toBeInTheDocument();
+  });
+
+  it('al elegir "Dados de baja" consulta estado=inactivos y marca cada fila', async () => {
+    const fetchMock = mockApi((url) => ({
+      status: 200,
+      body: url.includes('estado=inactivos')
+        ? { datos: [baja(7)], pagina: 1, tamano: 25, total: 1 }
+        : { datos: [item(1)], pagina: 1, tamano: 25, total: 1 },
+    }));
+    renderPage();
+    await screen.findByText('Paciente Número 1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dados de baja' }));
+
+    expect(await screen.findByText('Paciente Número 7')).toBeInTheDocument();
+    const fila = screen.getByRole('row', { name: /Abrir el perfil de Paciente Número 7/ });
+    expect(within(fila).getByText('Dado de baja')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dados de baja' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('estado=inactivos'))).toBe(
+      true,
+    );
+  });
+
+  it('respeta el filtro de la URL al volver desde un perfil (?estado=inactivos)', async () => {
+    const fetchMock = mockApi(() => ({
+      status: 200,
+      body: { datos: [baja(3)], pagina: 1, tamano: 25, total: 1 },
+    }));
+    renderPage('/inicio/pacientes?estado=inactivos');
+
+    expect(await screen.findByText('Paciente Número 3')).toBeInTheDocument();
+    expect(String(fetchMock.mock.calls[0][0])).toContain('estado=inactivos');
+  });
+
+  it('muestra un aviso propio cuando no hay pacientes dados de baja', async () => {
+    mockApi(() => ({ status: 200, body: { datos: [], pagina: 1, tamano: 25, total: 0 } }));
+    renderPage('/inicio/pacientes?estado=inactivos');
+
+    expect(await screen.findByText('No hay pacientes dados de baja')).toBeInTheDocument();
+    expect(screen.queryByText('Aún no hay pacientes')).not.toBeInTheDocument();
+  });
+
+  it('cambiar el filtro conserva la búsqueda y regresa a la primera página', async () => {
+    const fetchMock = mockApi((url) => ({
+      status: 200,
+      body: url.includes('pagina=2')
+        ? { datos: [item(26)], pagina: 2, tamano: 25, total: 26 }
+        : {
+            datos: Array.from({ length: 25 }, (_, i) => item(i + 1)),
+            pagina: 1,
+            tamano: 25,
+            total: 26,
+          },
+    }));
+    renderPage();
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, CURP o teléfono'), {
+      target: { value: 'Paciente' },
+    });
+    await waitFor(
+      () =>
+        expect(fetchMock.mock.calls.some(([url]) => String(url).includes('q=Paciente'))).toBe(true),
+      { timeout: 2000 },
+    );
+    await screen.findByText('Mostrando 1–25 de 26');
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await screen.findByText('Mostrando 26–26 de 26');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dados de baja' }));
+
+    await screen.findByText('Mostrando 1–25 de 26');
+    const ultima = String(fetchMock.mock.calls.at(-1)?.[0]);
+    expect(ultima).toContain('estado=inactivos');
+    expect(ultima).toContain('q=Paciente');
+    expect(ultima).toContain('pagina=1');
   });
 });

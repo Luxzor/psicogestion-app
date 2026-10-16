@@ -118,9 +118,10 @@ describe('rutas de pacientes sin dependencias externas', () => {
       expect((await get('?orden=curp')).status).toBe(400);
     });
 
-    it('rechaza el parámetro estado: el filtro de inactivos es de la EDT 4.3.3', async () => {
-      const response = await get('?estado=inactivos');
+    it('rechaza un estado distinto de activos o inactivos (EDT 4.3.3)', async () => {
+      const response = await get('?estado=todos');
       expect(response.status).toBe(400);
+      expect(response.body.campos.estado).toBeDefined();
     });
   });
 
@@ -154,6 +155,52 @@ describe('rutas de pacientes sin dependencias externas', () => {
       const response = await patch({ version: 1, fecha_nacimiento: '08/10/2026' });
       expect(response.status).toBe(400);
       expect(response.body.campos.fecha_nacimiento).toBeDefined();
+    });
+  });
+  describe('baja y reactivación desde el perfil (EDT 4.3.3)', () => {
+    const post = (path: string, body?: unknown) => {
+      const call = request(createApp())
+        .post(`/api/v1/pacientes${path}`)
+        .set('Authorization', `Bearer ${token}`);
+      return body === undefined ? call : call.send(body as object);
+    };
+
+    it('rechaza la baja y la reactivación sin una sesión activa', async () => {
+      const baja = await request(createApp()).post(`/api/v1/pacientes/${randomUUID()}/baja`);
+      expect(baja.status).toBe(401);
+      expect(baja.body.codigo).toBe('SESION_INVALIDA');
+
+      const reactivacion = await request(createApp()).post(
+        `/api/v1/pacientes/${randomUUID()}/reactivacion`,
+      );
+      expect(reactivacion.status).toBe(401);
+    });
+
+    it('valida el identificador antes de dar de baja', async () => {
+      const response = await post('/no-es-un-uuid/baja');
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
+    });
+
+    it('rechaza datos en el cuerpo de la baja antes de tocar la base de datos', async () => {
+      const response = await post(`/${randomUUID()}/baja`, { activo: true });
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
+    });
+
+    it('rechaza una llave de idempotencia con formato inválido en la baja', async () => {
+      const response = await request(createApp())
+        .post(`/api/v1/pacientes/${randomUUID()}/baja`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Idempotency-Key', 'no válida');
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('IDEMPOTENCY_KEY_INVALIDA');
+    });
+
+    it('una reactivación con datos incompletos se valida como el registro', async () => {
+      const response = await post(`/${randomUUID()}/reactivacion`, { nombre_completo: 'Ana' });
+      expect(response.status).toBe(400);
+      expect(response.body.campos.curp).toBeDefined();
     });
   });
 });

@@ -41,7 +41,15 @@ export type PatientListItem = {
   activo: boolean;
 };
 
-export type PatientListParams = { pagina: number; tamano: number; q?: string };
+/** Filtro de la lista por estado (EDT 4.3.3): pacientes activos o dados de baja. */
+export type PatientListState = 'activos' | 'inactivos';
+
+export type PatientListParams = {
+  pagina: number;
+  tamano: number;
+  q?: string;
+  estado?: PatientListState;
+};
 
 export type PatientListResponse = {
   datos: PatientListItem[];
@@ -59,4 +67,4 @@ export type Availability = {
   mensaje?: string;
 };
 
-export type Flash = { type: 'success' | 'error'; text: string };
+export type Flash = { type: 'success' | 'error' | 'info'; text: string };

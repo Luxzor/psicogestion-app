@@ -194,3 +194,16 @@ export function toPayload(values: PatientFormValues, consentimiento: boolean): P
     consentimiento,
   };
 }
+
+/** Obtiene las iniciales (1 o 2 letras) de un nombre completo para el avatar. */
+export function iniciales(nombre: string): string {
+  const w = (nombre || '').trim().split(/\s+/);
+  if (w.length >= 3) return (w[0][0] + w[w.length - 2][0]).toUpperCase();
+  return (
+    w
+      .slice(0, 2)
+      .map((x) => x[0])
+      .join('')
+      .toUpperCase() || 'U'
+  );
+}

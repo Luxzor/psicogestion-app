@@ -458,4 +458,278 @@ integration('registro de pacientes con servicios reales', () => {
       expect(ajeno.body.disponible).toBe(false);
     });
   });
+  describe('baja lógica y reactivación de pacientes (EDT 4.3.3)', () => {
+    const baja = (id: string, key?: string) => post(`/${id}/baja`, undefined, key);
+    const reactivar = (id: string, key?: string) => post(`/${id}/reactivacion`, undefined, key);
+
+    it('da de baja conservando todos los datos y la fecha de la baja (RF 3.3.1)', async () => {
+      const created = await post('', { ...other, consentimiento: true });
+      const id = created.body.paciente.id;
+
+      const started = Date.now();
+      const response = await baja(id);
+
+      expect(response.status).toBe(200);
+      expect(Date.now() - started).toBeLessThan(3000);
+      expect(response.body.codigo).toBe('BAJA_REGISTRADA');
+      expect(response.body.paciente).toMatchObject({
+        id,
+        nombre_completo: other.nombre_completo,
+        curp: other.curp,
+        telefono: other.telefono,
+        correo: other.correo,
+        consentimiento: true,
+        activo: false,
+        fecha_baja: todayInClinic(),
+        version: 2,
+      });
+      expect(response.body.paciente.edad).toBeTypeOf('number');
+
+      // El registro no se borra: sigue en la tabla, con quién hizo la baja.
+      const stored = await db.query(
+        'SELECT activo, fecha_baja, updated_by, curp FROM paciente WHERE id = $1',
+        [id],
+      );
+      expect(stored.rows[0]).toMatchObject({ activo: false, updated_by: userId, curp: other.curp });
+      expect(stored.rows[0].fecha_baja).toBeInstanceOf(Date);
+    });
+
+    it('audita la baja solo con el identificador del paciente (ADR-14, R01)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+
+      await baja(id);
+
+      const log = await db.query(
+        "SELECT detalle, id_usuario FROM bitacora_acceso WHERE evento = 'paciente_dado_de_baja'",
+      );
+      expect(log.rows).toEqual([{ detalle: id, id_usuario: userId }]);
+      expect(JSON.stringify(log.rows)).not.toContain(other.nombre_completo);
+      expect(JSON.stringify(log.rows)).not.toContain(other.curp);
+    });
+
+    it('el paciente dado de baja sale de la lista de activos y aparece en la de bajas', async () => {
+      await post('', patient);
+      const created = await post('', other);
+      await baja(created.body.paciente.id);
+
+      const activos = await get('');
+      expect(activos.body.total).toBe(1);
+      expect(activos.body.datos[0].nombre_completo).toBe(patient.nombre_completo);
+
+      const bajas = await get('?estado=inactivos');
+      expect(bajas.body.total).toBe(1);
+      expect(bajas.body.datos[0]).toMatchObject({
+        id: created.body.paciente.id,
+        nombre_completo: other.nombre_completo,
+        activo: false,
+      });
+      // La lista de bajas conserva la minimización de datos de la lista de activos (R01).
+      expect(bajas.body.datos[0]).not.toHaveProperty('curp');
+      expect(bajas.body.datos[0]).not.toHaveProperty('correo');
+    });
+
+    it('la búsqueda respeta el filtro de estado', async () => {
+      const created = await post('', other);
+      await baja(created.body.paciente.id);
+
+      const enActivos = await get('?q=canul');
+      expect(enActivos.body.total).toBe(0);
+
+      const enBajas = await get('?estado=inactivos&q=canul');
+      expect(enBajas.body.total).toBe(1);
+
+      const porTelefono = await get(`?estado=inactivos&q=${other.telefono.slice(0, 5)}`);
+      expect(porTelefono.body.total).toBe(1);
+    });
+
+    it('reporta el total de bajas aunque la página quede fuera de rango', async () => {
+      const created = await post('', other);
+      await baja(created.body.paciente.id);
+
+      const response = await get('?estado=inactivos&pagina=5');
+      expect(response.body).toMatchObject({ total: 1, datos: [] });
+    });
+
+    it('el perfil de un paciente dado de baja sigue disponible (RF 3.2.2)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      await baja(id);
+
+      const response = await get(`/${id}`);
+      expect(response.status).toBe(200);
+      expect(response.body.paciente).toMatchObject({ activo: false, fecha_baja: todayInClinic() });
+    });
+
+    it('muestra el día de la baja en la zona horaria de la clínica, no en UTC', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      await baja(id);
+      // 01:30 UTC del 14 de octubre son las 19:30 del 13 de octubre en Mérida (UTC-6).
+      await db.query(
+        "UPDATE paciente SET fecha_baja = '2026-10-14T01:30:00Z'::timestamptz WHERE id = $1",
+        [id],
+      );
+
+      const response = await get(`/${id}`);
+      expect(response.body.paciente.fecha_baja).toBe('2026-10-13');
+    });
+
+    it('no vuelve a dar de baja a un paciente inactivo ni cambia su fecha (PACIENTE_INACTIVO)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      await baja(id);
+      await db.query("UPDATE paciente SET fecha_baja = '2026-10-01T15:00:00Z' WHERE id = $1", [id]);
+
+      const response = await baja(id);
+
+      expect(response.status).toBe(409);
+      expect(response.body.codigo).toBe('PACIENTE_INACTIVO');
+      expect(response.body.fecha_baja).toBe('2026-10-01');
+      const stored = await db.query('SELECT version FROM paciente WHERE id = $1', [id]);
+      expect(stored.rows[0].version).toBe(2); // el segundo intento no modificó nada
+      const log = await db.query(
+        "SELECT count(*)::int AS total FROM bitacora_acceso WHERE evento = 'paciente_dado_de_baja'",
+      );
+      expect(log.rows[0].total).toBe(1);
+    });
+
+    it('responde 404 al dar de baja un paciente inexistente', async () => {
+      const response = await baja(crypto.randomUUID());
+
+      expect(response.status).toBe(404);
+      expect(response.body.codigo).toBe('PACIENTE_NO_ENCONTRADO');
+    });
+
+    it('un reintento con la misma llave devuelve la respuesta original (ADR-13)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      const key = crypto.randomUUID();
+
+      const first = await baja(id, key);
+      const retry = await baja(id, key);
+
+      expect(first.status).toBe(200);
+      expect(retry.status).toBe(200);
+      expect(retry.body).toEqual(first.body);
+      const log = await db.query(
+        "SELECT count(*)::int AS total FROM bitacora_acceso WHERE evento = 'paciente_dado_de_baja'",
+      );
+      expect(log.rows[0].total).toBe(1);
+    });
+
+    it('un paciente dado de baja no puede editarse (PACIENTE_INACTIVO)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      const discharged = await baja(id);
+
+      const response = await patch(id, {
+        version: discharged.body.paciente.version,
+        telefono: '9991110000',
+      });
+
+      expect(response.status).toBe(409);
+      expect(response.body.codigo).toBe('PACIENTE_INACTIVO');
+    });
+
+    it('la baja sube la versión: una edición abierta antes de la baja no se aplica', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      await baja(id);
+
+      const response = await patch(id, { version: 1, telefono: '9991110000' });
+
+      expect(response.status).toBe(409);
+      const stored = await db.query('SELECT telefono FROM paciente WHERE id = $1', [id]);
+      expect(stored.rows[0].telefono).toBe(other.telefono);
+    });
+
+    it('el CURP y el teléfono de un paciente dado de baja siguen reservados', async () => {
+      const created = await post('', other);
+      await baja(created.body.paciente.id);
+
+      const response = await post('', { ...patient, telefono: other.telefono });
+
+      expect(response.status).toBe(409);
+      expect(response.body.campos.telefono).toBeDefined();
+    });
+
+    it('reactiva desde el perfil conservando los datos anteriores', async () => {
+      const created = await post('', { ...other, consentimiento: true });
+      const id = created.body.paciente.id;
+      await baja(id);
+
+      const response = await reactivar(id);
+
+      expect(response.status).toBe(200);
+      expect(response.body.codigo).toBe('PACIENTE_REACTIVADO');
+      expect(response.body.paciente).toMatchObject({
+        id,
+        nombre_completo: other.nombre_completo,
+        curp: other.curp,
+        telefono: other.telefono,
+        correo: other.correo,
+        consentimiento: true,
+        activo: true,
+        fecha_baja: null,
+        version: 3,
+      });
+      expect(response.body.paciente.edad).toBeTypeOf('number');
+
+      const activos = await get('');
+      expect(activos.body.total).toBe(1);
+
+      const log = await db.query(
+        "SELECT detalle FROM bitacora_acceso WHERE evento = 'paciente_reactivado'",
+      );
+      expect(log.rows).toEqual([{ detalle: `${id} datos=conservados` }]);
+    });
+
+    it('no reactiva a un paciente que ya está activo (PACIENTE_ACTIVO)', async () => {
+      const created = await post('', other);
+
+      const response = await reactivar(created.body.paciente.id);
+
+      expect(response.status).toBe(409);
+      expect(response.body.codigo).toBe('PACIENTE_ACTIVO');
+    });
+
+    it('responde 404 al reactivar un paciente inexistente', async () => {
+      const response = await reactivar(crypto.randomUUID());
+
+      expect(response.status).toBe(404);
+      expect(response.body.codigo).toBe('PACIENTE_NO_ENCONTRADO');
+    });
+
+    it('un reintento de la reactivación con la misma llave no falla (ADR-13)', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      await baja(id);
+      const key = crypto.randomUUID();
+
+      const first = await reactivar(id, key);
+      const retry = await reactivar(id, key);
+
+      expect(first.status).toBe(200);
+      expect(retry.status).toBe(200);
+      expect(retry.body.paciente.version).toBe(first.body.paciente.version);
+    });
+
+    it('tras reactivar se puede volver a dar de baja y editar', async () => {
+      const created = await post('', other);
+      const id = created.body.paciente.id;
+      await baja(id);
+      const restored = await reactivar(id);
+
+      const edited = await patch(id, {
+        version: restored.body.paciente.version,
+        telefono: '9991110000',
+      });
+      expect(edited.status).toBe(200);
+
+      const again = await baja(id);
+      expect(again.status).toBe(200);
+      expect(again.body.paciente.activo).toBe(false);
+    });
+  });
 });

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: PsicoGestión API
   version: 0.1.0
-  description: 'Contrato REST de PsicoGestión: administración de cuentas (Iteración 1) y registro de pacientes (Iteración 2, EDT 4.3.1).'
+  description: 'Contrato REST de PsicoGestión: administración de cuentas (Iteración 1); registro, listado y baja lógica de pacientes (Iteración 2, EDT 4.3.1 a 4.3.3) y registro de terapeutas (EDT 4.3.4).'
 servers:
   - url: https://localhost:8443/api/v1
 security:
@@ -140,6 +140,39 @@ paths:
         '400': { $ref: '#/components/responses/ValidationError' }
         '410': { $ref: '#/components/responses/ExpiredError' }
   /pacientes:
+    get:
+      summary: Lista paginada de pacientes activos o dados de baja (RF 3.2.1, EDT 4.3.3)
+      description: >
+        Requiere sesión activa. Cada elemento lleva solo id, nombre_completo, telefono, edad y
+        activo; el CURP y el correo aparecen únicamente en el perfil (R01). Por omisión lista los
+        activos; con estado=inactivos lista los dados de baja (filtro "Dados de baja" de
+        PG-DSN-002 §5.4). Un parámetro desconocido se rechaza con 400.
+      parameters:
+        - { name: pagina, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - {
+            name: tamano,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 25 },
+          }
+        - name: q
+          in: query
+          description: Nombre sin acentos, prefijo de CURP o prefijo de teléfono.
+          schema: { type: string, maxLength: 100 }
+        - name: orden
+          in: query
+          schema:
+            { type: string, enum: [nombre_completo, -fecha_registro], default: nombre_completo }
+        - name: estado
+          in: query
+          schema: { type: string, enum: [activos, inactivos], default: activos }
+      responses:
+        '200':
+          description: Página de pacientes con el total de coincidencias.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PatientListResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
     post:
       summary: Registra un paciente activo (RF 3.1.1 a RF 3.1.14)
       description: >
@@ -179,9 +212,34 @@ paths:
               schema: { $ref: '#/components/schemas/AvailabilityResponse' }
         '400': { $ref: '#/components/responses/ValidationError' }
         '401': { $ref: '#/components/responses/InvalidSessionError' }
+  /pacientes/{id}/baja:
+    post:
+      summary: Da de baja de forma lógica a un paciente activo (RF 3.3.1 a RF 3.3.3, EDT 4.3.3)
+      description: >
+        Requiere sesión activa. El perfil se conserva completo con activo en falso y la fecha de
+        la baja (día de la zona horaria de la clínica); deja de aparecer en la lista de activos y
+        no puede editarse hasta reactivarlo. No recibe cuerpo (o un objeto vacío). La bitácora
+        registra el evento paciente_dado_de_baja solo con el identificador. Con Idempotency-Key,
+        un reintento devuelve la respuesta original (ADR-13).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200': { $ref: '#/components/responses/PatientDischarged' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidSessionError' }
+        '404': { $ref: '#/components/responses/NotFoundError' }
+        '409': { $ref: '#/components/responses/PatientStateConflict' }
   /pacientes/{id}/reactivacion:
     post:
-      summary: Reactiva un paciente dado de baja con los datos capturados en el registro
+      summary: Reactiva un paciente dado de baja, con sus datos anteriores o con datos nuevos
+      description: >
+        Sin cuerpo (o con un objeto vacío) reactiva conservando los datos del perfil (desde el
+        perfil, EDT 4.3.3). Con los datos del registro los reemplaza (CURP de un paciente dado de
+        baja capturado en el alta, EDT 4.3.1). Ambas variantes aceptan Idempotency-Key.
       parameters:
         - name: id
           in: path
@@ -189,10 +247,13 @@ paths:
           schema: { type: string, format: uuid }
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/PatientRequest' }
+            schema:
+              oneOf:
+                - { $ref: '#/components/schemas/PatientRequest' }
+                - { type: object, maxProperties: 0 }
       responses:
         '200': { $ref: '#/components/responses/PatientReactivated' }
         '400': { $ref: '#/components/responses/ValidationError' }
@@ -476,8 +537,36 @@ components:
       type: object
       required: [codigo, paciente]
       properties:
-        codigo: { type: string, enum: [PACIENTE_REGISTRADO, PACIENTE_REACTIVADO] }
+        codigo: { type: string, enum: [PACIENTE_REGISTRADO, PACIENTE_REACTIVADO, BAJA_REGISTRADA] }
         paciente: { $ref: '#/components/schemas/Patient' }
+    PatientListItem:
+      type: object
+      required: [id, nombre_completo, telefono, edad, activo]
+      properties:
+        id: { type: string, format: uuid }
+        nombre_completo: { type: string }
+        telefono: { type: string }
+        edad: { type: integer }
+        activo: { type: boolean }
+    PatientListResponse:
+      type: object
+      required: [datos, pagina, tamano, total]
+      properties:
+        datos: { type: array, items: { $ref: '#/components/schemas/PatientListItem' } }
+        pagina: { type: integer }
+        tamano: { type: integer }
+        total: { type: integer }
+    PatientStateError:
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+        - type: object
+          properties:
+            codigo:
+              { type: string, enum: [PACIENTE_INACTIVO, PACIENTE_ACTIVO, SOLICITUD_EN_PROCESO] }
+            fecha_baja:
+              type: string
+              format: date
+              description: Solo en PACIENTE_INACTIVO; fecha de la baja vigente.
     PatientConflictError:
       allOf:
         - $ref: '#/components/schemas/ApiError'
@@ -662,10 +751,20 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/PatientResponse' }
     PatientReactivated:
-      description: Paciente reactivado con los datos capturados.
+      description: Paciente reactivado con sus datos anteriores o con los datos capturados.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/PatientResponse' }
+    PatientDischarged:
+      description: Paciente dado de baja; el perfil se conserva con activo en falso.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PatientResponse' }
+    PatientStateConflict:
+      description: El paciente ya estaba dado de baja (o ya está activo, al reactivar) o la solicitud sigue en proceso.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PatientStateError' }
     PatientConflict:
       description: CURP o teléfono en uso, paciente dado de baja o solicitud en proceso.
       content:
