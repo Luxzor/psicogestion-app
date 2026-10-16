@@ -464,4 +464,31 @@ export const therapistService = {
       );
     }
   },
+
+  /**
+   * RF 2.3.5, CA-2.3-03. Regla de elegibilidad para citas:
+   * Solo los terapeutas activos pueden ser asignados a citas nuevas.
+   */
+  isEligibleForAppointment(therapist: { activo: boolean }): boolean {
+    return Boolean(therapist.activo);
+  },
+
+  /**
+   * Valida que un terapeuta esté activo y pueda ser asignado a una cita nueva (CA-2.3-03, TC-I-020).
+   * Lanza 409 TERAPEUTA_INACTIVO si está dado de baja o 404 si no existe.
+   */
+  async assertAppointmentEligibility(therapistId: string) {
+    const therapist = await therapistRepository.findById(therapistId);
+    if (!therapist) {
+      throw notFoundError();
+    }
+    if (!this.isEligibleForAppointment(therapist)) {
+      throw new AppError(
+        409,
+        'TERAPEUTA_INACTIVO',
+        'Un terapeuta dado de baja no puede asignarse a una cita nueva.',
+      );
+    }
+    return { elegible: true, terapeuta: { id: therapist.id, nombre_completo: therapist.nombre_completo } };
+  },
 };

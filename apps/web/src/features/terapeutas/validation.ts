@@ -231,3 +231,12 @@ export function diffPayload(
   }
   return changes;
 }
+
+/**
+ * RF 2.3.5, CA-2.3-03. Regla de elegibilidad para asignación de citas:
+ * Solo terapeutas activos pueden ser seleccionados/asignados.
+ */
+export function isTherapistEligibleForAppointment(therapist: { activo: boolean }): boolean {
+  return Boolean(therapist.activo);
+}
+

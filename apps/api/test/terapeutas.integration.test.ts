@@ -759,5 +759,33 @@ integration('registro de terapeutas con servicios reales (EDT 4.3.4)', () => {
       expect(again.status).toBe(200);
       expect(again.body.terapeuta.activo).toBe(false);
     });
+
+    it('bloquea la asignación de un terapeuta inactivo a una cita nueva (TC-I-020, CA-2.3-03, RF 2.3.5)', async () => {
+      // TC-I-020: Bloqueo de terapeuta inactivo en una cita nueva
+      // Precondiciones: Servicio con regla de elegibilidad; candidatos activo e inactivo.
+      // Pasos: Intentar asignar ambos candidatos a una cita nueva.
+      // Resultado esperado: Asignación del inactivo se rechaza con 409; el activo puede asignarse (200).
+      const created = await post('', otherTherapist);
+      const id = created.body.terapeuta.id;
+
+      // 1. Terapeuta activo: elegible para cita (200 OK)
+      const checkActivo = await get(`/${id}/elegibilidad-cita`);
+      expect(checkActivo.status).toBe(200);
+      expect(checkActivo.body.elegible).toBe(true);
+      expect(checkActivo.body.terapeuta.id).toBe(id);
+
+      // 2. Dar de baja lógica al terapeuta
+      await baja(id);
+
+      // 3. Terapeuta inactivo: se rechaza con 409 TERAPEUTA_INACTIVO
+      const checkInactivo = await get(`/${id}/elegibilidad-cita`);
+      expect(checkInactivo.status).toBe(409);
+      expect(checkInactivo.body.codigo).toBe('TERAPEUTA_INACTIVO');
+
+      // 4. Si el terapeuta no existe: 404 TERAPEUTA_NO_ENCONTRADO
+      const checkInexistente = await get(`/${crypto.randomUUID()}/elegibilidad-cita`);
+      expect(checkInexistente.status).toBe(404);
+      expect(checkInexistente.body.codigo).toBe('TERAPEUTA_NO_ENCONTRADO');
+    });
   });
 });

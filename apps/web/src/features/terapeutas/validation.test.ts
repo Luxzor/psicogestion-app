@@ -14,6 +14,7 @@ import {
   toFormValues,
   toPayload,
   validateField,
+  isTherapistEligibleForAppointment,
 } from './validation';
 
 const valid: TherapistFormValues = {
@@ -170,4 +171,10 @@ describe('validación en cliente de edición de terapeutas (EDT 4.3.5)', () => {
     const current = { ...initial, fechaNacimiento: '01/01/1990' };
     expect(diffPayload(initial, current)).toEqual({ fecha_nacimiento: '1990-01-01' });
   });
+
+  it('determina la elegibilidad para asignación de citas según estado activo (TC-U-020, CA-2.3-03)', () => {
+    expect(isTherapistEligibleForAppointment({ activo: true })).toBe(true);
+    expect(isTherapistEligibleForAppointment({ activo: false })).toBe(false);
+  });
 });
+

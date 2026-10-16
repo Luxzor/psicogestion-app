@@ -177,3 +177,103 @@
   font-family: ui-monospace, 'SF Mono', Consolas, monospace;
   letter-spacing: 0.03em;
 }
+
+/* Selector de terapeuta para asignación de citas (TC-F-013, RF 2.3.5) */
+.therapist-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 36rem;
+}
+
+.therapist-selector__label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.therapist-selector__search {
+  margin-bottom: 0.25rem;
+}
+
+.therapist-selector__alert {
+  margin-bottom: 0.25rem;
+}
+
+.therapist-selector__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.therapist-selector__item {
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.therapist-selector__item--selected {
+  border-color: var(--color-primary);
+  background: var(--tint-soft);
+}
+
+.therapist-selector__item--inactive {
+  opacity: 0.65;
+  background: var(--surface-subtle, #f9f9f9);
+}
+
+.therapist-selector__button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  gap: 1rem;
+}
+
+.therapist-selector__button:disabled {
+  cursor: not-allowed;
+}
+
+.therapist-selector__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.therapist-selector__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.therapist-selector__cedula {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.therapist-selector__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.therapist-selector__empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+

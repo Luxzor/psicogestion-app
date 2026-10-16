@@ -9,6 +9,7 @@ import {
   therapistIdSchema,
   updateTherapistSchema,
 } from '../src/modules/terapeutas/schemas.js';
+import { therapistService } from '../src/modules/terapeutas/service.js';
 
 const registrationDate = '2026-10-09';
 const schema = createTherapistSchema(() => registrationDate);
@@ -374,3 +375,16 @@ describe('baja, reactivación y entrega de la fotografía (EDT 4.3.5)', () => {
     expect(therapistIdSchema.safeParse('no-es-un-uuid').success).toBe(false);
   });
 });
+
+describe('regla de asignación a citas (TC-U-020, RF 2.3.5, CA-2.3-03)', () => {
+  it('excluye a terapeutas inactivos y admite únicamente a terapeutas activos para citas nuevas', () => {
+    // TC-U-020: Regla de asignación excluye terapeutas inactivos
+    // Precondiciones: Regla de disponibilidad de terapeuta aislada.
+    // Datos: Terapeuta activo e inactivo como candidatos a una nueva cita.
+    // Pasos: Evaluar la elegibilidad de ambos estados.
+    // Resultado esperado: Solo el terapeuta activo se ofrece/acepta como candidato; el inactivo se rechaza.
+    expect(therapistService.isEligibleForAppointment({ activo: true })).toBe(true);
+    expect(therapistService.isEligibleForAppointment({ activo: false })).toBe(false);
+  });
+});
+

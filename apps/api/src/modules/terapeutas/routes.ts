@@ -71,6 +71,21 @@ therapistsRouter.post(
   }),
 );
 
+/**
+ * RF 2.3.5, CA-2.3-03. Verificación de elegibilidad para asignación de cita nueva.
+ * Devuelve 200 con { elegible: true } si el terapeuta está activo,
+ * o 409 TERAPEUTA_INACTIVO si está dado de baja.
+ */
+therapistsRouter.get(
+  '/:id/elegibilidad-cita',
+  asyncRoute(async (request, response) => {
+    const id = therapistIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const result = await therapistService.assertAppointmentEligibility(id.data);
+    response.json(result);
+  }),
+);
+
 /** RF 2.2.2. Perfil del terapeuta, activo o dado de baja. */
 therapistsRouter.get(
   '/:id',
