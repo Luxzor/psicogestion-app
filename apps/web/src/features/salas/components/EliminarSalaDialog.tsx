@@ -446,3 +446,4 @@ export function EliminarSalaDialog(props: EliminarSalaDialogProps) {
   if (!props.isOpen) return null;
   return <EliminarSalaDialogModal {...props} />;
 }
+

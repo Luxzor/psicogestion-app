@@ -144,3 +144,4 @@ describe('EliminarSalaDialog (EDT 5.3.1 Baja lógica de salas)', () => {
     expect(handleClose).toHaveBeenCalledTimes(2);
   });
 });
+
