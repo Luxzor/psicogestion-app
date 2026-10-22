@@ -3,7 +3,7 @@ import { AppError } from '../../platform/errors.js';
 import { audit } from '../../platform/audit.js';
 import { db } from '../../platform/db.js';
 import { salaDatabaseError } from './errors.js';
-import { salaRepository, type SalaRecord } from './repository.js';
+import { salaRepository, type SalaListState, type SalaRecord } from './repository.js';
 import {
   SALA_MENSAJES,
   type CreateSalaInput,
@@ -74,6 +74,63 @@ export const salaService = {
     return taken
       ? { campo: input.campo, disponible: false, mensaje: SALA_MENSAJES.NOMBRE_SALA_EN_USO }
       : { campo: input.campo, disponible: true };
+  },
+
+  /**
+   * Listado de salas por estado (PG-DSN-003 3.3, RNF 4.2.1).
+   */
+  async list(estado: SalaListState = 'activas'): Promise<SalaRecord[]> {
+    return salaRepository.list(estado);
+  },
+
+  /**
+   * Conteo de citas pendientes que aún no terminan (ADR-19, CA-4.2-02).
+   */
+  async countPendingAppointments(id: string): Promise<number> {
+    return salaRepository.countPendingAppointments(id);
+  },
+
+  /**
+   * EDT 5.3.1. Baja lógica de sala (RF 4.2.1 a RF 4.2.5, ADR-19, CA-4.2-01, CA-4.2-02).
+   * Valida existencia, que esté activa y que no tenga citas pendientes futuras.
+   */
+  async discharge(id: string, context: RequestContext): Promise<SalaRecord> {
+    return inTransaction(async (client) => {
+      const current = await salaRepository.findSummaryById(id, client, 'update');
+      if (!current) {
+        throw new AppError(404, 'SALA_NO_ENCONTRADA', SALA_MENSAJES.SALA_NO_ENCONTRADA);
+      }
+      if (!current.activo) {
+        throw new AppError(409, 'SALA_INACTIVA', SALA_MENSAJES.SALA_INACTIVA);
+      }
+
+      const pending = await salaRepository.countPendingAppointments(id, new Date(), client);
+      if (pending > 0) {
+        throw new AppError(
+          409,
+          'SALA_CON_CITAS_PENDIENTES',
+          SALA_MENSAJES.SALA_CON_CITAS_PENDIENTES(pending),
+          undefined,
+          { citas_pendientes: pending },
+        );
+      }
+
+      const updated = await salaRepository.discharge(id, context.userId, client);
+      if (!updated) {
+        throw new AppError(409, 'SALA_INACTIVA', SALA_MENSAJES.SALA_INACTIVA);
+      }
+
+      await audit(
+        {
+          ...auditContext(context),
+          event: 'sala_dada_de_baja',
+          detail: updated.id,
+        },
+        client,
+      );
+
+      return updated;
+    });
   },
 };
 

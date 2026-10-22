@@ -1,16 +1,22 @@
 import { useState } from 'react';
-import { CircleCheck, DoorOpen, Plus, X } from 'lucide-react';
+import { CircleCheck, DoorOpen, Plus, Trash2, X } from 'lucide-react';
 import type { Session } from '../../auth/types';
 import { AgregarSalaDialog } from '../components/AgregarSalaDialog';
+import { EliminarSalaDialog } from '../components/EliminarSalaDialog';
 import type { Sala } from '../types';
 import '../../pacientes/styles/pacientes.css';
 
 export function SalasPage({ session }: { session?: Session }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEliminarOpen, setIsEliminarOpen] = useState(false);
   const [flashMessage, setFlashMessage] = useState<string | null>(null);
 
   const handleCreated = (sala: Sala) => {
     setFlashMessage(`Sala “${sala.nombre}” agregada. Ya está disponible para agendar citas.`);
+  };
+
+  const handleDischarged = (sala: Sala) => {
+    setFlashMessage(`Sala “${sala.nombre}” eliminada.`);
   };
 
   return (
@@ -26,6 +32,15 @@ export function SalasPage({ session }: { session?: Session }) {
           </div>
         </div>
         <div className="page-tools">
+          <button
+            type="button"
+            className="button button--danger-soft"
+            id="btn-del"
+            onClick={() => setIsEliminarOpen(true)}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+            Eliminar sala
+          </button>
           <button
             type="button"
             className="button button--primary"
@@ -79,6 +94,13 @@ export function SalasPage({ session }: { session?: Session }) {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onCreated={handleCreated}
+        accessToken={session?.token}
+      />
+
+      <EliminarSalaDialog
+        isOpen={isEliminarOpen}
+        onClose={() => setIsEliminarOpen(false)}
+        onDischarged={handleDischarged}
         accessToken={session?.token}
       />
     </div>

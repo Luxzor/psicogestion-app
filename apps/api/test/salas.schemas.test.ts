@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { salaDatabaseError } from '../src/modules/salas/errors.js';
 import {
   createSalaSchema,
+  dischargeSchema,
   normalizarNombreSala,
   salaAvailabilitySchema,
   SALA_MENSAJES,
   SALA_NOMBRE_MAX,
   salaIdSchema,
+  salaListQuerySchema,
   updateSalaSchema,
 } from '../src/modules/salas/schemas.js';
 
@@ -81,6 +83,18 @@ describe('modelo de datos de salas: validación del nombre (EDT 5.2.1)', () => {
       expect(valid.data.valor).toBe('Sala 4');
     }
     expect(salaAvailabilitySchema.safeParse({ campo: 'otro', valor: 'Sala 4' }).success).toBe(false);
+  });
+
+  it('valida el esquema de consulta de listado de salas por estado (RNF 4.2.1)', () => {
+    expect(salaListQuerySchema.parse({})).toEqual({ estado: 'activas' });
+    expect(salaListQuerySchema.parse({ estado: 'inactivas' })).toEqual({ estado: 'inactivas' });
+    expect(salaListQuerySchema.parse({ estado: 'todas' })).toEqual({ estado: 'todas' });
+    expect(salaListQuerySchema.safeParse({ estado: 'invalid' }).success).toBe(false);
+  });
+
+  it('valida que el esquema de baja lógica sea estricto sin cuerpo (ADR-13)', () => {
+    expect(dischargeSchema.safeParse({}).success).toBe(true);
+    expect(dischargeSchema.safeParse({ id: 'test' }).success).toBe(false);
   });
 });
 

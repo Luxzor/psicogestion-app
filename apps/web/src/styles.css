@@ -126,6 +126,28 @@ p {
   background: #edf3f9;
 }
 
+.button--danger {
+  color: #fff;
+  background: var(--color-error);
+}
+
+.button--danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.button--danger-soft {
+  color: var(--color-error);
+  background: var(--error-bg);
+}
+
+.button--danger-soft:hover:not(:disabled) {
+  background: #ffe4e0;
+}
+
+[data-theme='dark'] .button--danger-soft:hover:not(:disabled) {
+  background: rgb(248 113 113 / 0.2);
+}
+
 .button--ghost {
   color: #fff;
   background: rgb(255 255 255 / 14%);
@@ -214,4 +236,72 @@ p {
   display: flex;
   gap: 0.55rem;
   align-items: flex-start;
+}
+
+.button .spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Indicador de color para salas y entidades */
+.dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--c, #002e5f);
+  flex-shrink: 0;
+}
+
+/* Lista de selección de salas (PG-DSN-003-INT) */
+.pick-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  margin: 0.6rem 0 0;
+  padding: 0.15rem;
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  background: var(--color-surface, #fff);
+  box-shadow: inset 0 0 0 1px var(--color-line, #e2e8f0);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-theme='dark'] .pick {
+  background: rgb(255 255 255 / 0.03);
+}
+
+.pick:has(input:checked) {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.pick:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pick input {
+  accent-color: var(--color-primary);
+  margin: 0;
+}
+
+.pick small {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-weight: 600;
+  font-size: 0.7rem;
 }

@@ -29,5 +29,15 @@ describe('SalasPage (EDT 5.3.1 Registro de salas)', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Agregar sala' })).toBeInTheDocument();
   });
+
+  it('abre el diálogo de eliminación de sala al hacer clic en Eliminar sala', () => {
+    render(<SalasPage />);
+
+    const delButton = screen.getByRole('button', { name: /Eliminar sala/i });
+    fireEvent.click(delButton);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Eliminar sala' })).toBeInTheDocument();
+  });
 });
 
