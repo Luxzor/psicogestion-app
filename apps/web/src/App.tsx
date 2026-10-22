@@ -151,7 +151,7 @@ export function App() {
         <Route path="terapeutas/nuevo" element={<RegistroTerapeutaPage session={session!} />} />
         <Route path="terapeutas/:id" element={<PerfilTerapeutaPage session={session!} />} />
         <Route path="terapeutas/:id/editar" element={<EditarTerapeutaPage session={session!} />} />
-        <Route path="salas" element={<SalasPage />} />
+        <Route path="salas" element={<SalasPage session={session!} />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>
 

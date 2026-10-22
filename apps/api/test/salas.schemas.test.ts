@@ -3,6 +3,7 @@ import { salaDatabaseError } from '../src/modules/salas/errors.js';
 import {
   createSalaSchema,
   normalizarNombreSala,
+  salaAvailabilitySchema,
   SALA_MENSAJES,
   SALA_NOMBRE_MAX,
   salaIdSchema,
@@ -71,6 +72,15 @@ describe('modelo de datos de salas: validación del nombre (EDT 5.2.1)', () => {
     expect(SALA_MENSAJES.SALA_CON_CITAS_PENDIENTES(3)).toBe(
       'No se puede dar de baja: tiene 3 citas pendientes. Reubícalas o cancélalas primero.',
     );
+  });
+
+  it('valida el esquema de verificación anticipada de disponibilidad de sala (RF 4.1.4)', () => {
+    const valid = salaAvailabilitySchema.safeParse({ campo: 'nombre', valor: '  Sala 4 ' });
+    expect(valid.success).toBe(true);
+    if (valid.success) {
+      expect(valid.data.valor).toBe('Sala 4');
+    }
+    expect(salaAvailabilitySchema.safeParse({ campo: 'otro', valor: 'Sala 4' }).success).toBe(false);
   });
 });
 
