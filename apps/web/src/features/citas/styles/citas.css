@@ -1,0 +1,275 @@
+/* EDT 5.3.3. Estilos propios de "Agendar cita" (PG-DSN-003-INT). Reutiliza los tokens de
+   styles.css y las clases de layout de pacientes.css (.page, .panel, .field, .form-section,
+   .form-grid, .data-grid, .segmented); aquí solo lo que no existía todavía. */
+
+.cita-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .cita-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Combobox de paciente / terapeuta -------------------------------------------------------- */
+
+.combo {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.combo__icon {
+  position: absolute;
+  left: 0.6rem;
+  display: flex;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.combo input {
+  width: 100%;
+  padding: 0.55rem 2.2rem 0.55rem 2rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.combo input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.combo input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.combo__clear {
+  position: absolute;
+  right: 0.5rem;
+  display: flex;
+  padding: 0.2rem;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.combo__clear:hover {
+  background: var(--tint-soft-hover);
+}
+
+.combo__pop {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  max-height: 16rem;
+  overflow: auto;
+}
+
+.combo__count {
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.combo__list {
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+}
+
+.combo__opt {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.6rem;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+}
+
+.combo__opt.is-active,
+.combo__opt:hover {
+  background: var(--row-hover);
+}
+
+.combo__name {
+  color: var(--color-text);
+}
+
+.combo__sub {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.combo__none {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+/* Salas y horario --------------------------------------------------------------------------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.4rem 0 0.8rem;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.chip small {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--st-pend-bg);
+  color: var(--st-pend);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.times {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+.time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0.3rem;
+  border: 1px solid var(--color-line);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.time small {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.time:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.time.is-sel {
+  border-color: var(--color-primary);
+  background: var(--st-pend-bg);
+  color: var(--st-pend);
+}
+
+.time.is-sel small {
+  color: var(--st-pend);
+}
+
+.times-skel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  color: var(--color-muted);
+}
+
+/* Resumen de la cita ------------------------------------------------------------------------- */
+
+.summary h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+}
+
+.summary__when {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem;
+  margin-bottom: 0.8rem;
+  border-radius: var(--radius);
+  background: var(--info-bg);
+}
+
+.summary__when b {
+  color: var(--color-text);
+}
+
+.summary__when span {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.summary__when.is-empty {
+  background: var(--tint-soft);
+}
+
+/* Pantalla de éxito -------------------------------------------------------------------------- */
+
+.success-card {
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.success-card__icon {
+  display: inline-flex;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  background: var(--success-bg);
+  color: var(--color-success);
+}
+
+.success-card h1 {
+  font-size: 1.3rem;
+  margin: 0 0 0.3rem;
+}
+
+.success-card .data-grid {
+  text-align: left;
+  margin: 1.2rem 0;
+}
+
+.success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
