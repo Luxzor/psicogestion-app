@@ -17,3 +17,19 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// Transición suave de salida para la pantalla de carga (Splash Screen)
+const splashEl = document.getElementById('splash-screen');
+if (splashEl) {
+  const progressBar = document.getElementById('splash-progress');
+  if (progressBar) {
+    progressBar.style.animation = 'none';
+    progressBar.style.width = '100%';
+  }
+  setTimeout(() => {
+    splashEl.classList.add('splash-fade-out');
+    setTimeout(() => {
+      splashEl.remove();
+    }, 450);
+  }, 400);
+}
