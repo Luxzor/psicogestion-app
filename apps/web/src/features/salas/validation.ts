@@ -63,3 +63,61 @@ export const SALA_PALETTE = [
 ] as const;
 
 export const getSalaColor = (index: number) => SALA_PALETTE[index % SALA_PALETTE.length];
+
+export const isoDe = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+export const fechaDeIso = (iso: string): Date => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+export const addDias = (iso: string, n: number): string => {
+  const d = fechaDeIso(iso);
+  d.setDate(d.getDate() + n);
+  return isoDe(d);
+};
+
+export const hhmm = (minutos: number): string =>
+  `${String(Math.floor(minutos / 60)).padStart(2, '0')}:${String(minutos % 60).padStart(2, '0')}`;
+
+export const durTxt = (minutos: number): string => {
+  if (minutos < 60) return `${minutos} min`;
+  if (minutos % 60) return `${Math.floor(minutos / 60)} h ${minutos % 60} min`;
+  return `${minutos / 60} h`;
+};
+
+export const cap = (s: string): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
+
+export const fmtF = (iso: string, options: Intl.DateTimeFormatOptions): string =>
+  cap(new Intl.DateTimeFormat('es-MX', options).format(fechaDeIso(iso)));
+
+export const fLarga = (iso: string): string =>
+  fmtF(iso, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+export const fMedia = (iso: string): string =>
+  fmtF(iso, { weekday: 'short', day: 'numeric', month: 'short' });
+
+export const fCorta = (iso: string): string => {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+};
+
+export const INI_MINUTOS = 7 * 60;
+export const FIN_MINUTOS = 17 * 60;
+export const BLOQUE_INTERVALO = 30;
+
+export const BLOQUES: readonly number[] = Array.from(
+  { length: (FIN_MINUTOS - INI_MINUTOS) / BLOQUE_INTERVALO },
+  (_, i) => INI_MINUTOS + i * BLOQUE_INTERVALO,
+);
+
+export const esPasado = (
+  fecha: string,
+  min: number,
+  ahora: Date = new Date(),
+): boolean => {
+  const hoyIso = isoDe(ahora);
+  const ahoraMin = ahora.getHours() * 60 + ahora.getMinutes();
+  return fecha < hoyIso || (fecha === hoyIso && min < ahoraMin);
+};

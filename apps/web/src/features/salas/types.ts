@@ -44,10 +44,28 @@ export type BloqueSala = {
   folio?: string;
 };
 
+/** Cita que ocupa un horario en el día de la sala (RF 4.3.2, PG-DSN-003-INT). */
+export type CitaSalaDia = {
+  id: string;
+  folio: string;
+  estado: 'Pendiente' | 'Cancelada' | 'Vencida';
+  inicio: string;
+  fin: string;
+  ini_minutos: number;
+  fin_minutos: number;
+  paciente: { id: string; nombre_completo: string };
+  terapeuta: { id: string; nombre_completo: string; activo?: boolean };
+  sala: { id: string; nombre: string };
+};
+
 export type DisponibilidadSala = {
   id: string;
   nombre: string;
+  activo?: boolean;
   bloques: BloqueSala[];
+  citas?: CitaSalaDia[];
+  total_citas?: number;
+  bloques_ocupados?: number;
 };
 
 /** Respuesta de GET /salas/disponibilidad (PG-DSN-003 5.7). */

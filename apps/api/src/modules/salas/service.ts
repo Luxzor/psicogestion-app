@@ -4,9 +4,17 @@ import { audit } from '../../platform/audit.js';
 import { db } from '../../platform/db.js';
 import { salaDatabaseError } from './errors.js';
 import { salaRepository, type SalaListState, type SalaRecord } from './repository.js';
+import { citaRepository } from '../citas/repository.js';
+import {
+  bloquesDelDia,
+  clinicParts,
+  ventanaDelDia,
+  HORARIO_MENSAJES,
+} from '../citas/horario.js';
 import {
   SALA_MENSAJES,
   type CreateSalaInput,
+  type DisponibilidadQueryInput,
   type SalaAvailabilityInput,
 } from './schemas.js';
 
@@ -81,6 +89,119 @@ export const salaService = {
    */
   async list(estado: SalaListState = 'activas'): Promise<SalaRecord[]> {
     return salaRepository.list(estado);
+  },
+
+  /**
+   * Obtiene el detalle de una sala por identificador (RF 4.3.1).
+   */
+  async getById(id: string): Promise<SalaRecord> {
+    const sala = await salaRepository.findById(id);
+    if (!sala) {
+      throw new AppError(404, 'SALA_NO_ENCONTRADA', SALA_MENSAJES.SALA_NO_ENCONTRADA);
+    }
+    return sala;
+  },
+
+  /**
+   * EDT 5.3.2. Consulta de disponibilidad de salas por día (RF 4.3.2, RF 4.3.3, RF 5.1.3; PG-DSN-003 5.7).
+   */
+  async getDisponibilidad(input: DisponibilidadQueryInput) {
+    await citaRepository.markExpired();
+
+    const bloques = bloquesDelDia(input.fecha);
+    if (!bloques) {
+      throw new AppError(400, 'HORARIO_INVALIDO', HORARIO_MENSAJES.HORARIO_INVALIDO);
+    }
+
+    const ventana = ventanaDelDia(input.fecha);
+    if (!ventana) {
+      throw new AppError(400, 'HORARIO_INVALIDO', HORARIO_MENSAJES.HORARIO_INVALIDO);
+    }
+
+    const salas = await salaRepository.list('activas');
+    const occupied = await citaRepository.occupiedBetween(ventana.desde, ventana.hasta);
+
+    const salasResult = salas.map((sala) => {
+      const citasSala = occupied.filter((c) => c.id_sala === sala.id);
+
+      const citas = citasSala.map((c) => ({
+        id: c.id,
+        folio: c.folio,
+        estado: c.estado,
+        inicio: c.inicio.toISOString(),
+        fin: c.fin.toISOString(),
+        ini_minutos: clinicParts(c.inicio).minutos,
+        fin_minutos: clinicParts(c.fin).minutos,
+        paciente: { id: c.id_paciente, nombre_completo: c.paciente_nombre },
+        terapeuta: {
+          id: c.id_terapeuta,
+          nombre_completo: c.terapeuta_nombre,
+          activo: c.terapeuta_activo,
+        },
+        sala: { id: sala.id, nombre: sala.nombre },
+      }));
+
+      const bloquesResult = bloques.map((b) => {
+        const overlapSala = citasSala.find((c) => c.inicio < b.fin && c.fin > b.inicio);
+        if (overlapSala) {
+          return {
+            inicio: b.inicio.toISOString(),
+            estado: 'reservada' as const,
+            folio: overlapSala.folio,
+          };
+        }
+
+        if (
+          input.id_terapeuta &&
+          occupied.some(
+            (c) => c.id_terapeuta === input.id_terapeuta && c.inicio < b.fin && c.fin > b.inicio,
+          )
+        ) {
+          return {
+            inicio: b.inicio.toISOString(),
+            estado: 'no_disponible' as const,
+          };
+        }
+
+        if (
+          input.id_paciente &&
+          occupied.some(
+            (c) => c.id_paciente === input.id_paciente && c.inicio < b.fin && c.fin > b.inicio,
+          )
+        ) {
+          return {
+            inicio: b.inicio.toISOString(),
+            estado: 'no_disponible' as const,
+          };
+        }
+
+        return {
+          inicio: b.inicio.toISOString(),
+          estado: 'libre' as const,
+        };
+      });
+
+      const bloquesOcupados = bloquesResult.filter((b) => b.estado === 'reservada').length;
+
+      return {
+        id: sala.id,
+        nombre: sala.nombre,
+        activo: sala.activo,
+        bloques: bloquesResult,
+        citas,
+        total_citas: citas.length,
+        bloques_ocupados: bloquesOcupados,
+      };
+    });
+
+    return {
+      fecha: input.fecha,
+      bloques: bloques.map((b) => ({
+        inicio: b.inicio.toISOString(),
+        fin: b.fin.toISOString(),
+      })),
+      salas: salasResult,
+    };
   },
 
   /**

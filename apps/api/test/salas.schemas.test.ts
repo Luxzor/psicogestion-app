@@ -3,6 +3,7 @@ import { salaDatabaseError } from '../src/modules/salas/errors.js';
 import {
   createSalaSchema,
   dischargeSchema,
+  disponibilidadQuerySchema,
   normalizarNombreSala,
   salaAvailabilitySchema,
   SALA_MENSAJES,
@@ -95,6 +96,28 @@ describe('modelo de datos de salas: validación del nombre (EDT 5.2.1)', () => {
   it('valida que el esquema de baja lógica sea estricto sin cuerpo (ADR-13)', () => {
     expect(dischargeSchema.safeParse({}).success).toBe(true);
     expect(dischargeSchema.safeParse({ id: 'test' }).success).toBe(false);
+  });
+
+  it('valida el esquema de consulta de disponibilidad de salas (RF 4.3.2, RF 5.1.3)', () => {
+    expect(disponibilidadQuerySchema.parse({ fecha: '2026-10-26' })).toEqual({
+      fecha: '2026-10-26',
+    });
+    expect(
+      disponibilidadQuerySchema.parse({
+        fecha: '2026-10-26',
+        id_terapeuta: '8b3c4d5e-6f70-4b81-8c9d-1e2f3a4b5c6d',
+        duracion: 2,
+      }),
+    ).toEqual({
+      fecha: '2026-10-26',
+      id_terapeuta: '8b3c4d5e-6f70-4b81-8c9d-1e2f3a4b5c6d',
+      duracion: 2,
+    });
+    expect(disponibilidadQuerySchema.safeParse({}).success).toBe(false);
+    expect(disponibilidadQuerySchema.safeParse({ fecha: '26-10-2026' }).success).toBe(false);
+    expect(disponibilidadQuerySchema.safeParse({ fecha: '2026-10-26', duracion: 5 }).success).toBe(
+      false,
+    );
   });
 });
 

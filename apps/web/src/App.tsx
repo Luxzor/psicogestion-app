@@ -18,6 +18,7 @@ import { EditarPacientePage } from './features/pacientes/pages/EditarPacientePag
 import { PacientesPage } from './features/pacientes/pages/PacientesPage';
 import { PerfilPacientePage } from './features/pacientes/pages/PerfilPacientePage';
 import { RegistroPacientePage } from './features/pacientes/pages/RegistroPacientePage';
+import { SalaDiaPage } from './features/salas/pages/SalaDiaPage';
 import { SalasPage } from './features/salas/pages/SalasPage';
 import { EditarTerapeutaPage } from './features/terapeutas/pages/EditarTerapeutaPage';
 import { PerfilTerapeutaPage } from './features/terapeutas/pages/PerfilTerapeutaPage';
@@ -152,6 +153,7 @@ export function App() {
         <Route path="terapeutas/:id" element={<PerfilTerapeutaPage session={session!} />} />
         <Route path="terapeutas/:id/editar" element={<EditarTerapeutaPage session={session!} />} />
         <Route path="salas" element={<SalasPage session={session!} />} />
+        <Route path="salas/:id" element={<SalaDiaPage session={session!} />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>
 

@@ -69,8 +69,20 @@ export const salaListQuerySchema = z.strictObject({
   estado: z.enum(['activas', 'inactivas', 'todas']).default('activas'),
 });
 
+/** Consulta de disponibilidad de salas (RF 4.3.2, RF 4.3.3, RF 5.1.3; PG-DSN-003 5.7). */
+export const disponibilidadQuerySchema = z.strictObject({
+  fecha: z
+    .string({ error: 'La fecha es obligatoria.' })
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato AAAA-MM-DD.'),
+  id_terapeuta: salaIdSchema.optional(),
+  id_paciente: salaIdSchema.optional(),
+  duracion: z.coerce.number().int().min(1).max(4).optional(),
+});
+
 export type CreateSalaInput = z.infer<typeof createSalaSchema>;
 export type UpdateSalaInput = z.infer<typeof updateSalaSchema>;
 export type SalaAvailabilityInput = z.infer<typeof salaAvailabilitySchema>;
 export type DischargeInput = z.infer<typeof dischargeSchema>;
 export type SalaListQueryInput = z.infer<typeof salaListQuerySchema>;
+export type DisponibilidadQueryInput = z.infer<typeof disponibilidadQuerySchema>;

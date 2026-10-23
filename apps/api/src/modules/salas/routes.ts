@@ -7,6 +7,7 @@ import { readIdempotencyKey, runIdempotent } from '../../platform/idempotency.js
 import {
   createSalaSchema,
   dischargeSchema,
+  disponibilidadQuerySchema,
   salaAvailabilitySchema,
   salaIdSchema,
   salaListQuerySchema,
@@ -34,6 +35,32 @@ salasRouter.get(
     if (!parsed.success) throw validationError(parsed.error);
     const salas = await salaService.list(parsed.data.estado);
     response.json({ salas });
+  }),
+);
+
+/**
+ * EDT 5.3.2. Consulta de disponibilidad de salas por día (RF 4.3.2, RF 4.3.3, RF 5.1.3; PG-DSN-003 5.7).
+ */
+salasRouter.get(
+  '/disponibilidad',
+  asyncRoute(async (request, response) => {
+    const parsed = disponibilidadQuerySchema.safeParse(request.query);
+    if (!parsed.success) throw validationError(parsed.error);
+    const disponibilidad = await salaService.getDisponibilidad(parsed.data);
+    response.json(disponibilidad);
+  }),
+);
+
+/**
+ * RF 4.3.1. Obtener el detalle de una sala por identificador.
+ */
+salasRouter.get(
+  '/:id',
+  asyncRoute(async (request, response) => {
+    const id = salaIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const sala = await salaService.getById(id.data);
+    response.json({ sala });
   }),
 );
 
