@@ -3,9 +3,9 @@ import { audit } from '../../platform/audit.js';
 import { db } from '../../platform/db.js';
 import { mailService, type CitaConfirmacion } from '../auth/mail.js';
 import { citaDatabaseError, citaError } from './errors.js';
-import { calcularFin, evaluarHorario } from './horario.js';
-import { citaRepository, type CitaRecord } from './repository.js';
-import type { CreateCitaInput } from './schemas.js';
+import { calcularFin, clinicDateTimeToUtc, evaluarHorario } from './horario.js';
+import { citaRepository, type CitaListItem, type CitaRecord } from './repository.js';
+import type { CreateCitaInput, CitaListQueryInput } from './schemas.js';
 
 export type RequestContext = {
   userId: string;
@@ -16,6 +16,14 @@ export type RequestContext = {
 
 /** Respuesta del alta (PG-DSN-003 5.7): la cita con el resultado del correo de confirmación. */
 export type CitaCreada = CitaRecord & { confirmacion: CitaConfirmacion };
+
+/** Respuesta del listado (GET /citas, RF 5.2.1–5.2.3; convención de PG-DSN-002 5.12.1). */
+export type CitaListResponse = {
+  datos: CitaListItem[];
+  pagina: number;
+  tamano: number;
+  total: number;
+};
 
 const auditContext = (context: RequestContext) => ({
   userId: context.userId,
@@ -126,5 +134,49 @@ export const citaService = {
     });
 
     return { ...cita, confirmacion };
+  },
+
+  /**
+   * RF 5.2.1–5.2.3, RNF 5.1.4 (EDT 5.3.3). Listado paginado con filtros por estado, sala,
+   * terapeuta, folio y periodo. El periodo (día, semana o mes) ya llegó resuelto como `desde` y
+   * `hasta` (fechas de calendario); aquí se interpretan en CLINIC_TIME_ZONE con
+   * clinicDateTimeToUtc(): `desde` es el inicio de ese día y `hasta` el inicio del día siguiente
+   * (límite superior exclusivo), de modo que el rango cubre el día de `hasta` completo. Antes de
+   * listar, marca como Vencida toda cita Pendiente cuyo fin ya pasó (ADR-18).
+   */
+  async list(input: CitaListQueryInput): Promise<CitaListResponse> {
+    await citaRepository.markExpired();
+
+    const desde = input.desde ? (clinicDateTimeToUtc(input.desde, 0) ?? undefined) : undefined;
+    const hasta = input.hasta
+      ? (clinicDateTimeToUtc(input.hasta, 24 * 60) ?? undefined)
+      : undefined;
+
+    const { datos, total } = await citaRepository.list({
+      estado: input.estado,
+      id_sala: input.id_sala,
+      id_terapeuta: input.id_terapeuta,
+      folio: input.folio,
+      desde,
+      hasta,
+      pagina: input.pagina,
+      tamano: input.tamano,
+    });
+
+    return { datos, pagina: input.pagina, tamano: input.tamano, total };
+  },
+
+  /** RF 5.2 (EDT 5.3.3). Detalle de una cita; registra audit('cita_consultada'). */
+  async getById(id: string, context: RequestContext): Promise<CitaRecord> {
+    const cita = await citaRepository.findById(id);
+    if (!cita) throw citaError('CITA_NO_ENCONTRADA');
+
+    await audit({
+      ...auditContext(context),
+      event: 'cita_consultada',
+      detail: `${cita.id} ${cita.folio}`,
+    });
+
+    return cita;
   },
 };

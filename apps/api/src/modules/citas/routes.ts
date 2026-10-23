@@ -4,7 +4,7 @@ import { asyncRoute } from '../../middleware/async-route.js';
 import { requireAuth } from '../../middleware/require-auth.js';
 import { validationError } from '../../platform/errors.js';
 import { readIdempotencyKey, runIdempotent } from '../../platform/idempotency.js';
-import { createCitaSchema } from './schemas.js';
+import { citaIdSchema, createCitaSchema, citaListQuerySchema } from './schemas.js';
 import { citaService, type RequestContext } from './service.js';
 
 const requestContext = (request: Request, response: Response): RequestContext => ({
@@ -44,5 +44,29 @@ citasRouter.post(
       }),
     );
     response.status(result.status).json(result.body);
+  }),
+);
+
+/**
+ * RF 5.2.1–5.2.3, RNF 5.1.4 (EDT 5.3.3). Listado paginado con filtros por estado, sala,
+ * terapeuta, periodo (desde/hasta) y folio (CA-5.2-01).
+ */
+citasRouter.get(
+  '/',
+  asyncRoute(async (request, response) => {
+    const parsed = citaListQuerySchema.safeParse(request.query);
+    if (!parsed.success) throw validationError(parsed.error);
+    response.json(await citaService.list(parsed.data));
+  }),
+);
+
+/** RF 5.2 (EDT 5.3.3). Detalle de una cita. */
+citasRouter.get(
+  '/:id',
+  asyncRoute(async (request, response) => {
+    const id = citaIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const context = requestContext(request, response);
+    response.json({ cita: await citaService.getById(id.data, context) });
   }),
 );

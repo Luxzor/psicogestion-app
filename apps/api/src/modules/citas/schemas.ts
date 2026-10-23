@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseIsoDate } from '../../platform/clock.js';
 import { versionSchema } from '../salas/schemas.js';
 import { MAX_BLOQUES, MIN_BLOQUES } from './horario.js';
 
@@ -97,6 +98,53 @@ export const folioSchema = z
     z.string().regex(FOLIO_PATTERN, 'El folio no tiene un formato válido. Ejemplo: C26000118.'),
   );
 
+/** Fecha de calendario AAAA-MM-DD para los filtros `desde`/`hasta` del listado (RF 5.2.3). */
+const fechaFiltro = (mensaje: string) =>
+  z
+    .string({ error: mensaje })
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato AAAA-MM-DD.')
+    .refine((value) => Boolean(parseIsoDate(value)), 'La fecha no es válida.');
+
+export const CITA_LIST_DEFAULT_PAGE = 1;
+export const CITA_LIST_DEFAULT_PAGE_SIZE = 25;
+export const CITA_LIST_MAX_PAGE_SIZE = 100;
+
+/**
+ * Listado de citas (GET /citas, RF 5.2.1–5.2.3, RNF 5.1.4). `desde` y `hasta` llegan como
+ * fechas de calendario ya resueltas por quien pide el filtro (el periodo día, semana o mes de
+ * RF 5.2.3 se resuelve antes de llegar aquí); el servicio las interpreta en CLINIC_TIME_ZONE.
+ * `folio` reutiliza folioSchema: normaliza a mayúsculas y exige el formato exacto.
+ */
+export const citaListQuerySchema = z
+  .strictObject({
+    estado: z.enum(CITA_ESTADOS, { error: 'El estado solicitado no es válido.' }).optional(),
+    id_sala: idSala.optional(),
+    id_terapeuta: idTerapeuta.optional(),
+    desde: fechaFiltro('La fecha "desde" no es válida.').optional(),
+    hasta: fechaFiltro('La fecha "hasta" no es válida.').optional(),
+    folio: folioSchema.optional(),
+    pagina: z.coerce
+      .number({ error: 'La página debe ser un número entero.' })
+      .int('La página debe ser un número entero.')
+      .min(1, 'La página debe ser mayor o igual a 1.')
+      .default(CITA_LIST_DEFAULT_PAGE),
+    tamano: z.coerce
+      .number({ error: 'El tamaño de página debe ser un número entero.' })
+      .int('El tamaño de página debe ser un número entero.')
+      .min(1, 'El tamaño de página debe ser mayor o igual a 1.')
+      .max(
+        CITA_LIST_MAX_PAGE_SIZE,
+        `El tamaño de página no puede ser mayor que ${CITA_LIST_MAX_PAGE_SIZE}.`,
+      )
+      .default(CITA_LIST_DEFAULT_PAGE_SIZE),
+  })
+  .refine((value) => !value.desde || !value.hasta || value.desde <= value.hasta, {
+    error: 'La fecha "desde" no puede ser posterior a "hasta".',
+    path: ['desde'],
+  });
+
 export type CreateCitaInput = z.infer<typeof createCitaSchema>;
 export type UpdateCitaInput = z.infer<typeof updateCitaSchema>;
 export type CancelCitaInput = z.infer<typeof cancelCitaSchema>;
+export type CitaListQueryInput = z.infer<typeof citaListQuerySchema>;
