@@ -5,6 +5,7 @@ import {
   CalendarPlus,
   ChevronLeft,
   Clock,
+  Eye,
   LoaderCircle,
   RotateCw,
 } from 'lucide-react';
@@ -276,6 +277,14 @@ export function NuevaCitaPage({ session }: { session: Session }) {
               onClick={() => navigate(LIST_PATH)}
             >
               Ir a citas
+            </button>
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={() => navigate(`${LIST_PATH}/${exito.id}`)}
+            >
+              <Eye size={16} aria-hidden="true" />
+              Ver detalle de la cita
             </button>
             <button type="button" className="button button--primary" onClick={reiniciar}>
               <CalendarPlus size={16} aria-hidden="true" />

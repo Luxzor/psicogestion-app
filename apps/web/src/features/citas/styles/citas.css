@@ -1,6 +1,70 @@
-/* EDT 5.3.3. Estilos propios de "Agendar cita" (PG-DSN-003-INT). Reutiliza los tokens de
-   styles.css y las clases de layout de pacientes.css (.page, .panel, .field, .form-section,
-   .form-grid, .data-grid, .segmented); aquí solo lo que no existía todavía. */
+/* EDT 5.3.3. Estilos propios de citas ("Agendar cita", lista y detalle; PG-DSN-003-INT).
+   Reutiliza los tokens de styles.css y las clases de layout de pacientes.css (.page, .panel,
+   .field, .form-section, .form-grid, .data-grid, .segmented, .data-table, .empty, .pagination,
+   .search, .fab); aquí solo lo que no existía todavía. */
+
+/* Lista de citas: pestañas y filtros ---------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0.5rem 0 1rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.tab {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tab.is-active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.citas-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+  padding: 0.75rem 1rem;
+}
+
+.citas-filtros select,
+.citas-filtros input[type='date'] {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.citas-filtros .search {
+  flex: 1 1 14rem;
+}
+
+.citas-filtros__folio-hint {
+  display: block;
+  margin: -0.5rem 0 0.75rem;
+  color: var(--color-error);
+  font-size: 0.8rem;
+}
+
+.citas-filtros__folio-hint[hidden] {
+  display: none;
+}
 
 .cita-layout {
   display: grid;

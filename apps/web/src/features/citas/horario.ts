@@ -125,3 +125,44 @@ export function yaPaso(fecha: string, minutos: number, ahora: Date = new Date())
 export function rangoLegible(inicio: string, fin: string) {
   return `${minutosAHora(enHoraClinica(inicio).minutos)} a ${minutosAHora(enHoraClinica(fin).minutos)}`;
 }
+
+/**
+ * Primer día de la semana: lunes, la misma constante y el mismo motivo que
+ * apps/api/src/modules/citas/horario.ts (semana ISO-8601 y semana laboral de la clínica,
+ * PG-PLI-003 2.6). El servidor no resuelve "semana" ni "mes": recibe `desde` y `hasta` ya
+ * calculados, así que la cuenta se repite aquí. 0 = domingo … 6 = sábado.
+ */
+export const PRIMER_DIA_SEMANA = 1;
+
+/** Día de la semana (0 = domingo) de una fecha AAAA-MM-DD, sin depender de la zona del navegador. */
+function diaSemana(fecha: string) {
+  const [year, month, day] = fecha.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+/** Suma (o resta) días de calendario a una fecha AAAA-MM-DD, en UTC. */
+export function sumarDias(fecha: string, dias: number) {
+  const [year, month, day] = fecha.split('-').map(Number);
+  const resultado = new Date(Date.UTC(year, month - 1, day + dias));
+  return `${resultado.getUTCFullYear()}-${pad(resultado.getUTCMonth() + 1)}-${pad(resultado.getUTCDate())}`;
+}
+
+export type CitaPeriodoFiltro = 'todo' | 'dia' | 'semana' | 'mes';
+
+/**
+ * Rango [desde, hasta] (ambas fechas incluidas) de un periodo de RF 5.2.3 alrededor de `fecha`.
+ * `desde`/`hasta` van directo al query de GET /citas; el servidor los interpreta en
+ * CLINIC_TIME_ZONE (ver citaListQuerySchema). Para "todo" no hay rango: devuelve null.
+ */
+export function rangoDelPeriodo(periodo: CitaPeriodoFiltro, fecha: string) {
+  if (periodo === 'todo') return null;
+  if (periodo === 'dia') return { desde: fecha, hasta: fecha };
+  if (periodo === 'semana') {
+    const offset = (diaSemana(fecha) - PRIMER_DIA_SEMANA + 7) % 7;
+    const desde = sumarDias(fecha, -offset);
+    return { desde, hasta: sumarDias(desde, 6) };
+  }
+  const [year, month] = fecha.split('-');
+  const ultimoDia = new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
+  return { desde: `${year}-${month}-01`, hasta: `${year}-${month}-${pad(ultimoDia)}` };
+}

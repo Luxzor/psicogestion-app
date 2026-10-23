@@ -11,6 +11,7 @@ import { VerifyPage } from './features/auth/pages/VerifyPage';
 import type { Session } from './features/auth/types';
 import { AgendaPage } from './features/agenda/pages/AgendaPage';
 import { CitasPage } from './features/citas/pages/CitasPage';
+import { DetalleCitaPage } from './features/citas/pages/DetalleCitaPage';
 import { NuevaCitaPage } from './features/citas/pages/NuevaCitaPage';
 import { ConfiguracionPage } from './features/configuracion/pages/ConfiguracionPage';
 import { DashboardHomePage } from './features/dashboard/pages/DashboardHomePage';
@@ -136,8 +137,9 @@ export function App() {
       >
         <Route index element={<DashboardHomePage session={session!} />} />
         <Route path="agenda" element={<AgendaPage />} />
-        <Route path="citas" element={<CitasPage />} />
+        <Route path="citas" element={<CitasPage session={session!} />} />
         <Route path="citas/nueva" element={<NuevaCitaPage session={session!} />} />
+        <Route path="citas/:id" element={<DetalleCitaPage session={session!} />} />
         <Route path="pacientes" element={<PacientesPage session={session!} />} />
         <Route path="pacientes/nuevo" element={<RegistroPacientePage session={session!} />} />
         <Route path="pacientes/:id" element={<PerfilPacientePage session={session!} />} />

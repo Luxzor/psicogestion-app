@@ -47,3 +47,17 @@ export function useDisponibilidad(
     enabled,
   });
 }
+
+/**
+ * EDT 5.3.3. Salas activas para el filtro de la lista de citas (GET /salas?estado=activas). Igual
+ * que useDisponibilidad, vive aquí porque quien la consume es esta pantalla; no toca ni repite
+ * features/salas.
+ */
+export const salasActivasKeys = { todo: ['citas', 'salas-activas'] as const };
+
+export function useSalasActivas(accessToken: string) {
+  return useQuery({
+    queryKey: salasActivasKeys.todo,
+    queryFn: ({ signal }) => salasApi.list({ estado: 'activas' }, accessToken, signal),
+  });
+}
