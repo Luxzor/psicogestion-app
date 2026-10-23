@@ -169,24 +169,6 @@ export function SalasPage({ session }: { session?: Session }) {
               aria-label="Elegir día"
             />
           </div>
-          <button
-            type="button"
-            className="button button--danger-soft"
-            id="btn-del"
-            onClick={() => handleOpenEliminar()}
-          >
-            <Trash2 size={16} aria-hidden="true" />
-            Eliminar sala
-          </button>
-          <button
-            type="button"
-            className="button button--primary"
-            id="btn-agregar-sala"
-            onClick={() => setIsDialogOpen(true)}
-          >
-            <Plus size={16} aria-hidden="true" />
-            Agregar sala
-          </button>
         </div>
       </div>
 
@@ -368,15 +350,26 @@ export function SalasPage({ session }: { session?: Session }) {
         )}
       </section>
 
-      <button
-        type="button"
-        className="button button--primary fab"
-        id="fab"
-        onClick={() => setIsDialogOpen(true)}
-      >
-        <Plus size={18} aria-hidden="true" />
-        Agregar sala
-      </button>
+      <div className="fab-group">
+        <button
+          type="button"
+          className="button button--danger-soft"
+          id="btn-del"
+          onClick={() => handleOpenEliminar()}
+        >
+          <Trash2 size={16} aria-hidden="true" />
+          Eliminar sala
+        </button>
+        <button
+          type="button"
+          className="button button--primary"
+          id="fab"
+          onClick={() => setIsDialogOpen(true)}
+        >
+          <Plus size={18} aria-hidden="true" />
+          Agregar sala
+        </button>
+      </div>
 
       <AgregarSalaDialog
         isOpen={isDialogOpen}
