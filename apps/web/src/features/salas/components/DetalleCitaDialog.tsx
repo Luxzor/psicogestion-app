@@ -151,12 +151,7 @@ export function DetalleCitaDialog({
         </div>
 
         <div className="dialog-actions">
-          <button
-            type="button"
-            className="button button--secondary"
-            onClick={onClose}
-            autoFocus
-          >
+          <button type="button" className="button button--secondary" onClick={onClose} autoFocus>
             Cerrar
           </button>
         </div>

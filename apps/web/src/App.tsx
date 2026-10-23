@@ -38,11 +38,7 @@ function ProtectedLayout({
   if (!session) return <Navigate to="/iniciar-sesion" replace />;
   return (
     <UnsavedChangesProvider>
-      <DashboardLayout
-        session={session}
-        onLogout={onLogout}
-        onIdleTimeout={onIdleTimeout}
-      />
+      <DashboardLayout session={session} onLogout={onLogout} onIdleTimeout={onIdleTimeout} />
     </UnsavedChangesProvider>
   );
 }
@@ -134,11 +130,7 @@ export function App() {
       <Route
         path="/inicio"
         element={
-          <ProtectedLayout
-            session={session}
-            onLogout={logout}
-            onIdleTimeout={handleIdleTimeout}
-          />
+          <ProtectedLayout session={session} onLogout={logout} onIdleTimeout={handleIdleTimeout} />
         }
       >
         <Route index element={<DashboardHomePage session={session!} />} />
