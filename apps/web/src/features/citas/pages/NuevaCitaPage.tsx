@@ -297,7 +297,7 @@ export function NuevaCitaPage({ session }: { session: Session }) {
   }
 
   return (
-    <div className="page page--narrow">
+    <div className="page">
       <button type="button" className="back-link" onClick={cancel} disabled={saving}>
         <ChevronLeft size={16} aria-hidden="true" />
         Citas
@@ -457,7 +457,7 @@ export function NuevaCitaPage({ session }: { session: Session }) {
               <b>Fecha y hora por elegir</b>
             )}
           </div>
-          <dl className="data-grid">
+          <dl className="summary-list">
             <div>
               <dt>Estatus</dt>
               <dd>

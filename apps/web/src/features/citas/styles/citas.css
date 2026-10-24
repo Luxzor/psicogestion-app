@@ -89,15 +89,21 @@
 
 .combo__icon {
   position: absolute;
-  left: 0.6rem;
+  left: 0.75rem;
+  top: 50%;
   display: flex;
   color: var(--color-muted);
   pointer-events: none;
+  transform: translateY(-50%);
 }
 
-.combo input {
+/* Selector con .persona-selector (no solo .combo input): features/auth/styles/auth.css define
+   un .field input sin ámbito propio, con la misma especificidad que .combo input; qué regla gana
+   depende del orden en que Vite inyecta cada hoja de estilo en desarrollo, así que .combo input
+   por sí solo no es confiable. Esto le da más especificidad sin tocar el módulo de auth. */
+.persona-selector .combo input {
   width: 100%;
-  padding: 0.55rem 2.2rem 0.55rem 2rem;
+  padding: 0.55rem 2.2rem 0.55rem 2.5rem;
   border: 1px solid var(--color-line);
   border-radius: var(--radius);
   background: var(--color-surface);
@@ -105,12 +111,12 @@
   font: inherit;
 }
 
-.combo input:focus {
+.persona-selector .combo input:focus {
   outline: none;
   border-color: var(--color-primary);
 }
 
-.combo input[aria-invalid='true'] {
+.persona-selector .combo input[aria-invalid='true'] {
   border-color: var(--color-error);
 }
 
@@ -276,6 +282,10 @@
 
 /* Resumen de la cita ------------------------------------------------------------------------- */
 
+.summary {
+  padding: 1.15rem 1.35rem 1.25rem;
+}
+
 .summary h2 {
   margin: 0 0 0.6rem;
   font-size: 1rem;
@@ -298,6 +308,45 @@
 .summary__when span {
   color: var(--color-muted);
   font-size: 0.85rem;
+}
+
+/* Lista de etiqueta a la izquierda y valor a la derecha, en vez de la rejilla de 3 columnas de
+   .data-grid: con nombres largos (paciente, terapeuta) esa rejilla los corta sin espacio entre
+   columnas. Solo para este resumen; .data-grid sigue igual donde ya se usa. */
+.summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0;
+}
+
+.summary-list > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.summary-list dt {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.summary-list dd {
+  margin: 0;
+  max-width: 65%;
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-align: right;
+  overflow-wrap: break-word;
+}
+
+.summary-list dd.is-empty {
+  color: var(--color-muted);
+  font-weight: 500;
+  font-style: italic;
 }
 
 .summary__when.is-empty {
@@ -336,4 +385,26 @@
   justify-content: center;
   gap: 0.6rem;
   margin-top: 1.2rem;
+}
+
+/* Detalle de cita ---------------------------------------------------------------------------- */
+
+.cita-det {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 1.15rem 1.35rem 1.35rem;
+}
+
+.cita-det dt {
+  margin-bottom: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.cita-det dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
 }
