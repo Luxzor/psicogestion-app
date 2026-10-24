@@ -20,6 +20,14 @@ export type SalaPayload = { nombre: string };
 /** Cuerpo del cambio de nombre (PATCH /salas/{id}) con la versión leída (ADR-23). */
 export type SalaUpdatePayload = SalaPayload & { version: number };
 
+export type SalaResponse = { codigo: string; sala: Sala };
+
+export type SalaAvailability = {
+  campo: 'nombre';
+  disponible: boolean;
+  mensaje?: string;
+};
+
 /** Filtro del listado por estado (PG-DSN-003 5.2): por defecto solo activas. */
 export type SalaListState = 'activas' | 'inactivas' | 'todas';
 

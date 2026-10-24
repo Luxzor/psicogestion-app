@@ -49,5 +49,28 @@ export const updateSalaSchema = z.strictObject({
 
 export const salaIdSchema = z.uuid('El identificador de la sala no es válido.');
 
+/** Verificación anticipada de disponibilidad de nombre (RF 4.1.4, RNF 4.1.2). */
+export const salaAvailabilitySchema = z.strictObject({
+  campo: z.literal('nombre'),
+  valor: z
+    .string({ error: SALA_MENSAJES.NOMBRE_INVALIDO })
+    .transform(normalizarNombreSala),
+  excluir_id: salaIdSchema.optional(),
+});
+
+/** Baja lógica de sala: no recibe datos en el cuerpo (ADR-13). */
+export const dischargeSchema = z.strictObject(
+  {},
+  { error: 'Esta operación no recibe datos en el cuerpo de la solicitud.' },
+);
+
+/** Listado de salas por estado: activas (por defecto), inactivas o todas (PG-DSN-003 3.3). */
+export const salaListQuerySchema = z.strictObject({
+  estado: z.enum(['activas', 'inactivas', 'todas']).default('activas'),
+});
+
 export type CreateSalaInput = z.infer<typeof createSalaSchema>;
 export type UpdateSalaInput = z.infer<typeof updateSalaSchema>;
+export type SalaAvailabilityInput = z.infer<typeof salaAvailabilitySchema>;
+export type DischargeInput = z.infer<typeof dischargeSchema>;
+export type SalaListQueryInput = z.infer<typeof salaListQuerySchema>;

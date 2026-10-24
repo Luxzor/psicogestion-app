@@ -47,3 +47,19 @@ export function toSalaUpdatePayload(sala: Sala, nombre: string): SalaUpdatePaylo
 
 /** Solo una sala activa puede ofrecerse al agendar (CA-4.2-01). */
 export const isSalaAssignable = (sala: Pick<Sala, 'activo'>) => Boolean(sala.activo);
+
+/** Paleta cromática para identificación visual de salas en selector (PG-DSN-003-INT). */
+export const SALA_PALETTE = [
+  '#002e5f',
+  '#c79316',
+  '#2f6f6a',
+  '#7a3e5c',
+  '#4f6db0',
+  '#8a5a2b',
+  '#3f7d3a',
+  '#a04a2a',
+  '#5a4fa0',
+  '#2b6c8f',
+] as const;
+
+export const getSalaColor = (index: number) => SALA_PALETTE[index % SALA_PALETTE.length];
