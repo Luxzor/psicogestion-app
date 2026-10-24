@@ -51,9 +51,12 @@ export type CitaOcupacion = {
   folio: string;
   estado: CitaEstado;
   id_sala: string;
+  sala_nombre: string;
   id_terapeuta: string;
-  id_paciente: string;
   terapeuta_nombre: string;
+  terapeuta_activo: boolean;
+  id_paciente: string;
+  paciente_nombre: string;
   inicio: Date;
   fin: Date;
 };
@@ -307,10 +310,13 @@ export const citaRepository = {
    */
   async occupiedBetween(desde: Date, hasta: Date, client: Queryable = db) {
     const result = await client.query<CitaOcupacion>(
-      `SELECT c.id, c.folio, c.estado, c.id_sala, c.id_terapeuta, c.id_paciente,
-              t.nombre_completo AS terapeuta_nombre, c.inicio, c.fin
+      `SELECT c.id, c.folio, c.estado, c.id_sala, s.nombre AS sala_nombre,
+              c.id_terapeuta, t.nombre_completo AS terapeuta_nombre, t.activo AS terapeuta_activo,
+              c.id_paciente, p.nombre_completo AS paciente_nombre, c.inicio, c.fin
        FROM cita c
        JOIN terapeuta t ON t.id = c.id_terapeuta
+       JOIN paciente p ON p.id = c.id_paciente
+       JOIN sala s ON s.id = c.id_sala
        WHERE c.estado <> 'Cancelada' AND c.inicio < $2 AND c.fin > $1
        ORDER BY c.inicio ASC, c.folio ASC`,
       [desde, hasta],

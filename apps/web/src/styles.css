@@ -18,6 +18,16 @@
   --success-bg: #edfdf5;
   --info-bg: #edf3f9;
   --card-ring: 0 0 0 1px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.04);
+  /* Tokens de la Iteración 3 (PG-DSN-003-INT) */
+  --st-pend: #002e5f;
+  --st-pend-bg: #edf3f9;
+  --st-canc: #b42318;
+  --st-canc-bg: #fff1ef;
+  --st-venc: #5c6675;
+  --st-venc-bg: #f3f2f0;
+  --st-res: #8a5a00;
+  --st-res-bg: #fdf3dc;
+  --row-hover: rgb(0 46 95 / 0.04);
   font-family:
     'Satoshi',
     'Avenir Next',
@@ -51,6 +61,15 @@
   --success-bg: rgb(52 211 153 / 0.12);
   --info-bg: rgb(107 163 224 / 0.12);
   --card-ring: 0 0 0 1px rgb(255 255 255 / 0.06);
+  --st-pend: #9cc3ee;
+  --st-pend-bg: rgb(107 163 224 / 0.14);
+  --st-canc: #f87171;
+  --st-canc-bg: rgb(248 113 113 / 0.12);
+  --st-venc: #8b95a8;
+  --st-venc-bg: rgb(255 255 255 / 0.06);
+  --st-res: #f0c25a;
+  --st-res-bg: rgb(224 168 32 / 0.14);
+  --row-hover: rgb(255 255 255 / 0.04);
 }
 
 * {
@@ -304,4 +323,359 @@ p {
   color: var(--color-muted);
   font-weight: 600;
   font-size: 0.7rem;
+}
+
+/* Insignias de estatus (PG-DSN-003-INT) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.badge--ok {
+  color: var(--color-success);
+  background: var(--success-bg);
+}
+
+.badge--off {
+  color: var(--color-muted);
+  background: var(--tint-soft);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.badge--res {
+  color: var(--st-res);
+  background: var(--st-res-bg);
+}
+
+.badge--pend {
+  color: var(--st-pend);
+  background: var(--st-pend-bg);
+}
+
+.badge--canc {
+  color: var(--st-canc);
+  background: var(--st-canc-bg);
+}
+
+.badge--venc {
+  color: var(--st-venc);
+  background: var(--st-venc-bg);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+/* Barra de herramientas de fecha */
+.datebar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--tint-soft);
+}
+
+.datebar button {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.datebar button:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.datebar input[type='date'] {
+  height: 2rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+  color-scheme: light;
+}
+
+[data-theme='dark'] .datebar input[type='date'] {
+  color-scheme: dark;
+}
+
+/* Ocupación y representación de salas */
+.occ {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  gap: 2px;
+  width: 12rem;
+}
+
+.occ i {
+  height: 0.85rem;
+  border-radius: 3px;
+  background: var(--tint-soft);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.occ i.on {
+  background: var(--c, var(--color-primary));
+  box-shadow: none;
+}
+
+.occ-scale {
+  display: flex;
+  justify-content: space-between;
+  width: 12rem;
+  margin-top: 0.2rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.room-name {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 760;
+}
+
+.room-name .tile {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--c, #002e5f) 13%, var(--color-surface));
+  color: var(--c, #002e5f);
+}
+
+[data-theme='dark'] .room-name .tile {
+  color: color-mix(in srgb, var(--c, #6ba3e0) 50%, white);
+  background: color-mix(in srgb, var(--c, #6ba3e0) 26%, var(--color-surface));
+}
+
+tr.is-new {
+  animation: rowin 2.4s ease;
+}
+
+@keyframes rowin {
+  0%,
+  40% {
+    background: rgb(199 147 22 / 0.14);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.icon-act {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.icon-act:hover:not(:disabled) {
+  background: var(--tint-soft);
+  color: var(--color-text);
+}
+
+.icon-act.is-danger:hover:not(:disabled) {
+  background: var(--error-bg);
+  color: var(--color-error);
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.15rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0 0 0.8rem -0.2rem;
+  padding: 0.2rem 0.4rem 0.2rem 0.2rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.back-link:hover {
+  color: var(--color-text);
+  background: var(--tint-soft);
+}
+
+.text-button {
+  padding: 0;
+  border: 0;
+  color: var(--color-primary);
+  background: transparent;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.22em;
+  cursor: pointer;
+}
+
+.opt-note {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/* Indicadores KPI de la sala por día */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--color-line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--card-ring);
+  margin-bottom: 1rem;
+}
+
+.kpi {
+  padding: 0.9rem 1.2rem;
+  background: var(--color-surface);
+}
+
+.kpi dt {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.kpi dd {
+  margin: 0.3rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 820;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Lista de bloques de un día */
+.day-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: 7.5rem 7rem 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.55rem 1.25rem;
+  border-bottom: 1px solid var(--color-line);
+  font-size: 0.8rem;
+}
+
+.day-row:last-child {
+  border-bottom: 0;
+}
+
+.day-row__t {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-row__d {
+  min-width: 0;
+  color: var(--color-muted);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-row__d strong {
+  color: var(--color-text);
+  font-weight: 720;
+}
+
+.day-row.is-busy {
+  background: color-mix(in srgb, var(--c, #002e5f) 5%, transparent);
+}
+
+/* Detalle de cita en modal */
+.cita-det {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.2rem 0 0;
+}
+
+.cita-det div {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+}
+
+.cita-det dt {
+  color: var(--color-muted);
+  font-weight: 700;
+  font-size: 0.74rem;
+  padding-top: 0.1rem;
+}
+
+.cita-det dd {
+  margin: 0;
+  font-weight: 720;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* Grupo de botones flotantes de acción inferior (Salas) */
+.fab-group {
+  position: absolute;
+  right: 1.6rem;
+  bottom: 1.4rem;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fab-group .button {
+  min-height: 2.9rem;
+  padding: 0.7rem 1.2rem 0.7rem 1rem;
+  font-size: 0.86rem;
+  text-decoration: none;
+  box-shadow: 0 14px 30px rgb(0 46 95 / 20%);
+}
+
+.fab-group .button--danger-soft {
+  box-shadow: 0 10px 25px rgb(180 35 24 / 15%), 0 0 0 1px var(--color-line);
 }

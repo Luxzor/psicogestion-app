@@ -18,6 +18,7 @@ import { EditarPacientePage } from './features/pacientes/pages/EditarPacientePag
 import { PacientesPage } from './features/pacientes/pages/PacientesPage';
 import { PerfilPacientePage } from './features/pacientes/pages/PerfilPacientePage';
 import { RegistroPacientePage } from './features/pacientes/pages/RegistroPacientePage';
+import { SalaDiaPage } from './features/salas/pages/SalaDiaPage';
 import { SalasPage } from './features/salas/pages/SalasPage';
 import { EditarTerapeutaPage } from './features/terapeutas/pages/EditarTerapeutaPage';
 import { PerfilTerapeutaPage } from './features/terapeutas/pages/PerfilTerapeutaPage';
@@ -37,11 +38,7 @@ function ProtectedLayout({
   if (!session) return <Navigate to="/iniciar-sesion" replace />;
   return (
     <UnsavedChangesProvider>
-      <DashboardLayout
-        session={session}
-        onLogout={onLogout}
-        onIdleTimeout={onIdleTimeout}
-      />
+      <DashboardLayout session={session} onLogout={onLogout} onIdleTimeout={onIdleTimeout} />
     </UnsavedChangesProvider>
   );
 }
@@ -133,11 +130,7 @@ export function App() {
       <Route
         path="/inicio"
         element={
-          <ProtectedLayout
-            session={session}
-            onLogout={logout}
-            onIdleTimeout={handleIdleTimeout}
-          />
+          <ProtectedLayout session={session} onLogout={logout} onIdleTimeout={handleIdleTimeout} />
         }
       >
         <Route index element={<DashboardHomePage session={session!} />} />
@@ -152,6 +145,7 @@ export function App() {
         <Route path="terapeutas/:id" element={<PerfilTerapeutaPage session={session!} />} />
         <Route path="terapeutas/:id/editar" element={<EditarTerapeutaPage session={session!} />} />
         <Route path="salas" element={<SalasPage session={session!} />} />
+        <Route path="salas/:id" element={<SalaDiaPage session={session!} />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>
 
