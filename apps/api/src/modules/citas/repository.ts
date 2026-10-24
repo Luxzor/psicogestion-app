@@ -145,6 +145,76 @@ export function toCitaRecord(row: CitaRow): CitaRecord {
 const summaryFields = `
   id, folio, estado, id_paciente, id_terapeuta, id_sala, inicio, fin, version`;
 
+/**
+ * Campos mínimos del listado (RF 5.2, R01: "las listas muestran el mínimo de datos"): sin
+ * duracion_bloques, cancelada_en, fecha_registro ni version, que no aportan a la lista y aquí
+ * solo ampliarían la respuesta sin necesidad.
+ */
+const citaListFields = `
+  c.id,
+  c.folio,
+  c.estado,
+  c.inicio,
+  c.fin,
+  p.id AS paciente_id,
+  p.nombre_completo AS paciente_nombre,
+  t.id AS terapeuta_id,
+  t.nombre_completo AS terapeuta_nombre,
+  s.id AS sala_id,
+  s.nombre AS sala_nombre`;
+
+type CitaListRow = {
+  id: string;
+  folio: string;
+  estado: CitaEstado;
+  inicio: Date;
+  fin: Date;
+  paciente_id: string;
+  paciente_nombre: string;
+  terapeuta_id: string;
+  terapeuta_nombre: string;
+  sala_id: string;
+  sala_nombre: string;
+};
+
+export type CitaListItem = {
+  id: string;
+  folio: string;
+  estado: CitaEstado;
+  inicio: string;
+  fin: string;
+  paciente: { id: string; nombre_completo: string };
+  terapeuta: { id: string; nombre_completo: string };
+  sala: { id: string; nombre: string };
+};
+
+function toCitaListItem(row: CitaListRow): CitaListItem {
+  return {
+    id: row.id,
+    folio: row.folio,
+    estado: row.estado,
+    inicio: row.inicio.toISOString(),
+    fin: row.fin.toISOString(),
+    paciente: { id: row.paciente_id, nombre_completo: row.paciente_nombre },
+    terapeuta: { id: row.terapeuta_id, nombre_completo: row.terapeuta_nombre },
+    sala: { id: row.sala_id, nombre: row.sala_nombre },
+  };
+}
+
+/** Filtros del listado (GET /citas, RF 5.2.1–5.2.3). `desde`/`hasta` ya son instantes UTC. */
+export type CitaListFiltros = {
+  estado?: CitaEstado;
+  id_sala?: string;
+  id_terapeuta?: string;
+  desde?: Date;
+  hasta?: Date;
+  folio?: string;
+  pagina: number;
+  tamano: number;
+};
+
+export type CitaListResultado = { datos: CitaListItem[]; total: number };
+
 export const citaRepository = {
   async findById(id: string, client: Queryable = db) {
     const result = await client.query<CitaRow>(
@@ -322,5 +392,47 @@ export const citaRepository = {
       [desde, hasta],
     );
     return result.rows;
+  },
+
+  /**
+   * RF 5.2.1–5.2.3, RNF 5.1.4. Listado paginado con filtros opcionales por estado, sala,
+   * terapeuta, periodo (desde/hasta, ya convertidos a instantes) y folio (coincidencia exacta).
+   * El total sale de la misma consulta (count(*) OVER()) para no duplicar el viaje a la base.
+   * Se apoya en idx_cita_estado_inicio, idx_cita_sala_inicio, idx_cita_terapeuta_inicio,
+   * idx_cita_inicio y uq_cita_folio según los filtros presentes.
+   */
+  async list(filtros: CitaListFiltros, client: Queryable = db): Promise<CitaListResultado> {
+    const params: unknown[] = [];
+    const condiciones: string[] = [];
+    const filtrar = (columna: string, valor: unknown) => {
+      params.push(valor);
+      condiciones.push(`${columna} = $${params.length}`);
+    };
+
+    if (filtros.estado) filtrar('c.estado', filtros.estado);
+    if (filtros.id_sala) filtrar('c.id_sala', filtros.id_sala);
+    if (filtros.id_terapeuta) filtrar('c.id_terapeuta', filtros.id_terapeuta);
+    if (filtros.folio) filtrar('c.folio', filtros.folio);
+    if (filtros.desde) {
+      params.push(filtros.desde);
+      condiciones.push(`c.inicio >= $${params.length}`);
+    }
+    if (filtros.hasta) {
+      params.push(filtros.hasta);
+      condiciones.push(`c.inicio < $${params.length}`);
+    }
+    const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
+    params.push(filtros.tamano, (filtros.pagina - 1) * filtros.tamano);
+    const result = await client.query<CitaListRow & { total: string }>(
+      `SELECT ${citaListFields}, count(*) OVER() AS total
+       FROM cita c ${citaJoins}
+       ${where}
+       ORDER BY c.inicio ASC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
+    );
+    const total = result.rows[0] ? Number(result.rows[0].total) : 0;
+    return { datos: result.rows.map(toCitaListItem), total };
   },
 };

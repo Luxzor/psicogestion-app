@@ -167,6 +167,15 @@ export function evaluarHorario(
   return null;
 }
 
+/**
+ * RF 5.2.3 (EDT 5.3.3). El API no resuelve "semana" ni "mes": recibe `desde` y `hasta` ya
+ * resueltos como fechas de calendario y los convierte a instantes con clinicDateTimeToUtc(). Esta
+ * constante fija qué día abre la semana para quien calcule esas dos fechas (el cliente web de
+ * features/citas, en una tarea siguiente de la EDT 5.3.3): lunes, como la semana ISO-8601 y la
+ * semana laboral de la clínica (PG-PLI-003 2.6). 0 = domingo … 6 = sábado (Date#getDay()).
+ */
+export const PRIMER_DIA_SEMANA = 1;
+
 export type BloqueHorario = { inicio: Date; fin: Date };
 
 /**

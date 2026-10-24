@@ -76,6 +76,12 @@ export const CITA_ERRORES = {
     mensaje: 'Otra persona modificó esta cita. Revisa los cambios y vuelve a intentar.',
     campo: undefined,
   },
+  /** cita_folio_seq agotada (SQLSTATE 2200H): ver NOTA PARA EDT 5.3.6 en citas/service.ts. */
+  FOLIO_AGOTADO: {
+    status: 500,
+    mensaje: 'No fue posible generar el folio de la cita. Contacta a soporte.',
+    campo: undefined,
+  },
 } as const satisfies Record<string, { status: number; mensaje: string; campo?: string }>;
 
 export type CitaErrorCode = keyof typeof CITA_ERRORES;
@@ -116,6 +122,9 @@ const REFERENCIAS: Record<string, CitaErrorCode> = {
  */
 export function citaDatabaseError(error: unknown): AppError | null {
   const { code, constraint } = (error ?? {}) as DatabaseError;
+  // sequence_generator_limit_exceeded: cita_folio_seq llegó a 999 999 (sin ciclo, ADR-17). No
+  // viola una restricción (no trae `constraint`), por eso se revisa antes de esa guarda.
+  if (code === '2200H') return citaError('FOLIO_AGOTADO');
   if (!constraint) return null;
   if (code === '23P01' && EMPALMES[constraint]) return citaError(EMPALMES[constraint]);
   if (code === '23514' && HORARIO_CHECKS.has(constraint)) return citaError('HORARIO_INVALIDO');
