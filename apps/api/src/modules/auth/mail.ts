@@ -69,8 +69,6 @@ export const mailService = {
    * - Se lee con RETURNING folio en citaRepository.create (apps/api/src/modules/citas/repository.ts).
    * - Un alta fallida (por ejemplo por empalme) consume un número de la secuencia y deja un hueco;
    *   es el comportamiento esperado (PG-DSN-003 11.3).
-   * - El máximo es 999 999, sin ciclo; al agotarse, nextval() falla y el alta responde con un
-   *   error interno (la secuencia no tiene un código de dominio propio todavía).
    * - El año del folio sale de America/Merida (CLINIC_TIME_ZONE), no de UTC.
    * - El folio no se reutiliza, ni siquiera el de una cita cancelada.
    * - Este correo es uno de los lugares donde se consume el folio; los otros son la respuesta del
