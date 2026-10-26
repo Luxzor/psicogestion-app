@@ -41,4 +41,17 @@ export const citasApi = {
     });
     return result.cita;
   },
+
+  /** RF 5.4.1–5.4.4. Cancelación de cita con control de versión (ADR-20). */
+  async cancel(id: string, version: number, accessToken: string) {
+    const result = await api<{ codigo: string; cita: Cita }>(
+      `/citas/${encodeURIComponent(id)}/cancelar`,
+      {
+        method: 'POST',
+        body: { version },
+        accessToken,
+      },
+    );
+    return result.cita;
+  },
 };

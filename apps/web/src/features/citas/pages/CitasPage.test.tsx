@@ -178,6 +178,32 @@ describe('lista de citas (RF 5.2.1-5.2.3, CA-5.2-01)', () => {
     );
   });
 
+  it('el botón Cancelar por folio abre el diálogo correspondiente (RF 5.4.1)', async () => {
+    mockApi(baseHandler(() => ({ status: 200, body: listaDe([cita()]) })));
+    renderList();
+
+    const btnFolio = await screen.findByRole('button', { name: /cancelar por folio/i });
+    expect(btnFolio).toBeInTheDocument();
+    fireEvent.click(btnFolio);
+
+    expect(await screen.findByRole('dialog', { name: 'Cancelar cita por folio' })).toBeInTheDocument();
+  });
+
+  it('el botón de cancelar en la fila de una cita pendiente abre la confirmación de cancelación (RF 5.4.2)', async () => {
+    mockApi(baseHandler(() => ({ status: 200, body: listaDe([cita()]) })));
+    renderList();
+
+    await screen.findByText('C26000001');
+    const cancelBtn = screen.getByRole('button', { name: 'Cancelar C26000001' });
+    expect(cancelBtn).toBeInTheDocument();
+
+    fireEvent.click(cancelBtn);
+
+    expect(
+      await screen.findByRole('alertdialog', { name: '¿Cancelar la cita C26000001?' }),
+    ).toBeInTheDocument();
+  });
+
   it('el periodo semana envía el rango de lunes a domingo de la fecha elegida (RF 5.2.3)', async () => {
     const fetchMock = mockApi(baseHandler(() => ({ status: 200, body: listaDe([cita()]) })));
     renderList();

@@ -179,4 +179,51 @@ export const citaService = {
 
     return cita;
   },
+
+  /**
+   * RF 5.4.1–5.4.4, RNF 5.1.3 (EDT 5.3.5). Cancela una cita Pendiente con control de versión
+   * optimista (ADR-20). Pasa el estado a Cancelada, registra cancelada_en y cancelada_por, y
+   * libera el horario en la base de datos (las restricciones EXCLUDE solo aplican a Pendientes).
+   */
+  async cancel(
+    id: string,
+    version: number,
+    context: RequestContext,
+    ahora: Date = new Date(),
+  ): Promise<CitaRecord> {
+    return inTransaction(async (client) => {
+      await citaRepository.markExpired(ahora, client);
+
+      const actual = await citaRepository.findSummaryById(id, client, 'update');
+      if (!actual) throw citaError('CITA_NO_ENCONTRADA');
+
+      if (actual.estado === 'Cancelada') {
+        throw citaError('CITA_YA_CANCELADA');
+      }
+
+      if (actual.estado === 'Vencida') {
+        throw citaError('CITA_NO_MODIFICABLE');
+      }
+
+      if (actual.version !== version) {
+        throw citaError('CONFLICTO_VERSION', { version_actual: actual.version });
+      }
+
+      const cita = await citaRepository.cancel(id, version, context.userId, client);
+      if (!cita) {
+        throw citaError('CONFLICTO_VERSION');
+      }
+
+      await audit(
+        {
+          ...auditContext(context),
+          event: 'cita_cancelada',
+          detail: `${cita.id} ${cita.folio}`,
+        },
+        client,
+      );
+
+      return cita;
+    });
+  },
 };

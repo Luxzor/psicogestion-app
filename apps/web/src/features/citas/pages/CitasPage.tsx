@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   CalendarCheck,
   CalendarPlus,
   CalendarX,
+  CircleCheck,
   CircleX,
   Clock,
+  Hash,
   RotateCw,
   Search,
   WifiOff,
@@ -14,9 +17,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Session } from '../../auth/types';
 import { useTherapistList } from '../../terapeutas/hooks/useTerapeutas';
 import { fMedia } from '../../salas/validation';
-import { useCitaList, useSalasActivas } from '../hooks/useCitas';
+import { CancelarCitaDialog } from '../components/CancelarCitaDialog';
+import { CancelarPorFolioDialog } from '../components/CancelarPorFolioDialog';
+import { citaKeys, useCitaList, useSalasActivas } from '../hooks/useCitas';
 import { enHoraClinica, hoyEnClinica, rangoDelPeriodo, rangoLegible } from '../horario';
-import type { CitaEstado, CitaListParams } from '../types';
+import type { Cita, CitaEstado, CitaListParams } from '../types';
 import { CITA_TABS, normalizeFolio, validateFolio } from '../validation';
 import '../../pacientes/styles/pacientes.css';
 import '../styles/citas.css';
@@ -79,6 +84,7 @@ function EstadoBadge({ estado }: { estado: CitaEstado }) {
  */
 export function CitasPage({ session }: { session: Session }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const estado = readEstado(searchParams.get('estado'));
@@ -90,6 +96,9 @@ export function CitasPage({ session }: { session: Session }) {
   const pagina = Math.max(1, Number(searchParams.get('pagina')) || 1);
 
   const [folioInput, setFolioInput] = useState(folio);
+  const [isFolioModalOpen, setIsFolioModalOpen] = useState(false);
+  const [citaParaCancelar, setCitaParaCancelar] = useState<Cita | null>(null);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
 
   const updateParams = useCallback(
     (patch: Record<string, string | null>, options: { resetPagina?: boolean } = {}) => {
@@ -170,7 +179,33 @@ export function CitasPage({ session }: { session: Session }) {
             <p>Consulta, filtra y agenda las citas de la clínica.</p>
           </div>
         </div>
+        <div className="page-tools">
+          <button
+            type="button"
+            className="button button--danger-soft"
+            id="btn-folio"
+            onClick={() => setIsFolioModalOpen(true)}
+          >
+            <Hash size={16} aria-hidden="true" />
+            Cancelar por folio
+          </button>
+        </div>
       </div>
+
+      {flashMessage ? (
+        <div className="notice success" role="status">
+          <CircleCheck size={18} aria-hidden="true" />
+          <div className="notice__body">{flashMessage}</div>
+          <button
+            type="button"
+            className="notice__close"
+            aria-label="Cerrar aviso"
+            onClick={() => setFlashMessage(null)}
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
 
       <div className="tabs" role="tablist" aria-label="Estatus de la cita">
         {CITA_TABS.map((tab) => (
@@ -313,6 +348,9 @@ export function CitasPage({ session }: { session: Session }) {
                 <th scope="col">Terapeuta</th>
                 <th scope="col">Sala</th>
                 <th scope="col">Estatus</th>
+                <th scope="col">
+                  <span className="sr-only">Acciones</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -336,6 +374,7 @@ export function CitasPage({ session }: { session: Session }) {
                   <td>
                     <span className="skeleton skeleton--narrow" />
                   </td>
+                  <td />
                 </tr>
               ))}
             </tbody>
@@ -371,6 +410,9 @@ export function CitasPage({ session }: { session: Session }) {
                 <th scope="col">Terapeuta</th>
                 <th scope="col">Sala</th>
                 <th scope="col">Estatus</th>
+                <th scope="col">
+                  <span className="sr-only">Acciones</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -393,6 +435,22 @@ export function CitasPage({ session }: { session: Session }) {
                   <td>{cita.sala.nombre}</td>
                   <td>
                     <EstadoBadge estado={cita.estado} />
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div className="row-actions">
+                      {cita.estado === 'Pendiente' ? (
+                        <button
+                          type="button"
+                          className="icon-act is-danger"
+                          data-cancel={cita.id}
+                          aria-label={`Cancelar ${cita.folio}`}
+                          title="Cancelar cita"
+                          onClick={() => setCitaParaCancelar(cita)}
+                        >
+                          <CircleX size={16} aria-hidden="true" />
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -431,6 +489,31 @@ export function CitasPage({ session }: { session: Session }) {
         <CalendarPlus size={18} aria-hidden="true" />
         Agendar cita
       </Link>
+
+      <CancelarPorFolioDialog
+        isOpen={isFolioModalOpen}
+        onClose={() => setIsFolioModalOpen(false)}
+        onSelectCita={(cita) => {
+          setIsFolioModalOpen(false);
+          setCitaParaCancelar(cita);
+        }}
+        accessToken={session.token}
+      />
+
+      <CancelarCitaDialog
+        isOpen={Boolean(citaParaCancelar)}
+        cita={citaParaCancelar}
+        onClose={() => setCitaParaCancelar(null)}
+        onCanceled={(c) => {
+          const fechaIso = enHoraClinica(c.inicio).fecha;
+          const horario = rangoLegible(c.inicio, c.fin);
+          setFlashMessage(
+            `Cita ${c.folio} cancelada. El horario de ${c.sala.nombre} del ${fMedia(fechaIso).toLowerCase()}, ${horario}, quedó libre para nuevas citas.`,
+          );
+          void queryClient.invalidateQueries({ queryKey: citaKeys.todo });
+        }}
+        accessToken={session.token}
+      />
     </div>
   );
 }

@@ -5,10 +5,10 @@ import { createApp } from '../src/app.js';
 import { tokenService } from '../src/modules/auth/tokens.js';
 
 /**
- * EDT 5.3.3. Rutas de citas que no necesitan Postgres ni Redis: validación de esquema y de
+ * EDT 5.3.3 y EDT 5.3.5. Rutas de citas que no necesitan Postgres ni Redis: validación de esquema y de
  * sesión, igual que pacientes.routes.test.ts y terapeutas.routes.test.ts. Todo lo que depende de
  * datos reales (códigos de §5.7.1 ligados a recursos, idempotencia, auditoría, correo, filtros
- * del listado contra datos, detalle) está en citas.integration.test.ts.
+ * del listado contra datos, detalle, cancelación con versión) está en citas.integration.test.ts.
  */
 const token = tokenService.createAccessToken({ id: randomUUID(), rol: 'administrador' });
 
@@ -138,6 +138,46 @@ describe('rutas de citas sin dependencias externas', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
+    });
+  });
+
+  describe('cancelación de cita (RF 5.4.1-5.4.4, EDT 5.3.5)', () => {
+    it('rechaza la cancelación sin sesión activa', async () => {
+      const response = await request(createApp())
+        .post(`/api/v1/citas/${randomUUID()}/cancelar`)
+        .send({ version: 1 });
+
+      expect(response.status).toBe(401);
+      expect(response.body.codigo).toBe('SESION_INVALIDA');
+    });
+
+    it('valida que el identificador sea UUID', async () => {
+      const response = await request(createApp())
+        .post('/api/v1/citas/no-es-un-uuid/cancelar')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ version: 1 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
+    });
+
+    it('rechaza la cancelación sin version o con version inválida', async () => {
+      const id = randomUUID();
+      const sinVersion = await request(createApp())
+        .post(`/api/v1/citas/${id}/cancelar`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({});
+
+      expect(sinVersion.status).toBe(400);
+      expect(sinVersion.body.codigo).toBe('VALIDACION_INVALIDA');
+
+      const versionNegativa = await request(createApp())
+        .post(`/api/v1/citas/${id}/cancelar`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ version: 0 });
+
+      expect(versionNegativa.status).toBe(400);
+      expect(versionNegativa.body.codigo).toBe('VALIDACION_INVALIDA');
     });
   });
 });

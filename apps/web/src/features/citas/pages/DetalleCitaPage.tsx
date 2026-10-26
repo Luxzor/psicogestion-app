@@ -1,17 +1,22 @@
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   CalendarX,
   ChevronLeft,
+  CircleCheck,
   CircleX,
   Clock,
   LoaderCircle,
   RotateCw,
   WifiOff,
+  X,
 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { ApiError } from '../../../auth/api';
 import type { Session } from '../../auth/types';
 import { fLarga } from '../../salas/validation';
-import { useCita } from '../hooks/useCitas';
+import { CancelarCitaDialog } from '../components/CancelarCitaDialog';
+import { citaKeys, useCita } from '../hooks/useCitas';
 import { enHoraClinica, rangoLegible } from '../horario';
 import type { CitaEstado } from '../types';
 import { mensajeDeError } from '../validation';
@@ -48,14 +53,17 @@ function EstadoBadge({ estado }: { estado: CitaEstado }) {
 const LIST_PATH = '/inicio/citas';
 
 /**
- * RF 5.2 (EDT 5.3.3). Detalle de solo lectura de una cita (PG-DSN-003 5.5; patrón visual de
- * features/salas/components/DetalleCitaDialog, sin modificarlo). Ruta /inicio/citas/:id. Sin
- * acciones de modificar ni cancelar: eso es de las tareas 5.3.4 y 5.3.5.
+ * RF 5.2, RF 5.4 (EDT 5.3.3 y EDT 5.3.5). Detalle de una cita con opción a cancelarla
+ * si su estatus es Pendiente (PG-DSN-003 5.5; maqueta PG-DSN-003-INT). Ruta /inicio/citas/:id.
  */
 export function DetalleCitaPage({ session }: { session: Session }) {
   const { id = '' } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const detalle = useCita(id, session.token);
+
+  const [cancelarDialogOpen, setCancelarDialogOpen] = useState(false);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
 
   const volver = () => navigate(LIST_PATH);
 
@@ -110,10 +118,37 @@ export function DetalleCitaPage({ session }: { session: Session }) {
                 <h1>
                   Cita <span className="mono">{detalle.data.folio}</span>
                 </h1>
-                <p>Detalle de solo lectura.</p>
+                <p>Detalle de la cita.</p>
               </div>
             </div>
+            {detalle.data.estado === 'Pendiente' ? (
+              <div className="page-tools">
+                <button
+                  type="button"
+                  className="button button--danger-soft"
+                  onClick={() => setCancelarDialogOpen(true)}
+                >
+                  <CircleX size={16} aria-hidden="true" />
+                  Cancelar cita
+                </button>
+              </div>
+            ) : null}
           </div>
+
+          {flashMessage ? (
+            <div className="notice success" role="status">
+              <CircleCheck size={18} aria-hidden="true" />
+              <div className="notice__body">{flashMessage}</div>
+              <button
+                type="button"
+                className="notice__close"
+                aria-label="Cerrar aviso"
+                onClick={() => setFlashMessage(null)}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
 
           <section className="panel">
             <dl className="cita-det">
@@ -151,6 +186,22 @@ export function DetalleCitaPage({ session }: { session: Session }) {
               ) : null}
             </dl>
           </section>
+
+          <CancelarCitaDialog
+            isOpen={cancelarDialogOpen}
+            cita={detalle.data}
+            onClose={() => setCancelarDialogOpen(false)}
+            onCanceled={(c) => {
+              const fechaIso = enHoraClinica(c.inicio).fecha;
+              const horario = rangoLegible(c.inicio, c.fin);
+              setFlashMessage(
+                `Cita ${c.folio} cancelada. El horario de ${c.sala.nombre} del ${fLarga(fechaIso).toLowerCase()}, ${horario}, quedó libre para nuevas citas.`,
+              );
+              void queryClient.invalidateQueries({ queryKey: citaKeys.todo });
+              void detalle.refetch();
+            }}
+            accessToken={session.token}
+          />
         </>
       )}
     </div>
