@@ -88,3 +88,4 @@ describe('DetalleCitaDialog (PG-DSN-003-INT dialogCita)', () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
