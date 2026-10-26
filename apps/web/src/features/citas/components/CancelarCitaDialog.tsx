@@ -81,7 +81,11 @@ function CancelarCitaModal({
     setIsNetError(false);
 
     try {
-      const cancelada = await citasApi.cancel(cita.id, cita.version, accessToken);
+      const version =
+        typeof cita.version === 'number'
+          ? cita.version
+          : (await citasApi.getById(cita.id, accessToken)).version;
+      const cancelada = await citasApi.cancel(cita.id, version, accessToken);
       onCanceled?.(cancelada);
       onClose();
     } catch (err: unknown) {

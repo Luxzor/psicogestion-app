@@ -156,4 +156,39 @@ describe('CancelarCitaDialog (EDT 5.3.5)', () => {
       await screen.findByText(/Otra persona modificó esta cita/i),
     ).toBeInTheDocument();
   });
+
+  it('obtiene la versión mediante getById si la cita del listado no incluye version', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/v1/citas/11111111-1111-4111-8111-111111111111/cancelar')) {
+        return Promise.resolve(
+          json(200, { codigo: 'CITA_CANCELADA', cita: { ...citaPrueba, version: 2 } }),
+        );
+      }
+      if (url.includes('/api/v1/citas/11111111-1111-4111-8111-111111111111')) {
+        return Promise.resolve(json(200, { cita: { ...citaPrueba, version: 1 } }));
+      }
+      return Promise.reject(new Error('Unknown url'));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const onCanceled = vi.fn();
+    const onClose = vi.fn();
+    const citaSinVersion = { ...citaPrueba } as Partial<Cita>;
+    delete citaSinVersion.version;
+
+    render(
+      <CancelarCitaDialog
+        isOpen={true}
+        cita={citaSinVersion as Cita}
+        onClose={onClose}
+        onCanceled={onCanceled}
+        accessToken="test-token"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar cita' }));
+
+    await waitFor(() => expect(onCanceled).toHaveBeenCalled());
+    expect(onClose).toHaveBeenCalled();
+  });
 });
