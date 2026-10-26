@@ -399,4 +399,27 @@ describe('lista de citas (RF 5.2.1-5.2.3, CA-5.2-01)', () => {
 
     expect(await screen.findByText('C31000099')).toBeInTheDocument();
   });
+
+  it('al hacer clic en una fila de cita se abre el diálogo de detalle interactivo (PG-DSN-003-INT)', async () => {
+    mockApi(baseHandler(() => ({ status: 200, body: listaDe([cita()]) })));
+    renderList();
+
+    await screen.findByText('C26000001');
+    const row = screen.getByLabelText('Ver cita C26000001');
+    fireEvent.click(row);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Cita C26000001' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('Valeria Ku Escalante')).toBeInTheDocument();
+    expect(within(dialog).getByText('Victoria Méndez Rosado')).toBeInTheDocument();
+    expect(within(dialog).getByText(/Sala A/)).toBeInTheDocument();
+
+    const cancelarBtn = within(dialog).getByRole('button', { name: 'Cancelar cita' });
+    expect(cancelarBtn).toBeInTheDocument();
+
+    fireEvent.click(cancelarBtn);
+    expect(
+      await screen.findByRole('alertdialog', { name: '¿Cancelar la cita C26000001?' }),
+    ).toBeInTheDocument();
+  });
 });
