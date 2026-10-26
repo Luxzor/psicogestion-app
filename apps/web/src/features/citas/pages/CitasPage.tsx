@@ -313,6 +313,7 @@ export function CitasPage({ session }: { session: Session }) {
                 <th scope="col">Terapeuta</th>
                 <th scope="col">Sala</th>
                 <th scope="col">Estatus</th>
+                <th scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -393,6 +394,18 @@ export function CitasPage({ session }: { session: Session }) {
                   <td>{cita.sala.nombre}</td>
                   <td>
                     <EstadoBadge estado={cita.estado} />
+                  </td>
+                  <td>
+                    {cita.estado === 'Pendiente' ? (
+                      <Link
+                        to={`/inicio/citas/${cita.id}/editar`}
+                        className="button button--secondary"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        Modificar
+                      </Link>
+                    ) : null}
                   </td>
                 </tr>
               ))}

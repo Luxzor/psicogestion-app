@@ -140,4 +140,24 @@ describe('rutas de citas sin dependencias externas', () => {
       expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
     });
   });
+
+  describe('modificación de cita (RF 5.3.1–5.3.6)', () => {
+    it('exige sesión activa', async () => {
+      const response = await request(createApp())
+        .patch(`/api/v1/citas/${randomUUID()}`)
+        .send({ version: 1, estado: 'Cancelada' });
+      expect(response.status).toBe(401);
+    });
+
+    it('valida identificador, versión y campos antes de consultar la base', async () => {
+      const patch = (id: string, body: object) =>
+        request(createApp())
+          .patch(`/api/v1/citas/${id}`)
+          .set('Authorization', `Bearer ${token}`)
+          .send(body);
+      expect((await patch('incorrecto', { version: 1, estado: 'Cancelada' })).status).toBe(400);
+      expect((await patch(randomUUID(), { estado: 'Cancelada' })).status).toBe(400);
+      expect((await patch(randomUUID(), { version: 1, notas: 'texto' })).status).toBe(400);
+    });
+  });
 });

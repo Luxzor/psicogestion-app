@@ -1,5 +1,12 @@
 import { api } from '../../auth/api';
-import type { Cita, CitaCreada, CitaListParams, CitaListResponse, CitaPayload } from './types';
+import type {
+  Cita,
+  CitaCreada,
+  CitaListParams,
+  CitaListResponse,
+  CitaPayload,
+  CitaUpdatePayload,
+} from './types';
 
 type CitaCreadaResponse = { codigo: string; cita: CitaCreada };
 
@@ -38,6 +45,16 @@ export const citasApi = {
     const result = await api<{ cita: Cita }>(`/citas/${encodeURIComponent(id)}`, {
       accessToken,
       signal,
+    });
+    return result.cita;
+  },
+
+  /** RF 5.3.1–5.3.6. Modificación parcial con control de versión. */
+  async update(id: string, payload: CitaUpdatePayload, accessToken: string) {
+    const result = await api<{ codigo: string; cita: Cita }>(`/citas/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: payload,
+      accessToken,
     });
     return result.cita;
   },

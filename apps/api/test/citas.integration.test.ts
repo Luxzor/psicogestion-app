@@ -21,7 +21,7 @@ const integration = process.env.RUN_INTEGRATION_TESTS === '1' ? describe : descr
 
 const ZONA = 'America/Merida';
 /** Día de prueba lejano y sin horario de verano (México lo abolió en 2022). */
-const DIA = '2026-10-26'; // lunes
+const DIA = '2027-03-01'; // lunes futuro para que las pruebas no dependan de la hora actual
 const PASADO = '2023-05-10'; // miércoles, pasado estable para la transición a Vencida
 const SEMANA_LUNES = '2026-12-07';
 const SEMANA_DOMINGO = '2026-12-13';
@@ -640,6 +640,99 @@ integration('citas: alta, listado y detalle con servicios reales (EDT 5.3.3)', (
       const response = await getById('00000000-0000-4000-8000-000000000000');
       expect(response.status).toBe(404);
       expect(response.body.codigo).toBe('CITA_NO_ENCONTRADA');
+    });
+  });
+
+  describe('modificación de cita (RF 5.3.1–5.3.6)', () => {
+    const futuro = '2027-03-01';
+    const patch = (id: string, body: object) =>
+      request(app).patch(`/api/v1/citas/${id}`).set('Authorization', `Bearer ${token}`).send(body);
+
+    it('cambia recursos y horario, conserva folio, aumenta versión y audita', async () => {
+      const original = await insertarCita(
+        pacienteConCorreo,
+        terapeutaA,
+        salaA,
+        at(futuro, '09:00'),
+      );
+      const response = await patch(original.id, {
+        version: 1,
+        id_paciente: pacienteSinCorreo,
+        id_terapeuta: terapeutaB,
+        id_sala: salaB,
+        inicio: at(futuro, '11:00').toISOString(),
+        duracion_bloques: 2,
+      });
+      expect(response.status).toBe(200);
+      expect(response.body.cita).toMatchObject({
+        folio: original.folio,
+        version: 2,
+        paciente: { id: pacienteSinCorreo },
+        terapeuta: { id: terapeutaB },
+        sala: { id: salaB },
+        duracion_bloques: 2,
+      });
+      expect((await getById(original.id)).body.cita.inicio).toBe(at(futuro, '11:00').toISOString());
+      const audit = await db.query(
+        "SELECT detalle FROM bitacora_acceso WHERE evento = 'cita_modificada'",
+      );
+      expect(audit.rows).toEqual([{ detalle: `${original.id} ${original.folio}` }]);
+    });
+
+    it('rechaza versiones anteriores y una sala ocupada sin alterar la cita', async () => {
+      const original = await insertarCita(
+        pacienteConCorreo,
+        terapeutaA,
+        salaA,
+        at(futuro, '09:00'),
+      );
+      await insertarCita(pacienteSinCorreo, terapeutaB, salaB, at(futuro, '10:00'));
+      const ocupado = await patch(original.id, {
+        version: 1,
+        id_sala: salaB,
+        inicio: at(futuro, '10:00').toISOString(),
+      });
+      expect(ocupado.status).toBe(409);
+      expect(ocupado.body.codigo).toBe('SALA_OCUPADA');
+      const actualizado = await patch(original.id, {
+        version: 1,
+        inicio: at(futuro, '11:00').toISOString(),
+      });
+      expect(actualizado.status).toBe(200);
+      const viejo = await patch(original.id, { version: 1, id_sala: salaB });
+      expect(viejo.status).toBe(409);
+      expect(viejo.body.codigo).toBe('CONFLICTO_VERSION');
+      expect(viejo.body.version_actual).toBe(2);
+    });
+
+    it('permite cambiar estatus a Cancelada y rechaza nuevas modificaciones', async () => {
+      const original = await insertarCita(
+        pacienteConCorreo,
+        terapeutaA,
+        salaA,
+        at(futuro, '09:00'),
+      );
+      const response = await patch(original.id, { version: 1, estado: 'Cancelada' });
+      expect(response.status).toBe(200);
+      expect(response.body.cita.estado).toBe('Cancelada');
+      expect(response.body.cita.cancelada_en).toBeTruthy();
+      expect((await patch(original.id, { version: 2, id_sala: salaB })).body.codigo).toBe(
+        'CITA_NO_MODIFICABLE',
+      );
+    });
+
+    it('solo marca Vencida una cita terminada y no mezcla estatus con otros cambios', async () => {
+      const futura = await insertarCita(pacienteConCorreo, terapeutaA, salaA, at(futuro, '09:00'));
+      const invalida = await patch(futura.id, { version: 1, estado: 'Vencida' });
+      expect(invalida.status).toBe(400);
+      expect(invalida.body.codigo).toBe('ESTADO_INVALIDO');
+      const mezclada = await patch(futura.id, { version: 1, estado: 'Cancelada', id_sala: salaB });
+      expect(mezclada.status).toBe(400);
+      expect(mezclada.body.codigo).toBe('ESTADO_INVALIDO');
+      const pasada = await insertarCita(pacienteSinCorreo, terapeutaB, salaB, at(PASADO, '09:00'));
+      const vencida = await patch(pasada.id, { version: 1, estado: 'Vencida' });
+      expect(vencida.status).toBe(200);
+      expect(vencida.body.cita.estado).toBe('Vencida');
     });
   });
 });

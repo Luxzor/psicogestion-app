@@ -1,11 +1,12 @@
 import type { PoolClient } from 'pg';
+import { AppError } from '../../platform/errors.js';
 import { audit } from '../../platform/audit.js';
 import { db } from '../../platform/db.js';
 import { mailService, type CitaConfirmacion } from '../auth/mail.js';
 import { citaDatabaseError, citaError } from './errors.js';
-import { calcularFin, clinicDateTimeToUtc, evaluarHorario } from './horario.js';
+import { calcularFin, clinicDateTimeToUtc, duracionEnBloques, evaluarHorario } from './horario.js';
 import { citaRepository, type CitaListItem, type CitaRecord } from './repository.js';
-import type { CreateCitaInput, CitaListQueryInput } from './schemas.js';
+import type { CreateCitaInput, CitaListQueryInput, UpdateCitaInput } from './schemas.js';
 
 export type RequestContext = {
   userId: string;
@@ -48,6 +49,91 @@ async function inTransaction<T>(work: (client: PoolClient) => Promise<T>): Promi
 }
 
 export const citaService = {
+  /** RF 5.3.1–5.3.6. Combina cambios parciales y los guarda de forma atómica. */
+  async update(
+    id: string,
+    input: UpdateCitaInput,
+    context: RequestContext,
+    ahora: Date = new Date(),
+  ): Promise<CitaRecord> {
+    return inTransaction(async (client) => {
+      if (input.estado !== 'Vencida') await citaRepository.markExpired(ahora, client);
+      const actual = await citaRepository.findSummaryById(id, client, 'update');
+      if (!actual) throw citaError('CITA_NO_ENCONTRADA');
+      if (actual.version !== input.version) {
+        throw citaError('CONFLICTO_VERSION', { version_actual: actual.version });
+      }
+      if (actual.estado !== 'Pendiente') throw citaError('CITA_NO_MODIFICABLE');
+      const changed =
+        (input.id_paciente !== undefined && input.id_paciente !== actual.id_paciente) ||
+        (input.id_terapeuta !== undefined && input.id_terapeuta !== actual.id_terapeuta) ||
+        (input.id_sala !== undefined && input.id_sala !== actual.id_sala) ||
+        (input.inicio !== undefined && input.inicio.getTime() !== actual.inicio.getTime()) ||
+        (input.duracion_bloques !== undefined &&
+          input.duracion_bloques !== duracionEnBloques(actual.inicio, actual.fin)) ||
+        (input.estado !== undefined && input.estado !== actual.estado);
+      if (!changed) {
+        throw new AppError(400, 'SIN_CAMBIOS', 'No hay cambios para guardar.');
+      }
+
+      const inicio = input.inicio ?? actual.inicio;
+      const duracion = input.duracion_bloques ?? duracionEnBloques(actual.inicio, actual.fin);
+      const fin = calcularFin(inicio, duracion);
+      const estado = input.estado ?? actual.estado;
+      if (estado === 'Vencida' && fin.getTime() > ahora.getTime()) {
+        throw new AppError(
+          400,
+          'ESTADO_INVALIDO',
+          'Una cita futura no puede marcarse como vencida.',
+        );
+      }
+      if (
+        estado !== 'Pendiente' &&
+        Object.keys(input).some((key) => key !== 'version' && key !== 'estado')
+      ) {
+        throw new AppError(400, 'ESTADO_INVALIDO', 'Cambia los datos antes de cambiar el estatus.');
+      }
+      if (estado === 'Pendiente') {
+        const horarioError = evaluarHorario(inicio, duracion, ahora);
+        if (horarioError) throw citaError(horarioError.codigo);
+        const asignables = await citaRepository.lockAssignables(
+          {
+            id_paciente: input.id_paciente ?? actual.id_paciente,
+            id_terapeuta: input.id_terapeuta ?? actual.id_terapeuta,
+            id_sala: input.id_sala ?? actual.id_sala,
+          },
+          client,
+        );
+        if (!asignables.paciente) throw citaError('PACIENTE_NO_ENCONTRADO');
+        if (!asignables.paciente.activo) throw citaError('PACIENTE_INACTIVO_NO_ASIGNABLE');
+        if (!asignables.terapeuta) throw citaError('TERAPEUTA_NO_ENCONTRADO');
+        if (!asignables.terapeuta.activo) throw citaError('TERAPEUTA_INACTIVO_NO_ASIGNABLE');
+        if (!asignables.sala) throw citaError('SALA_NO_ENCONTRADA');
+        if (!asignables.sala.activo) throw citaError('SALA_INACTIVA');
+      }
+
+      const cita = await citaRepository.update(
+        id,
+        {
+          ...(input.id_paciente ? { id_paciente: input.id_paciente } : {}),
+          ...(input.id_terapeuta ? { id_terapeuta: input.id_terapeuta } : {}),
+          ...(input.id_sala ? { id_sala: input.id_sala } : {}),
+          ...(input.inicio || input.duracion_bloques ? { inicio, fin } : {}),
+          ...(input.estado ? { estado: input.estado } : {}),
+        },
+        input.version,
+        context.userId,
+        client,
+      );
+      if (!cita) throw citaError('CONFLICTO_VERSION');
+      await audit(
+        { ...auditContext(context), event: 'cita_modificada', detail: `${cita.id} ${cita.folio}` },
+        client,
+      );
+      return cita;
+    });
+  },
+
   /**
    * RF 5.1.1–5.1.15, RF 2.3.5 (EDT 5.3.3). Agenda una cita Pendiente (PG-DSN-003 5.8): dentro de
    * una transacción bloquea con FOR SHARE paciente, terapeuta y sala (ADR-21) y rechaza los que

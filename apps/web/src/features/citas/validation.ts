@@ -180,7 +180,11 @@ export function toCitaFormValues(cita: Cita): CitaFormValues {
  * hay cambios. Si cambian la fecha o la hora se envía el nuevo inicio; si cambia la duración,
  * `duracion_bloques`.
  */
-export function diffCitaPayload(cita: Cita, values: CitaFormValues): CitaUpdatePayload | null {
+export function diffCitaPayload(
+  cita: Cita,
+  values: CitaFormValues,
+  estado = cita.estado,
+): CitaUpdatePayload | null {
   const initial = toCitaFormValues(cita);
   const payload: CitaUpdatePayload = { version: cita.version };
   if (values.id_paciente !== initial.id_paciente) payload.id_paciente = values.id_paciente;
@@ -196,6 +200,7 @@ export function diffCitaPayload(cita: Cita, values: CitaFormValues): CitaUpdateP
   if (values.duracion !== initial.duracion) {
     payload.duracion_bloques = duracionABloques(values.duracion);
   }
+  if (estado !== cita.estado) payload.estado = estado;
   return Object.keys(payload).length > 1 ? payload : null;
 }
 

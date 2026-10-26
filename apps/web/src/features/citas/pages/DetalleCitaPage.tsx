@@ -48,9 +48,7 @@ function EstadoBadge({ estado }: { estado: CitaEstado }) {
 const LIST_PATH = '/inicio/citas';
 
 /**
- * RF 5.2 (EDT 5.3.3). Detalle de solo lectura de una cita (PG-DSN-003 5.5; patrón visual de
- * features/salas/components/DetalleCitaDialog, sin modificarlo). Ruta /inicio/citas/:id. Sin
- * acciones de modificar ni cancelar: eso es de las tareas 5.3.4 y 5.3.5.
+ * RF 5.2 (EDT 5.3.3). Detalle de una cita y acceso a su modificación (EDT 5.3.4).
  */
 export function DetalleCitaPage({ session }: { session: Session }) {
   const { id = '' } = useParams<{ id: string }>();
@@ -113,6 +111,11 @@ export function DetalleCitaPage({ session }: { session: Session }) {
                 <p>Detalle de solo lectura.</p>
               </div>
             </div>
+            {detalle.data.estado === 'Pendiente' ? (
+              <Link to={`${LIST_PATH}/${id}/editar`} className="button button--primary">
+                Modificar cita
+              </Link>
+            ) : null}
           </div>
 
           <section className="panel">
