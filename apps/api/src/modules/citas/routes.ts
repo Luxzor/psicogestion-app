@@ -4,7 +4,12 @@ import { asyncRoute } from '../../middleware/async-route.js';
 import { requireAuth } from '../../middleware/require-auth.js';
 import { validationError } from '../../platform/errors.js';
 import { readIdempotencyKey, runIdempotent } from '../../platform/idempotency.js';
-import { citaIdSchema, createCitaSchema, citaListQuerySchema } from './schemas.js';
+import {
+  cancelCitaSchema,
+  citaIdSchema,
+  createCitaSchema,
+  citaListQuerySchema,
+} from './schemas.js';
 import { citaService, type RequestContext } from './service.js';
 
 const requestContext = (request: Request, response: Response): RequestContext => ({
@@ -68,5 +73,21 @@ citasRouter.get(
     if (!id.success) throw validationError(id.error);
     const context = requestContext(request, response);
     response.json({ cita: await citaService.getById(id.data, context) });
+  }),
+);
+
+/**
+ * RF 5.4.1–5.4.4, RNF 5.1.3 (EDT 5.3.5). Cancelación de cita con control de versión (ADR-20).
+ */
+citasRouter.post(
+  '/:id/cancelar',
+  asyncRoute(async (request, response) => {
+    const id = citaIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const parsed = cancelCitaSchema.safeParse(request.body);
+    if (!parsed.success) throw validationError(parsed.error);
+    const context = requestContext(request, response);
+    const cita = await citaService.cancel(id.data, parsed.data.version, context);
+    response.json({ codigo: 'CITA_CANCELADA', cita });
   }),
 );

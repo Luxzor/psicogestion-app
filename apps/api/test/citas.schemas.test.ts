@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createCitaSchema, citaListQuerySchema } from '../src/modules/citas/schemas.js';
+import {
+  cancelCitaSchema,
+  citaListQuerySchema,
+  createCitaSchema,
+  folioSchema,
+} from '../src/modules/citas/schemas.js';
 
 /**
- * EDT 5.3.3. Pruebas de esquemas nuevas de esta tarea: la estrictez del alta (campos
- * desconocidos, no probada en citas.modelo.test.ts) y citaListQuerySchema completo (no existía
- * en 5.2.1). Lo ya cubierto en citas.modelo.test.ts (campos obligatorios, estado y folio
- * rechazados en el alta, duración fuera de 1 a 4 bloques) no se repite aquí.
+ * EDT 5.3.3 y EDT 5.3.5. Pruebas de esquemas del módulo de citas: cuerpo estricto del alta,
+ * consulta de listado, esquema de cancelación con control de versión y validación de folio.
  */
 
 const ids = {
@@ -89,5 +92,26 @@ describe('listado de citas: citaListQuerySchema (RF 5.2.1-5.2.3, RNF 5.1.4)', ()
 
   it('rechaza un parámetro de consulta desconocido', () => {
     expect(citaListQuerySchema.safeParse({ paciente: ids.id_paciente }).success).toBe(false);
+  });
+});
+
+describe('cancelación de citas: cancelCitaSchema (EDT 5.3.5, ADR-20)', () => {
+  it('acepta versión positiva obligatoria (ADR-20)', () => {
+    expect(cancelCitaSchema.safeParse({ version: 1 }).success).toBe(true);
+    expect(cancelCitaSchema.safeParse({ version: 5 }).success).toBe(true);
+  });
+
+  it('rechaza cuerpo sin versión, con versión no positiva o con campos extra', () => {
+    expect(cancelCitaSchema.safeParse({}).success).toBe(false);
+    expect(cancelCitaSchema.safeParse({ version: 0 }).success).toBe(false);
+    expect(cancelCitaSchema.safeParse({ version: -1 }).success).toBe(false);
+    expect(cancelCitaSchema.safeParse({ version: 1, extra: 'invalido' }).success).toBe(false);
+  });
+
+  it('folioSchema valida formato C + 8 dígitos y normaliza a mayúsculas (RF 5.4.2)', () => {
+    expect(folioSchema.parse(' c26000001 ')).toBe('C26000001');
+    expect(folioSchema.safeParse('').success).toBe(false);
+    expect(folioSchema.safeParse('invalido').success).toBe(false);
+    expect(folioSchema.safeParse('C260001').success).toBe(false);
   });
 });
