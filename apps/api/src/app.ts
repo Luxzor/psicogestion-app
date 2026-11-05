@@ -5,7 +5,9 @@ import helmet from 'helmet';
 import { env } from './config/env.js';
 import { correlationId } from './middleware/correlation-id.js';
 import { authRouter } from './modules/auth/routes.js';
+import { citasRouter } from './modules/citas/routes.js';
 import { patientsRouter } from './modules/pacientes/routes.js';
+import { salasRouter } from './modules/salas/routes.js';
 import { therapistsRouter } from './modules/terapeutas/routes.js';
 import { errorHandler } from './platform/errors.js';
 import { healthRouter } from './routes/health.js';
@@ -26,6 +28,8 @@ export function createApp() {
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/pacientes', patientsRouter);
   app.use('/api/v1/terapeutas', therapistsRouter);
+  app.use('/api/v1/salas', salasRouter);
+  app.use('/api/v1/citas', citasRouter);
   app.use(errorHandler);
 
   return app;

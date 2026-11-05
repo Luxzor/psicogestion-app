@@ -1,6 +1,5 @@
 import {
-  CalendarDays,
-  ClipboardList,
+  CalendarCheck,
   DoorOpen,
   Home,
   LogOut,
@@ -64,23 +63,11 @@ export function Sidebar({ session, collapsed, onToggle, onLogout }: SidebarProps
         </button>
       </div>
 
-      {/* Main nav */}
+      {/* Menú principal */}
       <div className="sidebar__section">
         {!c && <p className="sidebar__section-label">Menú principal</p>}
         <ul className="sidebar__nav">
           <SidebarItem collapsed={c} to="/inicio" icon={<Home size={18} />} label="Inicio" />
-          <SidebarItem
-            collapsed={c}
-            to="/inicio/agenda"
-            icon={<CalendarDays size={18} />}
-            label="Agenda"
-          />
-          <SidebarItem
-            collapsed={c}
-            to="/inicio/citas"
-            icon={<ClipboardList size={18} />}
-            label="Citas"
-          />
           <SidebarItem
             collapsed={c}
             to="/inicio/pacientes"
@@ -92,6 +79,19 @@ export function Sidebar({ session, collapsed, onToggle, onLogout }: SidebarProps
             to="/inicio/terapeutas"
             icon={<UserSquare2 size={18} />}
             label="Terapeutas"
+          />
+        </ul>
+      </div>
+
+      {/* Clínica */}
+      <div className="sidebar__section">
+        {!c && <p className="sidebar__section-label">Clínica</p>}
+        <ul className="sidebar__nav">
+          <SidebarItem
+            collapsed={c}
+            to="/inicio/citas"
+            icon={<CalendarCheck size={18} />}
+            label="Citas"
           />
           <SidebarItem
             collapsed={c}

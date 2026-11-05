@@ -48,6 +48,13 @@ services:
       dockerfile: infra/api.Dockerfile
       target: development
     env_file: .env
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/api/src
+          target: /workspace/apps/api/src
+        - action: rebuild
+          path: ./apps/api/package.json
     volumes:
       - ./apps/api/src:/workspace/apps/api/src
     command: npm run dev --workspace=@psicogestion/api
@@ -73,6 +80,13 @@ services:
       context: .
       dockerfile: infra/web.Dockerfile
       target: development
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/web/src
+          target: /workspace/apps/web/src
+        - action: rebuild
+          path: ./apps/web/package.json
     volumes:
       - ./apps/web/src:/workspace/apps/web/src
     command: npm run dev --workspace=@psicogestion/web

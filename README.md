@@ -116,6 +116,10 @@ El registro de pacientes (EDT 4.3.1) está en `/inicio/pacientes/nuevo` y usa lo
 
 Después de actualizar el código, aplica la migración `0005_paciente.sql` con `npm run docker:up` (el servicio `migrate` la ejecuta) o con `npm run migrate -w @psicogestion/api`.
 
+## Módulo de salas y citas. Iteración 3
+
+El modelo de datos de salas y citas (EDT 5.2.1) está en la migración `0009_sala_cita.sql`: tablas `sala` y `cita`, tipo `cita_estado`, secuencia `cita_folio_seq` para los folios y restricciones `EXCLUDE` que impiden empalmes de sala, terapeuta y paciente. Requiere la extensión `btree_gist`, que el dueño de la base puede crear sin ser superusuario. Aplícala con `npm run docker:up` o con `npm run migrate -w @psicogestion/api`; su reversa está en `db/rollback/0009_sala_cita.sql`. La trazabilidad contra el ERS está en `docs/trazabilidad-salas-citas.md`.
+
 ## Calidad
 
 - `npm run lint`

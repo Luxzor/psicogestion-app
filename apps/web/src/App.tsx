@@ -11,6 +11,9 @@ import { VerifyPage } from './features/auth/pages/VerifyPage';
 import type { Session } from './features/auth/types';
 import { AgendaPage } from './features/agenda/pages/AgendaPage';
 import { CitasPage } from './features/citas/pages/CitasPage';
+import { DetalleCitaPage } from './features/citas/pages/DetalleCitaPage';
+import { EditarCitaPage } from './features/citas/pages/EditarCitaPage';
+import { NuevaCitaPage } from './features/citas/pages/NuevaCitaPage';
 import { ConfiguracionPage } from './features/configuracion/pages/ConfiguracionPage';
 import { DashboardHomePage } from './features/dashboard/pages/DashboardHomePage';
 import { DashboardLayout } from './features/dashboard/layouts/DashboardLayout';
@@ -18,6 +21,7 @@ import { EditarPacientePage } from './features/pacientes/pages/EditarPacientePag
 import { PacientesPage } from './features/pacientes/pages/PacientesPage';
 import { PerfilPacientePage } from './features/pacientes/pages/PerfilPacientePage';
 import { RegistroPacientePage } from './features/pacientes/pages/RegistroPacientePage';
+import { SalaDiaPage } from './features/salas/pages/SalaDiaPage';
 import { SalasPage } from './features/salas/pages/SalasPage';
 import { EditarTerapeutaPage } from './features/terapeutas/pages/EditarTerapeutaPage';
 import { PerfilTerapeutaPage } from './features/terapeutas/pages/PerfilTerapeutaPage';
@@ -37,11 +41,7 @@ function ProtectedLayout({
   if (!session) return <Navigate to="/iniciar-sesion" replace />;
   return (
     <UnsavedChangesProvider>
-      <DashboardLayout
-        session={session}
-        onLogout={onLogout}
-        onIdleTimeout={onIdleTimeout}
-      />
+      <DashboardLayout session={session} onLogout={onLogout} onIdleTimeout={onIdleTimeout} />
     </UnsavedChangesProvider>
   );
 }
@@ -133,16 +133,15 @@ export function App() {
       <Route
         path="/inicio"
         element={
-          <ProtectedLayout
-            session={session}
-            onLogout={logout}
-            onIdleTimeout={handleIdleTimeout}
-          />
+          <ProtectedLayout session={session} onLogout={logout} onIdleTimeout={handleIdleTimeout} />
         }
       >
         <Route index element={<DashboardHomePage session={session!} />} />
         <Route path="agenda" element={<AgendaPage />} />
-        <Route path="citas" element={<CitasPage />} />
+        <Route path="citas" element={<CitasPage session={session!} />} />
+        <Route path="citas/nueva" element={<NuevaCitaPage session={session!} />} />
+        <Route path="citas/:id" element={<DetalleCitaPage session={session!} />} />
+        <Route path="citas/:id/editar" element={<EditarCitaPage session={session!} />} />
         <Route path="pacientes" element={<PacientesPage session={session!} />} />
         <Route path="pacientes/nuevo" element={<RegistroPacientePage session={session!} />} />
         <Route path="pacientes/:id" element={<PerfilPacientePage session={session!} />} />
@@ -151,7 +150,8 @@ export function App() {
         <Route path="terapeutas/nuevo" element={<RegistroTerapeutaPage session={session!} />} />
         <Route path="terapeutas/:id" element={<PerfilTerapeutaPage session={session!} />} />
         <Route path="terapeutas/:id/editar" element={<EditarTerapeutaPage session={session!} />} />
-        <Route path="salas" element={<SalasPage />} />
+        <Route path="salas" element={<SalasPage session={session!} />} />
+        <Route path="salas/:id" element={<SalaDiaPage session={session!} />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>
 

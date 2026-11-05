@@ -21,8 +21,190 @@
       href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('pg-theme');
+          var isDark =
+            stored === 'dark' ||
+            (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      #splash-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #fafafa;
+        background-image:
+          radial-gradient(circle at 12% 18%, rgba(0, 46, 95, 0.1) 0%, transparent 45%),
+          radial-gradient(circle at 88% 82%, rgba(199, 147, 22, 0.08) 0%, transparent 45%);
+        transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select: none;
+        font-family: 'Satoshi', ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+
+      [data-theme='dark'] #splash-screen {
+        background-color: #0f0e14;
+        background-image:
+          radial-gradient(circle at 12% 18%, rgba(107, 163, 224, 0.14) 0%, transparent 45%),
+          radial-gradient(circle at 88% 82%, rgba(224, 168, 32, 0.1) 0%, transparent 45%);
+      }
+
+      .splash-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+        max-width: 90vw;
+      }
+
+      .splash-logo-wrapper {
+        margin-bottom: 1.25rem;
+      }
+
+      .splash-logo-head {
+        width: 110px;
+        height: 110px;
+        object-fit: contain;
+        display: block;
+        filter: drop-shadow(0 10px 24px rgba(0, 46, 95, 0.16));
+        animation: splashFloat 2.4s ease-in-out infinite alternate;
+      }
+
+      [data-theme='dark'] .splash-logo-head {
+        filter: drop-shadow(0 10px 28px rgba(107, 163, 224, 0.24));
+      }
+
+      .splash-text-wrapper {
+        margin-bottom: 2.25rem;
+      }
+
+      .splash-logo-text {
+        height: 30px;
+        max-width: 220px;
+        object-fit: contain;
+        display: block;
+      }
+
+      .splash-logo-dark {
+        display: none !important;
+      }
+
+      [data-theme='dark'] .splash-logo-light {
+        display: none !important;
+      }
+
+      [data-theme='dark'] .splash-logo-dark {
+        display: block !important;
+      }
+
+      .splash-progress-track {
+        width: 190px;
+        max-width: 75vw;
+        height: 6px;
+        background: rgba(0, 46, 95, 0.08);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+      }
+
+      [data-theme='dark'] .splash-progress-track {
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+
+      .splash-progress-bar {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #002e5f 0%, #004b99 50%, #c79316 100%);
+        box-shadow: 0 0 12px rgba(199, 147, 22, 0.5);
+        animation: splashProgressFill 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        transition: width 0.35s ease;
+      }
+
+      [data-theme='dark'] .splash-progress-bar {
+        background: linear-gradient(90deg, #6ba3e0 0%, #4a8ad0 50%, #e0a820 100%);
+        box-shadow: 0 0 14px rgba(224, 168, 32, 0.6);
+      }
+
+      @keyframes splashFloat {
+        0% {
+          transform: translateY(0);
+        }
+        100% {
+          transform: translateY(-8px);
+        }
+      }
+
+      @keyframes splashProgressFill {
+        0% {
+          width: 0%;
+        }
+        25% {
+          width: 32%;
+        }
+        55% {
+          width: 68%;
+        }
+        80% {
+          width: 88%;
+        }
+        100% {
+          width: 95%;
+        }
+      }
+
+      .splash-fade-out {
+        opacity: 0;
+        transform: scale(1.03);
+        pointer-events: none;
+      }
+    </style>
   </head>
   <body>
+    <div id="splash-screen" aria-hidden="true">
+      <div class="splash-container">
+        <div class="splash-logo-wrapper">
+          <img
+            class="splash-logo-head splash-logo-light"
+            src="./assets/logo_head_light.png"
+            alt="Logo"
+          />
+          <img
+            class="splash-logo-head splash-logo-dark"
+            src="./assets/logo_head_dark.png"
+            alt="Logo"
+          />
+        </div>
+        <div class="splash-text-wrapper">
+          <img
+            class="splash-logo-text splash-logo-light"
+            src="./assets/PsicoGestión_light.png"
+            alt="PsicoGestión"
+          />
+          <img
+            class="splash-logo-text splash-logo-dark"
+            src="./assets/PsicoGestión_dark.png"
+            alt="PsicoGestión"
+          />
+        </div>
+        <div class="splash-progress-track">
+          <div class="splash-progress-bar" id="splash-progress"></div>
+        </div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -20,7 +20,8 @@
     "test:integration": "npm run test:integration -w @psicogestion/api",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f"
+    "docker:logs": "docker compose logs -f",
+    "docker:watch": "docker compose watch"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
