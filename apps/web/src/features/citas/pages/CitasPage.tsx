@@ -11,6 +11,7 @@ import {
   CircleX,
   Clock,
   Hash,
+  Pencil,
   RotateCw,
   Search,
   WifiOff,
@@ -603,16 +604,27 @@ export function CitasPage({ session }: { session: Session }) {
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="row-actions">
                         {cita.estado === 'Pendiente' ? (
-                          <button
-                            type="button"
-                            className="icon-act is-danger"
-                            data-cancel={cita.id}
-                            aria-label={`Cancelar ${cita.folio}`}
-                            title="Cancelar cita"
-                            onClick={() => setCitaParaCancelar(cita)}
-                          >
-                            <CircleX size={16} aria-hidden="true" />
-                          </button>
+                          <>
+                            <Link
+                              to={`/inicio/citas/${cita.id}/editar`}
+                              className="icon-act"
+                              data-edit={cita.id}
+                              aria-label={`Modificar ${cita.folio}`}
+                              title="Modificar"
+                            >
+                              <Pencil size={15} aria-hidden="true" />
+                            </Link>
+                            <button
+                              type="button"
+                              className="icon-act is-danger"
+                              data-cancel={cita.id}
+                              aria-label={`Cancelar ${cita.folio}`}
+                              title="Cancelar cita"
+                              onClick={() => setCitaParaCancelar(cita)}
+                            >
+                              <CircleX size={16} aria-hidden="true" />
+                            </button>
+                          </>
                         ) : (
                           <span className="icon-act" aria-hidden="true" />
                         )}

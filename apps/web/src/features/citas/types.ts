@@ -47,7 +47,7 @@ export type CitaPayload = {
 };
 
 /** Cuerpo de la modificación (PATCH /citas/{id}): solo lo que cambió más la versión (ADR-23). */
-export type CitaUpdatePayload = Partial<CitaPayload> & { version: number };
+export type CitaUpdatePayload = Partial<CitaPayload> & { estado?: CitaEstado; version: number };
 
 /** Cuerpo de la cancelación (POST /citas/{id}/cancelar, ADR-20). */
 export type CitaCancelPayload = { version: number };

@@ -4,6 +4,7 @@ import {
   citaListQuerySchema,
   createCitaSchema,
   folioSchema,
+  updateCitaSchema,
 } from '../src/modules/citas/schemas.js';
 
 /**
@@ -18,6 +19,21 @@ const ids = {
 };
 
 const valida = { ...ids, inicio: '2026-10-26T15:00:00Z', duracion_bloques: 2 };
+
+describe('modificación de citas (RF 5.3.2–5.3.4)', () => {
+  it('acepta cambios parciales con versión y los tres estatus', () => {
+    expect(updateCitaSchema.safeParse({ version: 1, id_sala: ids.id_sala }).success).toBe(true);
+    for (const estado of ['Pendiente', 'Cancelada', 'Vencida']) {
+      expect(updateCitaSchema.safeParse({ version: 1, estado }).success).toBe(true);
+    }
+  });
+
+  it('rechaza versión ausente, estatus desconocido y campos ajenos', () => {
+    expect(updateCitaSchema.safeParse({ id_sala: ids.id_sala }).success).toBe(false);
+    expect(updateCitaSchema.safeParse({ version: 1, estado: 'Confirmada' }).success).toBe(false);
+    expect(updateCitaSchema.safeParse({ version: 1, folio: 'C26000001' }).success).toBe(false);
+  });
+});
 
 describe('alta de citas: cuerpo estricto (EDT 5.3.3)', () => {
   it('rechaza un campo desconocido en el cuerpo del alta (RF 5.1.2)', () => {

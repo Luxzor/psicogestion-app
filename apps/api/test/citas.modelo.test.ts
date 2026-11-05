@@ -162,7 +162,7 @@ describe('modelo de datos de citas: esquemas (EDT 5.2.1)', () => {
       version: 3,
     });
     expect(updateCitaSchema.safeParse({ id_sala: ids.id_sala }).success).toBe(false);
-    expect(updateCitaSchema.safeParse({ estado: 'Vencida', version: 1 }).success).toBe(false);
+    expect(updateCitaSchema.safeParse({ estado: 'Vencida', version: 1 }).success).toBe(true);
     expect(cancelCitaSchema.parse({ version: 1 })).toEqual({ version: 1 });
     expect(cancelCitaSchema.safeParse({ version: 1, motivo: 'x' }).success).toBe(false);
   });

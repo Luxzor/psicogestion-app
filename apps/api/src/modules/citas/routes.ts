@@ -9,6 +9,7 @@ import {
   citaIdSchema,
   createCitaSchema,
   citaListQuerySchema,
+  updateCitaSchema,
 } from './schemas.js';
 import { citaService, type RequestContext } from './service.js';
 
@@ -73,6 +74,19 @@ citasRouter.get(
     if (!id.success) throw validationError(id.error);
     const context = requestContext(request, response);
     response.json({ cita: await citaService.getById(id.data, context) });
+  }),
+);
+
+/** RF 5.3.1–5.3.6. Actualización con validación y control de versión. */
+citasRouter.patch(
+  '/:id',
+  asyncRoute(async (request, response) => {
+    const id = citaIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const parsed = updateCitaSchema.safeParse(request.body);
+    if (!parsed.success) throw validationError(parsed.error);
+    const cita = await citaService.update(id.data, parsed.data, requestContext(request, response));
+    response.json({ codigo: 'CITA_MODIFICADA', cita });
   }),
 );
 

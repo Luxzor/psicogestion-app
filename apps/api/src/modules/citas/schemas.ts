@@ -58,13 +58,14 @@ export const createCitaSchema = z.strictObject({
   duracion_bloques: duracionBloques,
 });
 
-/** Campos que la modificación puede cambiar (RF 5.3.3). El estado solo cambia al cancelar. */
+/** Campos que la modificación puede cambiar (RF 5.3.3). */
 export const EDITABLE_FIELDS = [
   'id_paciente',
   'id_terapeuta',
   'id_sala',
   'inicio',
   'duracion_bloques',
+  'estado',
 ] as const;
 
 export type EditableField = (typeof EDITABLE_FIELDS)[number];
@@ -80,6 +81,7 @@ export const updateCitaSchema = z.strictObject({
   id_sala: idSala.optional(),
   inicio: inicio.optional(),
   duracion_bloques: duracionBloques.optional(),
+  estado: z.enum(CITA_ESTADOS, { error: 'El estatus no es válido.' }).optional(),
   version: versionSchema,
 });
 

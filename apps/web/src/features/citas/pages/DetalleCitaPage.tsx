@@ -53,8 +53,8 @@ function EstadoBadge({ estado }: { estado: CitaEstado }) {
 const LIST_PATH = '/inicio/citas';
 
 /**
- * RF 5.2, RF 5.4 (EDT 5.3.3 y EDT 5.3.5). Detalle de una cita con opción a cancelarla
- * si su estatus es Pendiente (PG-DSN-003 5.5; maqueta PG-DSN-003-INT). Ruta /inicio/citas/:id.
+ * RF 5.2, RF 5.3, RF 5.4 (EDT 5.3.3, 5.3.4, 5.3.5). Detalle de una cita con opción a modificarla
+ * o cancelarla si su estatus es Pendiente (PG-DSN-003 5.5; maqueta PG-DSN-003-INT). Ruta /inicio/citas/:id.
  */
 export function DetalleCitaPage({ session }: { session: Session }) {
   const { id = '' } = useParams<{ id: string }>();
@@ -123,6 +123,9 @@ export function DetalleCitaPage({ session }: { session: Session }) {
             </div>
             {detalle.data.estado === 'Pendiente' ? (
               <div className="page-tools">
+                <Link to={`${LIST_PATH}/${id}/editar`} className="button button--secondary">
+                  Modificar cita
+                </Link>
                 <button
                   type="button"
                   className="button button--danger-soft"
