@@ -9,8 +9,8 @@
 export const CITA_ESTADOS = ['Pendiente', 'Cancelada', 'Vencida'] as const;
 export type CitaEstado = (typeof CITA_ESTADOS)[number];
 
-export type CitaPersona = { id: string; nombre_completo: string };
-export type CitaSala = { id: string; nombre: string };
+export type CitaPersona = { id: string; nombre_completo: string; activo?: boolean };
+export type CitaSala = { id: string; nombre: string; activo?: boolean };
 
 export type Cita = {
   id: string;

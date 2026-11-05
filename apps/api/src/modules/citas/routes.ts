@@ -5,6 +5,7 @@ import { requireAuth } from '../../middleware/require-auth.js';
 import { validationError } from '../../platform/errors.js';
 import { readIdempotencyKey, runIdempotent } from '../../platform/idempotency.js';
 import {
+  cancelCitaSchema,
   citaIdSchema,
   createCitaSchema,
   citaListQuerySchema,
@@ -86,5 +87,21 @@ citasRouter.patch(
     if (!parsed.success) throw validationError(parsed.error);
     const cita = await citaService.update(id.data, parsed.data, requestContext(request, response));
     response.json({ codigo: 'CITA_MODIFICADA', cita });
+  }),
+);
+
+/**
+ * RF 5.4.1–5.4.4, RNF 5.1.3 (EDT 5.3.5). Cancelación de cita con control de versión (ADR-20).
+ */
+citasRouter.post(
+  '/:id/cancelar',
+  asyncRoute(async (request, response) => {
+    const id = citaIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const parsed = cancelCitaSchema.safeParse(request.body);
+    if (!parsed.success) throw validationError(parsed.error);
+    const context = requestContext(request, response);
+    const cita = await citaService.cancel(id.data, parsed.data.version, context);
+    response.json({ codigo: 'CITA_CANCELADA', cita });
   }),
 );

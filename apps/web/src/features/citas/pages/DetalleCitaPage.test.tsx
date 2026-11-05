@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DetalleCitaPage } from './DetalleCitaPage';
@@ -57,8 +57,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('detalle de cita (RF 5.2)', () => {
-  it('muestra el folio y los datos de la cita, sin acciones de modificar ni cancelar', async () => {
+describe('detalle de cita (RF 5.2, RF 5.4)', () => {
+  it('muestra el folio y los datos de la cita, con opción de cancelar si está pendiente', async () => {
     mockFetch(() => ({ status: 200, body: { cita } }));
     renderDetalle();
 
@@ -66,7 +66,50 @@ describe('detalle de cita (RF 5.2)', () => {
     expect(screen.getByText('Valeria Ku Escalante')).toBeInTheDocument();
     expect(screen.getByText('Victoria Méndez Rosado')).toBeInTheDocument();
     expect(screen.getByText('Sala A')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /modificar|cancelar la cita/i })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Cancelar cita' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /modificar/i })).toBeNull();
+  });
+
+  it('no muestra el botón de cancelar cuando la cita ya está cancelada', async () => {
+    mockFetch(() => ({
+      status: 200,
+      body: {
+        cita: {
+          ...cita,
+          estado: 'Cancelada',
+          cancelada_en: '2026-10-26T16:00:00.000Z',
+        },
+      },
+    }));
+    renderDetalle();
+
+    expect(await screen.findByText('C26000001')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cancelar/i })).toBeNull();
+    expect(screen.getByText('Cancelada el')).toBeInTheDocument();
+  });
+
+  it('permite cancelar la cita pendiente y muestra mensaje de éxito al completarse', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/cancelar') && init?.method === 'POST') {
+        return json(200, {
+          cita: { ...cita, estado: 'Cancelada', cancelada_en: '2026-10-26T16:00:00.000Z', version: 2 },
+        });
+      }
+      return json(200, { cita });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderDetalle();
+
+    expect(await screen.findByText('C26000001')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar cita' }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar cita' }));
+
+    expect(await screen.findByText(/Cita C26000001 cancelada\./i)).toBeInTheDocument();
   });
 
   it('un folio inexistente muestra "no encontramos esa cita" (CITA_NO_ENCONTRADA)', async () => {

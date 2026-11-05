@@ -58,6 +58,11 @@ integration('citas: alta, listado y detalle con servicios reales (EDT 5.3.3)', (
     request(app).get(`/api/v1/citas${query}`).set('Authorization', `Bearer ${token}`);
   const getById = (id: string) =>
     request(app).get(`/api/v1/citas/${id}`).set('Authorization', `Bearer ${token}`);
+  const postCancel = (id: string, body: unknown) =>
+    request(app)
+      .post(`/api/v1/citas/${id}/cancelar`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(body as object);
 
   const cuerpo = (overrides: Partial<Record<string, unknown>> = {}) => ({
     id_paciente: pacienteConCorreo,
@@ -733,6 +738,90 @@ integration('citas: alta, listado y detalle con servicios reales (EDT 5.3.3)', (
       const vencida = await patch(pasada.id, { version: 1, estado: 'Vencida' });
       expect(vencida.status).toBe(200);
       expect(vencida.body.cita.estado).toBe('Vencida');
+    });
+  });
+
+
+  describe('cancelación de cita (RF 5.4, CA-5.4-01, CA-5.4-02, EDT 5.3.5)', () => {
+    it('cancela una cita Pendiente, registra auditoría y libera el horario para agendar de inmediato (CA-5.4-01)', async () => {
+      const creada = await post(cuerpo());
+      const id = creada.body.cita.id;
+      const folio = creada.body.cita.folio;
+
+      const response = await postCancel(id, { version: 1 });
+
+      expect(response.status).toBe(200);
+      expect(response.body.codigo).toBe('CITA_CANCELADA');
+      expect(response.body.cita).toMatchObject({
+        id,
+        folio,
+        estado: 'Cancelada',
+        version: 2,
+      });
+      expect(response.body.cita.cancelada_en).toBeTruthy();
+
+      const stored = await db.query(
+        'SELECT estado, cancelada_en, cancelada_por, version FROM cita WHERE id = $1',
+        [id],
+      );
+      expect(stored.rows[0]).toMatchObject({
+        estado: 'Cancelada',
+        cancelada_por: userId,
+        version: 2,
+      });
+      expect(stored.rows[0].cancelada_en).toBeInstanceOf(Date);
+
+      const log = await db.query(
+        "SELECT detalle FROM bitacora_acceso WHERE evento = 'cita_cancelada'",
+      );
+      expect(log.rows).toEqual([{ detalle: `${id} ${folio}` }]);
+
+      // El horario queda libre de inmediato: se puede agendar otra cita en el mismo bloque
+      const nuevaEnMismoBloque = await post(cuerpo({ id_paciente: pacienteSinCorreo }));
+      expect(nuevaEnMismoBloque.status).toBe(201);
+    });
+
+    it('rechaza la cancelación de una cita ya cancelada (CA-5.4-02)', async () => {
+      const creada = await post(cuerpo());
+      const id = creada.body.cita.id;
+
+      await postCancel(id, { version: 1 });
+      const canceladaOtraVez = await postCancel(id, { version: 2 });
+
+      expect(canceladaOtraVez.status).toBe(409);
+      expect(canceladaOtraVez.body.codigo).toBe('CITA_YA_CANCELADA');
+    });
+
+    it('rechaza la cancelación de una cita vencida (CITA_NO_MODIFICABLE)', async () => {
+      const vencida = await insertarCita(
+        pacienteConCorreo,
+        terapeutaA,
+        salaA,
+        at(PASADO, '10:00'),
+      );
+
+      const response = await postCancel(vencida.id, { version: 1 });
+
+      expect(response.status).toBe(409);
+      expect(response.body.codigo).toBe('CITA_NO_MODIFICABLE');
+    });
+
+    it('rechaza un conflicto de versión al cancelar (ADR-10, ADR-23)', async () => {
+      const creada = await post(cuerpo());
+      const id = creada.body.cita.id;
+
+      const response = await postCancel(id, { version: 999 });
+
+      expect(response.status).toBe(409);
+      expect(response.body.codigo).toBe('CONFLICTO_VERSION');
+      expect(response.body.version_actual).toBe(1);
+    });
+
+    it('responde 404 si la cita a cancelar no existe (CA-5.4-02)', async () => {
+      const response = await postCancel('00000000-0000-4000-8000-000000000000', { version: 1 });
+
+      expect(response.status).toBe(404);
+      expect(response.body.codigo).toBe('CITA_NO_ENCONTRADA');
     });
   });
 });
