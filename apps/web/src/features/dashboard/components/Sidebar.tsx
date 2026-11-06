@@ -6,7 +6,6 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings,
   Users,
   UserSquare2,
 } from 'lucide-react';
@@ -105,19 +104,6 @@ export function Sidebar({ session, collapsed, onToggle, onLogout }: SidebarProps
             to="/inicio/salas"
             icon={<DoorOpen size={18} />}
             label="Salas"
-          />
-        </ul>
-      </div>
-
-      {/* Sistema */}
-      <div className="sidebar__section">
-        {!c && <p className="sidebar__section-label">Sistema</p>}
-        <ul className="sidebar__nav">
-          <SidebarItem
-            collapsed={c}
-            to="/inicio/configuracion"
-            icon={<Settings size={18} />}
-            label="Configuración"
           />
         </ul>
       </div>

@@ -14,7 +14,6 @@ import { CitasPage } from './features/citas/pages/CitasPage';
 import { DetalleCitaPage } from './features/citas/pages/DetalleCitaPage';
 import { EditarCitaPage } from './features/citas/pages/EditarCitaPage';
 import { NuevaCitaPage } from './features/citas/pages/NuevaCitaPage';
-import { ConfiguracionPage } from './features/configuracion/pages/ConfiguracionPage';
 import { DashboardHomePage } from './features/dashboard/pages/DashboardHomePage';
 import { DashboardLayout } from './features/dashboard/layouts/DashboardLayout';
 import { EditarPacientePage } from './features/pacientes/pages/EditarPacientePage';
@@ -152,7 +151,6 @@ export function App() {
         <Route path="terapeutas/:id/editar" element={<EditarTerapeutaPage session={session!} />} />
         <Route path="salas" element={<SalasPage session={session!} />} />
         <Route path="salas/:id" element={<SalaDiaPage session={session!} />} />
-        <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>
 
       {/* Fallback */}
