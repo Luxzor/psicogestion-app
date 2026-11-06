@@ -105,6 +105,15 @@ describe('modelo de datos de citas: rejilla horaria (EDT 5.2.1, ADR-15)', () => 
     // El mismo instante todavía es válido.
     expect(evaluarHorario(lunes9, 1, lunes9, ZONA)).toBeNull();
   });
+
+  it('rechaza citas programadas en domingo (la clínica no abre domingos)', () => {
+    // 2026-10-25 es domingo; a las 09:00 Mérida (15:00 UTC)
+    const domingo9 = new Date('2026-10-25T15:00:00.000Z');
+    expect(evaluarHorario(domingo9, 2, antes, ZONA)).toEqual({
+      codigo: 'HORARIO_INVALIDO',
+      mensaje: HORARIO_MENSAJES.HORARIO_INVALIDO,
+    });
+  });
 });
 
 describe('modelo de datos de citas: esquemas (EDT 5.2.1)', () => {

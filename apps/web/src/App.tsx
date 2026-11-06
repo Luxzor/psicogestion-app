@@ -137,7 +137,7 @@ export function App() {
         }
       >
         <Route index element={<DashboardHomePage session={session!} />} />
-        <Route path="agenda" element={<AgendaPage />} />
+        <Route path="agenda" element={<AgendaPage session={session!} />} />
         <Route path="citas" element={<CitasPage session={session!} />} />
         <Route path="citas/nueva" element={<NuevaCitaPage session={session!} />} />
         <Route path="citas/:id" element={<DetalleCitaPage session={session!} />} />

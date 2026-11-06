@@ -290,14 +290,16 @@ p {
 .pick {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.65rem;
-  padding: 0.55rem 0.7rem;
+  padding: 0.6rem 0.85rem;
   border-radius: 12px;
   background: var(--color-surface, #fff);
   box-shadow: inset 0 0 0 1px var(--color-line, #e2e8f0);
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
+  text-align: left;
 }
 
 [data-theme='dark'] .pick {
@@ -313,16 +315,25 @@ p {
   cursor: not-allowed;
 }
 
+.pick input[type='radio'],
 .pick input {
   accent-color: var(--color-primary);
-  margin: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  min-height: 1.15rem !important;
+  max-width: 1.15rem !important;
+  max-height: 1.15rem !important;
+  flex: 0 0 1.15rem !important;
+  cursor: pointer;
 }
 
 .pick small {
-  margin-left: auto;
   color: var(--color-muted);
-  font-weight: 600;
-  font-size: 0.7rem;
+  font-weight: 500;
+  font-size: 0.74rem;
 }
 
 /* Insignias de estatus (PG-DSN-003-INT) */
@@ -655,6 +666,18 @@ tr.is-new {
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
+}
+
+/* Botón de acción flotante único (FAB) */
+.fab {
+  position: fixed;
+  right: 1.6rem;
+  bottom: 1.4rem;
+  z-index: 5;
+  min-height: 2.9rem;
+  padding: 0.7rem 1.2rem 0.7rem 1rem;
+  font-size: 0.86rem;
+  box-shadow: 0 14px 30px rgb(0 46 95 / 28%);
 }
 
 /* Grupo de botones flotantes de acción inferior (Salas) */

@@ -62,6 +62,7 @@ export type DisponibilidadSala = {
   id: string;
   nombre: string;
   activo?: boolean;
+  version?: number;
   bloques: BloqueSala[];
   citas?: CitaSalaDia[];
   total_citas?: number;

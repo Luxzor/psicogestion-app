@@ -1,5 +1,6 @@
 import {
   CalendarCheck,
+  CalendarDays,
   DoorOpen,
   Home,
   LogOut,
@@ -87,6 +88,12 @@ export function Sidebar({ session, collapsed, onToggle, onLogout }: SidebarProps
       <div className="sidebar__section">
         {!c && <p className="sidebar__section-label">Clínica</p>}
         <ul className="sidebar__nav">
+          <SidebarItem
+            collapsed={c}
+            to="/inicio/agenda"
+            icon={<CalendarDays size={18} />}
+            label="Agenda"
+          />
           <SidebarItem
             collapsed={c}
             to="/inicio/citas"

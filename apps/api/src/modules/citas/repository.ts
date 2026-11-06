@@ -445,4 +445,94 @@ export const citaRepository = {
     const total = result.rows[0] ? Number(result.rows[0].total) : 0;
     return { datos: result.rows.map(toCitaListItem), total };
   },
+
+  /**
+   * RF 6.1.1, RF 6.1.2, RF 6.2.1–6.2.3. Citas para la agenda entre dos instantes.
+   * Sin límite de paginación de 25 filas (RNF 6.1: respuesta ágil para el calendario).
+   */
+  async getAgenda(
+    desde: Date,
+    hasta: Date,
+    filtros: { id_sala?: string; id_terapeuta?: string; canceladas?: boolean },
+    client: Queryable = db,
+  ): Promise<CitaListItem[]> {
+    const params: unknown[] = [desde, hasta];
+    const condiciones: string[] = ['c.inicio >= $1', 'c.inicio < $2'];
+    if (!filtros.canceladas) {
+      condiciones.push("c.estado <> 'Cancelada'");
+    }
+    if (filtros.id_sala) {
+      params.push(filtros.id_sala);
+      condiciones.push(`c.id_sala = $${params.length}`);
+    }
+    if (filtros.id_terapeuta) {
+      params.push(filtros.id_terapeuta);
+      condiciones.push(`c.id_terapeuta = $${params.length}`);
+    }
+    const where = `WHERE ${condiciones.join(' AND ')}`;
+    const result = await client.query<CitaListRow>(
+      `SELECT ${citaListFields}
+       FROM cita c ${citaJoins}
+       ${where}
+       ORDER BY c.inicio ASC`,
+      params,
+    );
+    return result.rows.map(toCitaListItem);
+  },
+
+  /**
+   * RF 7.1.1, RF 7.2.1–7.2.5. Resumen para la pantalla de inicio (KPIs y citas de hoy).
+   */
+  async getDashboardSummary(
+    hoyInicio: Date,
+    hoyFin: Date,
+    client: Queryable = db,
+  ) {
+    const [citasHoyResult, pendTotResult, salasResult, pacResult, terResult] = await Promise.all([
+      client.query<CitaListRow>(
+        `SELECT ${citaListFields}
+         FROM cita c ${citaJoins}
+         WHERE c.estado <> 'Cancelada' AND c.inicio >= $1 AND c.inicio < $2
+         ORDER BY c.inicio ASC`,
+        [hoyInicio, hoyFin],
+      ),
+      client.query<{ total: string }>(
+        `SELECT count(*)::text AS total FROM cita WHERE estado = 'Pendiente'`,
+      ),
+      client.query<{ total: string; libres_hoy: string }>(
+        `SELECT
+           count(*)::text AS total,
+           count(*) FILTER (
+             WHERE NOT EXISTS (
+               SELECT 1 FROM cita c
+               WHERE c.id_sala = sala.id
+                 AND c.estado <> 'Cancelada'
+                 AND c.inicio < $2 AND c.fin > $1
+             )
+           )::text AS libres_hoy
+         FROM sala
+         WHERE activo = true`,
+        [hoyInicio, hoyFin],
+      ),
+      client.query<{ total: string }>(
+        `SELECT count(*)::text AS total FROM paciente`,
+      ),
+      client.query<{ total: string }>(
+        `SELECT count(*)::text AS total FROM terapeuta WHERE activo = true`,
+      ),
+    ]);
+
+    const citasHoy = citasHoyResult.rows.map(toCitaListItem);
+    const pendHoy = citasHoy.filter((c) => c.estado === 'Pendiente').length;
+
+    return {
+      citas_hoy: citasHoy,
+      citas_pendientes_hoy: pendHoy,
+      citas_pendientes_total: Number(pendTotResult.rows[0]?.total ?? 0),
+      salas_totales: Number(salasResult.rows[0]?.total ?? 0),
+      salas_libres_hoy: Number(salasResult.rows[0]?.libres_hoy ?? 0),
+      pacientes_totales: Number(pacResult.rows[0]?.total ?? 0),
+      terapeutas_activos: Number(terResult.rows[0]?.total ?? 0),
+    };
+  },
 };

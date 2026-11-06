@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  agendaQuerySchema,
   cancelCitaSchema,
   citaListQuerySchema,
   createCitaSchema,
@@ -129,5 +130,41 @@ describe('cancelación de citas: cancelCitaSchema (EDT 5.3.5, ADR-20)', () => {
     expect(folioSchema.safeParse('').success).toBe(false);
     expect(folioSchema.safeParse('invalido').success).toBe(false);
     expect(folioSchema.safeParse('C260001').success).toBe(false);
+  });
+});
+
+describe('agenda de citas: agendaQuerySchema (RF 6.1, RF 6.2)', () => {
+  it('acepta rango de fechas válido y filtros opcionales', () => {
+    const res = agendaQuerySchema.safeParse({
+      desde: '2026-11-02',
+      hasta: '2026-11-08',
+      id_sala: ids.id_sala,
+      canceladas: 'true',
+    });
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.canceladas).toBe(true);
+    }
+  });
+
+  it('rechaza rango donde desde es posterior a hasta', () => {
+    const res = agendaQuerySchema.safeParse({
+      desde: '2026-11-09',
+      hasta: '2026-11-08',
+    });
+    expect(res.success).toBe(false);
+  });
+
+  it('rechaza parámetros ajenos o fechas inválidas', () => {
+    expect(agendaQuerySchema.safeParse({ desde: 'invalida', hasta: '2026-11-08' }).success).toBe(
+      false,
+    );
+    expect(
+      agendaQuerySchema.safeParse({
+        desde: '2026-11-02',
+        hasta: '2026-11-08',
+        desconocido: '123',
+      }).success,
+    ).toBe(false);
   });
 });

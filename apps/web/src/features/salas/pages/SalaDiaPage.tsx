@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import {
-  ChevronLeft,
-  ChevronRight,
-  DoorOpen,
-  RotateCw,
-  WifiOff,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, DoorOpen, Pencil, RotateCw, WifiOff } from 'lucide-react';
 import type { Session } from '../../auth/types';
 import { DetalleCitaDialog } from '../components/DetalleCitaDialog';
+import { EditarSalaDialog } from '../components/EditarSalaDialog';
 import { salasApi } from '../api';
 import type { CitaSalaDia, DisponibilidadSala } from '../types';
 import {
@@ -38,6 +33,7 @@ export function SalaDiaPage({ session }: { session?: Session }) {
   const [error, setError] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [selectedCita, setSelectedCita] = useState<CitaSalaDia | null>(null);
+  const [isEditarOpen, setIsEditarOpen] = useState(false);
 
   const refetch = () => {
     setLoading(true);
@@ -111,11 +107,7 @@ export function SalaDiaPage({ session }: { session?: Session }) {
 
   return (
     <div className="page page--narrow">
-      <button
-        type="button"
-        className="back-link"
-        onClick={() => navigate('/inicio/salas')}
-      >
+      <button type="button" className="back-link" onClick={() => navigate('/inicio/salas')}>
         <ChevronLeft size={16} aria-hidden="true" />
         Salas
       </button>
@@ -131,11 +123,7 @@ export function SalaDiaPage({ session }: { session?: Session }) {
           </span>
           <h2>No pudimos cargar la sala</h2>
           <p>Revisa tu conexión e inténtalo de nuevo. El día elegido se conserva.</p>
-          <button
-            type="button"
-            className="button button--primary"
-            onClick={refetch}
-          >
+          <button type="button" className="button button--primary" onClick={refetch}>
             <RotateCw size={16} aria-hidden="true" />
             Reintentar
           </button>
@@ -168,22 +156,22 @@ export function SalaDiaPage({ session }: { session?: Session }) {
             </div>
 
             <div className="page-tools">
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={() => setIsEditarOpen(true)}
+              >
+                <Pencil size={15} aria-hidden="true" />
+                Editar nombre
+              </button>
               <div className="datebar">
-                <button
-                  type="button"
-                  onClick={() => handleDateMove(-1)}
-                  aria-label="Día anterior"
-                >
+                <button type="button" onClick={() => handleDateMove(-1)} aria-label="Día anterior">
                   <ChevronLeft size={16} aria-hidden="true" />
                 </button>
                 <button type="button" onClick={() => handleDateMove(0)}>
                   Hoy
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleDateMove(1)}
-                  aria-label="Día siguiente"
-                >
+                <button type="button" onClick={() => handleDateMove(1)} aria-label="Día siguiente">
                   <ChevronRight size={16} aria-hidden="true" />
                 </button>
                 <input
@@ -247,8 +235,7 @@ export function SalaDiaPage({ session }: { session?: Session }) {
                       </span>
                       <span className="day-row__d">
                         <strong>{c.paciente.nombre_completo}</strong> ·{' '}
-                        {c.terapeuta.nombre_completo} ·{' '}
-                        <span className="mono">{c.folio}</span>
+                        {c.terapeuta.nombre_completo} · <span className="mono">{c.folio}</span>
                         {c.estado === 'Vencida' ? ' · Vencida' : ''}
                       </span>
                       <button
@@ -289,9 +276,7 @@ export function SalaDiaPage({ session }: { session?: Session }) {
                         type="button"
                         className="text-button"
                         onClick={() => {
-                          navigate(
-                            `/inicio/citas?accion=nueva&sala=${id}&fecha=${fecha}&ini=${b}`,
-                          );
+                          navigate(`/inicio/citas?accion=nueva&sala=${id}&fecha=${fecha}&ini=${b}`);
                         }}
                       >
                         Agendar
@@ -311,6 +296,26 @@ export function SalaDiaPage({ session }: { session?: Session }) {
         onClose={() => setSelectedCita(null)}
         salaIndex={salaIndex}
       />
+
+      {salaDisponibilidad && (
+        <EditarSalaDialog
+          isOpen={isEditarOpen}
+          onClose={() => setIsEditarOpen(false)}
+          sala={{
+            id: salaDisponibilidad.id,
+            nombre: salaDisponibilidad.nombre,
+            activo: salaDisponibilidad.activo ?? true,
+            fecha_baja: null,
+            fecha_registro: '',
+            version: 1,
+          }}
+          onUpdated={(updated) => {
+            setSalaDisponibilidad((prev) => (prev ? { ...prev, nombre: updated.nombre } : prev));
+            refetch();
+          }}
+          accessToken={token}
+        />
+      )}
     </div>
   );
 }
