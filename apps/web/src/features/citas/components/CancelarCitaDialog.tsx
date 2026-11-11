@@ -1,11 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import {
-  CircleAlert,
-  CircleX,
-  Clock,
-  LoaderCircle,
-  RotateCw,
-} from 'lucide-react';
+import { CircleAlert, CircleX, Clock, LoaderCircle, RotateCw } from 'lucide-react';
 import type { ApiError } from '../../../auth/api';
 import { fLarga } from '../../salas/validation';
 import { citasApi } from '../api';
@@ -95,7 +89,9 @@ function CancelarCitaModal({
       } else {
         setIsNetError(true);
         setErrorNotice(
-          'No pudimos cancelar la cita por un error de conexión. La cita no cambió; intenta de nuevo.',
+          typeof navigator !== 'undefined' && !navigator.onLine
+            ? 'Sin conexión a la red. Conéctate a internet o autentícate en el portal escolar e inténtalo de nuevo.'
+            : 'No pudimos conectar con el servidor. Si estás en una red escolar o pública, asegúrate de haber iniciado sesión en su portal.',
         );
       }
     } finally {
@@ -214,12 +210,7 @@ function CancelarCitaModal({
  * Muestra los detalles de la cita a cancelar con estatus Pendiente, advierte que el horario se
  * liberará y que la cita se conservará en el histórico como Cancelada (ADR-20).
  */
-export function CancelarCitaDialog({
-  isOpen,
-  cita,
-  ...rest
-}: CancelarCitaDialogProps) {
+export function CancelarCitaDialog({ isOpen, cita, ...rest }: CancelarCitaDialogProps) {
   if (!isOpen || !cita) return null;
   return <CancelarCitaModal key={cita.id} cita={cita} {...rest} />;
 }
-

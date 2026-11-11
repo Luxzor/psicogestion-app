@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Session } from '../../auth/types';
 import type { Cita } from '../../citas/types';
 import { AgendaPage } from './AgendaPage';
@@ -102,7 +102,13 @@ function renderComponent() {
 }
 
 describe('AgendaPage (RF 6.1, RF 6.2)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-05T12:00:00Z'));
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     cleanup();
     vi.unstubAllGlobals();
   });
