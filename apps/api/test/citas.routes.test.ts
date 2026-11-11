@@ -35,6 +35,27 @@ describe('rutas de citas sin dependencias externas', () => {
 
     const detalle = await request(createApp()).get(`/api/v1/citas/${randomUUID()}`);
     expect(detalle.status).toBe(401);
+
+    const agenda = await request(createApp()).get('/api/v1/citas/agenda?desde=2026-11-02&hasta=2026-11-08');
+    expect(agenda.status).toBe(401);
+
+    const dashboard = await request(createApp()).get('/api/v1/citas/dashboard/resumen');
+    expect(dashboard.status).toBe(401);
+  });
+
+  it('valida parámetros de consulta en /api/v1/citas/agenda', async () => {
+    const app = createApp();
+    const sinFechas = await request(app)
+      .get('/api/v1/citas/agenda')
+      .set('Authorization', `Bearer ${token}`);
+    expect(sinFechas.status).toBe(400);
+    expect(sinFechas.body.codigo).toBe('VALIDACION_INVALIDA');
+
+    const rangoInvertido = await request(app)
+      .get('/api/v1/citas/agenda?desde=2026-11-10&hasta=2026-11-05')
+      .set('Authorization', `Bearer ${token}`);
+    expect(rangoInvertido.status).toBe(400);
+    expect(rangoInvertido.body.codigo).toBe('VALIDACION_INVALIDA');
   });
 
   it('rechaza un access token inválido', async () => {

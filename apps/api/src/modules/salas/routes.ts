@@ -11,6 +11,7 @@ import {
   salaAvailabilitySchema,
   salaIdSchema,
   salaListQuerySchema,
+  updateSalaSchema,
 } from './schemas.js';
 import { salaService, type RequestContext } from './service.js';
 
@@ -146,4 +147,53 @@ salasRouter.post(
     response.status(result.status).json(result.body);
   }),
 );
+
+/**
+ * Modificación del nombre de la sala (control optimista con version, ADR-23).
+ */
+salasRouter.patch(
+  '/:id',
+  asyncRoute(async (request, response) => {
+    const id = salaIdSchema.safeParse(request.params.id);
+    if (!id.success) throw validationError(id.error);
+    const parsed = updateSalaSchema.safeParse(request.body);
+    if (!parsed.success) throw validationError(parsed.error);
+    const context = requestContext(request, response);
+    const sala = await salaService.rename(id.data, parsed.data, context);
+    response.json({
+      codigo: 'SALA_ACTUALIZADA',
+      sala,
+    });
+  }),
+);
+
+/**
+ * Reactivación / recuperación de sala dada de baja con control de idempotencia (ADR-13).
+ */
+const handleReactivar = asyncRoute(async (request, response) => {
+  const id = salaIdSchema.safeParse(request.params.id);
+  if (!id.success) throw validationError(id.error);
+  const parsed = dischargeSchema.safeParse(request.body ?? {});
+  if (!parsed.success) throw validationError(parsed.error);
+  const context = requestContext(request, response);
+  const result = await runIdempotent(
+    {
+      scope: `salas:reactivar:${id.data}`,
+      userId: context.userId,
+      key: readIdempotencyKey(request.get('idempotency-key')),
+      payload: parsed.data,
+    },
+    async () => ({
+      status: 200,
+      body: {
+        codigo: 'SALA_REACTIVADA',
+        sala: await salaService.restore(id.data, context),
+      },
+    }),
+  );
+  response.status(result.status).json(result.body);
+});
+
+salasRouter.post('/:id/reactivar', handleReactivar);
+salasRouter.post('/:id/recuperar', handleReactivar);
 

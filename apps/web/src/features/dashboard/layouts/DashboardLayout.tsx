@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { WifiOff } from 'lucide-react';
 import { ConfirmDialog } from '../../auth/components/ConfirmDialog';
 import type { Session } from '../../auth/types';
 import '../styles/dashboard.css';
@@ -21,7 +22,23 @@ export function DashboardLayout({ session, onLogout, onIdleTimeout }: DashboardL
   const [confirming, setConfirming] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true,
+  );
   const { hasUnsavedChanges } = useUnsavedChanges();
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleIdleTimeout = () => {
     if (onIdleTimeout) {
@@ -57,6 +74,20 @@ export function DashboardLayout({ session, onLogout, onIdleTimeout }: DashboardL
 
       <div className="dashboard__main">
         <Header />
+        {!isOnline && (
+          <div
+            className="notice warning notice--block"
+            style={{ margin: '0.6rem 1.2rem 0', borderRadius: '10px' }}
+            role="status"
+          >
+            <WifiOff size={16} aria-hidden="true" />
+            <div className="notice__body">
+              <strong>Sin conexión a la red.</strong> Si estás en una red escolar o pública,
+              asegúrate de haber completado el inicio de sesión en su portal para poder guardar
+              cambios.
+            </div>
+          </div>
+        )}
         <main className="dashboard__content">
           <Outlet />
         </main>

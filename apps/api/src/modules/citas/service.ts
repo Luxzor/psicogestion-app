@@ -4,9 +4,20 @@ import { audit } from '../../platform/audit.js';
 import { db } from '../../platform/db.js';
 import { mailService, type CitaConfirmacion } from '../auth/mail.js';
 import { citaDatabaseError, citaError } from './errors.js';
-import { calcularFin, clinicDateTimeToUtc, duracionEnBloques, evaluarHorario } from './horario.js';
+import {
+  calcularFin,
+  clinicDateTimeToUtc,
+  clinicParts,
+  duracionEnBloques,
+  evaluarHorario,
+} from './horario.js';
 import { citaRepository, type CitaListItem, type CitaRecord } from './repository.js';
-import type { CreateCitaInput, CitaListQueryInput, UpdateCitaInput } from './schemas.js';
+import type {
+  AgendaQueryInput,
+  CreateCitaInput,
+  CitaListQueryInput,
+  UpdateCitaInput,
+} from './schemas.js';
 
 export type RequestContext = {
   userId: string;
@@ -250,6 +261,30 @@ export const citaService = {
     });
 
     return { datos, pagina: input.pagina, tamano: input.tamano, total };
+  },
+
+  /** RF 6.1.1, RF 6.1.2, RF 6.2.1–6.2.3. Citas para la vista de agenda. */
+  async agenda(input: AgendaQueryInput): Promise<{ citas: CitaListItem[] }> {
+    await citaRepository.markExpired();
+    const desde = clinicDateTimeToUtc(input.desde, 0) ?? new Date(0);
+    const hasta = clinicDateTimeToUtc(input.hasta, 24 * 60) ?? new Date();
+
+    const citas = await citaRepository.getAgenda(desde, hasta, {
+      id_sala: input.id_sala,
+      id_terapeuta: input.id_terapeuta,
+      canceladas: input.canceladas,
+    });
+    return { citas };
+  },
+
+  /** RF 7.1.1, RF 7.2.1–7.2.5. Resumen para la pantalla de inicio (KPIs y citas de hoy). */
+  async dashboardSummary(ahora: Date = new Date()) {
+    await citaRepository.markExpired(ahora);
+    const local = clinicParts(ahora);
+    const hoyInicio = clinicDateTimeToUtc(local.fecha, 0) ?? ahora;
+    const hoyFin = clinicDateTimeToUtc(local.fecha, 24 * 60) ?? ahora;
+
+    return citaRepository.getDashboardSummary(hoyInicio, hoyFin);
   },
 
   /** RF 5.2 (EDT 5.3.3). Detalle de una cita; registra audit('cita_consultada'). */

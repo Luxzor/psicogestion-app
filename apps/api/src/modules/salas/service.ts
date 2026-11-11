@@ -16,6 +16,7 @@ import {
   type CreateSalaInput,
   type DisponibilidadQueryInput,
   type SalaAvailabilityInput,
+  type UpdateSalaInput,
 } from './schemas.js';
 
 export type RequestContext = {
@@ -187,6 +188,7 @@ export const salaService = {
         id: sala.id,
         nombre: sala.nombre,
         activo: sala.activo,
+        version: sala.version,
         bloques: bloquesResult,
         citas,
         total_citas: citas.length,
@@ -245,6 +247,86 @@ export const salaService = {
         {
           ...auditContext(context),
           event: 'sala_dada_de_baja',
+          detail: updated.id,
+        },
+        client,
+      );
+
+      return updated;
+    });
+  },
+
+  /**
+   * Modificación del nombre de la sala (control optimista con version, ADR-23).
+   */
+  async rename(id: string, input: UpdateSalaInput, context: RequestContext): Promise<SalaRecord> {
+    const isTaken = await salaRepository.isNameTaken(input.nombre, id);
+    if (isTaken) {
+      throw new AppError(409, 'NOMBRE_SALA_EN_USO', SALA_MENSAJES.NOMBRE_SALA_EN_USO, {
+        nombre: SALA_MENSAJES.NOMBRE_SALA_EN_USO,
+      });
+    }
+
+    return inTransaction(async (client) => {
+      const current = await salaRepository.findSummaryById(id, client, 'update');
+      if (!current) {
+        throw new AppError(404, 'SALA_NO_ENCONTRADA', SALA_MENSAJES.SALA_NO_ENCONTRADA);
+      }
+      if (!current.activo) {
+        throw new AppError(409, 'SALA_INACTIVA', SALA_MENSAJES.SALA_INACTIVA);
+      }
+      if (current.version !== input.version) {
+        throw new AppError(
+          409,
+          'CONFLICTO_VERSION',
+          'El registro de la sala fue modificado por otro usuario. Recarga la página para ver los cambios.',
+        );
+      }
+
+      const updated = await salaRepository.rename(id, input.nombre, input.version, context.userId, client);
+      if (!updated) {
+        throw new AppError(
+          409,
+          'CONFLICTO_VERSION',
+          'El registro de la sala fue modificado por otro usuario. Recarga la página para ver los cambios.',
+        );
+      }
+
+      await audit(
+        {
+          ...auditContext(context),
+          event: 'sala_editada',
+          detail: updated.id,
+        },
+        client,
+      );
+
+      return updated;
+    });
+  },
+
+  /**
+   * Reactivación / recuperación de sala dada de baja.
+   */
+  async restore(id: string, context: RequestContext): Promise<SalaRecord> {
+    return inTransaction(async (client) => {
+      const current = await salaRepository.findSummaryById(id, client, 'update');
+      if (!current) {
+        throw new AppError(404, 'SALA_NO_ENCONTRADA', SALA_MENSAJES.SALA_NO_ENCONTRADA);
+      }
+      if (current.activo) {
+        throw new AppError(409, 'SALA_ACTIVA', SALA_MENSAJES.SALA_ACTIVA);
+      }
+
+      const updated = await salaRepository.restore(id, context.userId, client);
+      if (!updated) {
+        throw new AppError(409, 'SALA_ACTIVA', SALA_MENSAJES.SALA_ACTIVA);
+      }
+
+      await audit(
+        {
+          ...auditContext(context),
+          event: 'sala_reactivada',
           detail: updated.id,
         },
         client,

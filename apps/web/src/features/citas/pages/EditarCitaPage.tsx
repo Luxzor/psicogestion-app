@@ -7,9 +7,10 @@ import type { Session } from '../../auth/types';
 import { ActionDialog } from '../../pacientes/components/ActionDialog';
 import { FormNotice } from '../../pacientes/components/FormNotice';
 import { citasApi } from '../api';
+import { DatePicker } from '../components/DatePicker';
 import { PersonaSelector, type PersonaOption } from '../components/PersonaSelector';
 import { citaKeys, disponibilidadKeys, useCita, useSalasActivas } from '../hooks/useCitas';
-import { BLOQUES_DEL_DIA, DURACIONES, etiquetaDuracion, minutosAHora } from '../horario';
+import { BLOQUES_DEL_DIA, DURACIONES, esDomingo, etiquetaDuracion, minutosAHora } from '../horario';
 import type { Cita, CitaEstado, CitaFormValues } from '../types';
 import { CITA_ESTADOS } from '../types';
 import { diffCitaPayload, mensajeDeError, toCitaFormValues, validateCitaForm } from '../validation';
@@ -287,13 +288,24 @@ function EditarCitaForm({
             </div>
             <div className="field">
               <label htmlFor="e-fecha">Fecha</label>
-              <input
+              <DatePicker
                 id="e-fecha"
-                type="date"
+                name="e-fecha"
                 value={values.fecha}
-                onChange={(event) => change('fecha', event.target.value)}
+                disableSundays={true}
                 disabled={saving}
                 aria-invalid={Boolean(errors.fecha)}
+                onChange={(val) => {
+                  if (esDomingo(val)) {
+                    setValues((curr) => ({ ...curr, fecha: val }));
+                    setErrors((curr) => ({
+                      ...curr,
+                      fecha: 'La clínica no atiende en domingo. Elige otro día.',
+                    }));
+                  } else {
+                    change('fecha', val);
+                  }
+                }}
               />
               {errors.fecha ? (
                 <span className="field-error" role="alert">

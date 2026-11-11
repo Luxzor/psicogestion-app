@@ -6,6 +6,7 @@ import { useDisponibilidad } from '../hooks/useCitas';
 import {
   DURACIONES,
   enHoraClinica,
+  esDomingo,
   etiquetaDuracion,
   minutosAHora,
   duracionABloques,
@@ -148,7 +149,9 @@ export function SalaHorarioGrid({
         </div>
       </div>
 
-      {!fechaValida ? (
+      {esDomingo(fecha) ? (
+        <p className="opt-note">La clínica no abre los domingos. Elige un día de lunes a sábado.</p>
+      ) : !fechaValida ? (
         <p className="opt-note">Elige una fecha válida para ver los horarios.</p>
       ) : disponibilidad.isPending ? (
         <div className="times-skel" aria-label="Cargando disponibilidad">

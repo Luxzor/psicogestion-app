@@ -73,6 +73,24 @@ export type CitaListResponse = {
   total: number;
 };
 
+export type DashboardSummary = {
+  citas_hoy: Cita[];
+  citas_pendientes_hoy: number;
+  citas_pendientes_total: number;
+  salas_totales: number;
+  salas_libres_hoy: number;
+  pacientes_totales: number;
+  terapeutas_activos: number;
+};
+
+export type AgendaParams = {
+  desde: string;
+  hasta: string;
+  id_sala?: string;
+  id_terapeuta?: string;
+  canceladas?: boolean;
+};
+
 /** Valores del formulario de agendar y modificar (PG-DSN-003 5.4 y 5.5). */
 export type CitaFormValues = {
   id_paciente: string;

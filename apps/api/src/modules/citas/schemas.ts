@@ -150,3 +150,26 @@ export type CreateCitaInput = z.infer<typeof createCitaSchema>;
 export type UpdateCitaInput = z.infer<typeof updateCitaSchema>;
 export type CancelCitaInput = z.infer<typeof cancelCitaSchema>;
 export type CitaListQueryInput = z.infer<typeof citaListQuerySchema>;
+
+/**
+ * Consulta de citas para la vista de agenda (RF 6.1.1, RF 6.1.2, RF 6.2.1–6.2.3).
+ * `desde` y `hasta` llegan como fechas de calendario (AAAA-MM-DD); soporta filtros opcionales por
+ * sala, terapeuta y si incluye citas canceladas.
+ */
+export const agendaQuerySchema = z
+  .strictObject({
+    desde: fechaFiltro('La fecha "desde" no es válida.'),
+    hasta: fechaFiltro('La fecha "hasta" no es válida.'),
+    id_sala: idSala.optional(),
+    id_terapeuta: idTerapeuta.optional(),
+    canceladas: z
+      .enum(['true', 'false', '1', '0'])
+      .optional()
+      .transform((val) => val === 'true' || val === '1'),
+  })
+  .refine((value) => value.desde <= value.hasta, {
+    error: 'La fecha "desde" no puede ser posterior a "hasta".',
+    path: ['desde'],
+  });
+
+export type AgendaQueryInput = z.infer<typeof agendaQuerySchema>;

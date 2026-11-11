@@ -9,7 +9,6 @@ const ROUTE_LABELS: Record<string, string> = {
   '/inicio/pacientes': 'Pacientes',
   '/inicio/terapeutas': 'Terapeutas',
   '/inicio/salas': 'Salas',
-  '/inicio/configuracion': 'Configuración',
   '/inicio/pacientes/nuevo': 'Nuevo paciente',
   '/inicio/terapeutas/nuevo': 'Nuevo terapeuta',
 };

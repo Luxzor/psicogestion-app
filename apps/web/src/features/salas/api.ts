@@ -75,6 +75,33 @@ export const salasApi = {
   },
 
   /**
+   * Modificación del nombre de la sala (control optimista con version, ADR-23).
+   */
+  rename(
+    id: string,
+    payload: { nombre: string; version: number },
+    accessToken: string,
+  ) {
+    return api<SalaResponse>(`/salas/${id}`, {
+      method: 'PATCH',
+      body: payload,
+      accessToken,
+    });
+  },
+
+  /**
+   * Reactivación / recuperación de sala dada de baja con clave de idempotencia (ADR-13).
+   */
+  restore(id: string, accessToken: string, idempotencyKey: string) {
+    return api<SalaResponse>(`/salas/${id}/reactivar`, {
+      method: 'POST',
+      body: {},
+      accessToken,
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+  },
+
+  /**
    * EDT 5.3.1. Verificación anticipada de disponibilidad de nombre (RF 4.1.4, RNF 4.1.2).
    */
   checkAvailability(

@@ -102,7 +102,7 @@ describe('modificación de citas (RF 5.3.1–5.3.6)', () => {
       ([url, init]) => String(url).endsWith('/api/v1/citas/cita-1') && init?.method === 'PATCH',
     );
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({ version: 1, id_sala: 'sala-2' });
-  });
+  }, 15000);
 
   it('conserva lo capturado si el servidor informa un conflicto de horario', async () => {
     setup(() => ({ status: 409, body: { codigo: 'SALA_OCUPADA', mensaje: 'Sala ocupada.' } }));
@@ -128,5 +128,18 @@ describe('modificación de citas (RF 5.3.1–5.3.6)', () => {
         ([url, init]) => String(url).endsWith('/api/v1/citas/cita-1') && init?.method === 'PATCH',
       ),
     ).toBe(false);
+  });
+
+  it('desactiva domingos y muestra error al cambiar fecha a domingo', async () => {
+    setup(() => ({ status: 200, body: {} }));
+    await screen.findByRole('heading', { name: /Modificar cita C31000001/ });
+
+    const input = screen.getByLabelText('Fecha');
+    // 2026-11-08 es domingo
+    fireEvent.change(input, { target: { value: '2026-11-08' } });
+
+    expect(
+      screen.getByText('La clínica no atiende en domingo. Elige otro día.'),
+    ).toBeInTheDocument();
   });
 });

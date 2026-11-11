@@ -147,6 +147,15 @@ export function sumarDias(fecha: string, dias: number) {
   return `${resultado.getUTCFullYear()}-${pad(resultado.getUTCMonth() + 1)}-${pad(resultado.getUTCDate())}`;
 }
 
+/**
+ * Primer día hábil a partir de hoy (si hoy es domingo, devuelve el lunes).
+ * La clínica opera de lunes a sábado (RF 6.2.2).
+ */
+export function primerDiaHabilEnClinica(ahora: Date = new Date()) {
+  const hoy = hoyEnClinica(ahora);
+  return esDomingo(hoy) ? sumarDias(hoy, 1) : hoy;
+}
+
 export type CitaPeriodoFiltro = 'todo' | 'dia' | 'semana' | 'mes';
 
 /**
