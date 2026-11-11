@@ -131,6 +131,14 @@ function AgregarSalaDialogModal({
     return () => clearTimeout(timer);
   };
 
+  const handleBlur = () => {
+    const err = validateSalaNombre(nombre);
+    if (err) {
+      setError(err);
+      setAvailable(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const err = validateSalaNombre(nombre);
     if (err) {
@@ -172,9 +180,7 @@ function AgregarSalaDialogModal({
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (!isSubmitDisabled) {
-        void handleSubmit();
-      }
+      void handleSubmit();
     }
   };
 
@@ -217,6 +223,7 @@ function AgregarSalaDialogModal({
               aria-invalid={!!error}
               value={nombre}
               onChange={(e) => handleInputChange(e.target.value)}
+              onBlur={handleBlur}
               onKeyDown={handleInputKeyDown}
               disabled={saving}
             />
