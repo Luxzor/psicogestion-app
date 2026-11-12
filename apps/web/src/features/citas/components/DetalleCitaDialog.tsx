@@ -87,7 +87,10 @@ function DetalleCitaModal({
   }, [onClose]);
 
   const fechaIso = enHoraClinica(cita.inicio).fecha;
-  const duracionMinutos = (cita.duracion_bloques || 1) * 30;
+  // El listado no siempre trae duracion_bloques: si falta, se calcula con inicio y fin.
+  const duracionMinutos = cita.duracion_bloques
+    ? cita.duracion_bloques * 30
+    : Math.max(30, Math.round((new Date(cita.fin).getTime() - new Date(cita.inicio).getTime()) / 60000));
 
   return (
     <div
