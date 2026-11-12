@@ -196,4 +196,3 @@ const handleReactivar = asyncRoute(async (request, response) => {
 
 salasRouter.post('/:id/reactivar', handleReactivar);
 salasRouter.post('/:id/recuperar', handleReactivar);
-

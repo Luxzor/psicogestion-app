@@ -5,12 +5,7 @@ import { db } from '../../platform/db.js';
 import { salaDatabaseError } from './errors.js';
 import { salaRepository, type SalaListState, type SalaRecord } from './repository.js';
 import { citaRepository } from '../citas/repository.js';
-import {
-  bloquesDelDia,
-  clinicParts,
-  ventanaDelDia,
-  HORARIO_MENSAJES,
-} from '../citas/horario.js';
+import { bloquesDelDia, clinicParts, ventanaDelDia, HORARIO_MENSAJES } from '../citas/horario.js';
 import {
   SALA_MENSAJES,
   type CreateSalaInput,
@@ -283,7 +278,13 @@ export const salaService = {
         );
       }
 
-      const updated = await salaRepository.rename(id, input.nombre, input.version, context.userId, client);
+      const updated = await salaRepository.rename(
+        id,
+        input.nombre,
+        input.version,
+        context.userId,
+        client,
+      );
       if (!updated) {
         throw new AppError(
           409,
@@ -336,4 +337,3 @@ export const salaService = {
     });
   },
 };
-

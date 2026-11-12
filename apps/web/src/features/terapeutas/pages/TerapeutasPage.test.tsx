@@ -94,7 +94,9 @@ describe('lista de terapeutas (EDT 4.3.5)', () => {
     renderPage();
 
     expect(await screen.findByText('Aún no hay terapeutas')).toBeInTheDocument();
-    expect(screen.getByText('Usa “Añadir terapeuta” para registrar el primero.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Usa “Añadir terapeuta” para registrar el primero.'),
+    ).toBeInTheDocument();
   });
 
   it('muestra las columnas de nombre, cédula, teléfono y correo (RF 2.2.1, §5.7)', async () => {
@@ -125,10 +127,9 @@ describe('lista de terapeutas (EDT 4.3.5)', () => {
     renderPage();
     await screen.findByText('Terapeuta Número 1');
 
-    fireEvent.change(
-      screen.getByLabelText('Buscar por nombre, cédula, teléfono o correo'),
-      { target: { value: 'zzzzz' } },
-    );
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, cédula, teléfono o correo'), {
+      target: { value: 'zzzzz' },
+    });
 
     expect(
       await screen.findByText(/No encontramos terapeutas con/, {}, { timeout: 2000 }),
@@ -193,7 +194,9 @@ describe('lista de terapeutas (EDT 4.3.5)', () => {
     const fila = await screen.findByRole('row', { name: /Abrir el perfil de Terapeuta Número 1/ });
     fireEvent.keyDown(fila, { key: 'Enter' });
 
-    expect(await screen.findByRole('heading', { name: 'Perfil del terapeuta' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Perfil del terapeuta' }),
+    ).toBeInTheDocument();
   });
 
   it('abre el perfil al hacer clic sobre la fila', async () => {
@@ -207,7 +210,9 @@ describe('lista de terapeutas (EDT 4.3.5)', () => {
     const fila = await screen.findByRole('row', { name: /Abrir el perfil de Terapeuta Número 1/ });
     fireEvent.click(within(fila).getByText('Terapeuta Número 1'));
 
-    expect(await screen.findByRole('heading', { name: 'Perfil del terapeuta' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Perfil del terapeuta' }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -300,15 +305,14 @@ describe('filtro de terapeutas dados de baja (EDT 4.3.5)', () => {
       };
     });
     renderPage();
-    fireEvent.change(
-      screen.getByLabelText('Buscar por nombre, cédula, teléfono o correo'),
-      { target: { value: 'Terapeuta' } },
-    );
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, cédula, teléfono o correo'), {
+      target: { value: 'Terapeuta' },
+    });
     await waitFor(
       () =>
-        expect(
-          fetchMock.mock.calls.some(([url]) => String(url).includes('q=Terapeuta')),
-        ).toBe(true),
+        expect(fetchMock.mock.calls.some(([url]) => String(url).includes('q=Terapeuta'))).toBe(
+          true,
+        ),
       { timeout: 2000 },
     );
     await screen.findByText('Mostrando 1–25 de 26');

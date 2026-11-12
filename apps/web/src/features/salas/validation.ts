@@ -112,11 +112,7 @@ export const BLOQUES: readonly number[] = Array.from(
   (_, i) => INI_MINUTOS + i * BLOQUE_INTERVALO,
 );
 
-export const esPasado = (
-  fecha: string,
-  min: number,
-  ahora: Date = new Date(),
-): boolean => {
+export const esPasado = (fecha: string, min: number, ahora: Date = new Date()): boolean => {
   const hoyIso = isoDe(ahora);
   const ahoraMin = ahora.getHours() * 60 + ahora.getMinutes();
   return fecha < hoyIso || (fecha === hoyIso && min < ahoraMin);

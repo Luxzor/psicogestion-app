@@ -524,7 +524,9 @@
   color: var(--color-text);
   text-decoration: none;
   border: 1px solid transparent;
-  transition: border-color 0.15s, transform 0.15s;
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
 }
 
 .quick__card:hover {
@@ -944,8 +946,16 @@
   border: 0 !important;
   border-left: 3px solid var(--ev, var(--color-primary)) !important;
   border-radius: 7px !important;
-  background: color-mix(in srgb, var(--ev, var(--color-primary)) 11%, var(--color-surface, #ffffff)) !important;
-  background-color: color-mix(in srgb, var(--ev, var(--color-primary)) 11%, var(--color-surface, #ffffff)) !important;
+  background: color-mix(
+    in srgb,
+    var(--ev, var(--color-primary)) 11%,
+    var(--color-surface, #ffffff)
+  ) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--ev, var(--color-primary)) 11%,
+    var(--color-surface, #ffffff)
+  ) !important;
   color: var(--color-text, #142033) !important;
   cursor: pointer;
   box-shadow: 0 0 0 1px var(--color-surface, #ffffff);
@@ -955,8 +965,16 @@
 [data-theme='dark'] .fc-v-event.ev,
 [data-theme='dark'] .fc-timegrid-event.ev {
   --ev-ink: color-mix(in srgb, var(--ev, var(--color-primary)) 50%, white);
-  background: color-mix(in srgb, var(--ev, var(--color-primary)) 26%, var(--color-surface, #1a1d27)) !important;
-  background-color: color-mix(in srgb, var(--ev, var(--color-primary)) 26%, var(--color-surface, #1a1d27)) !important;
+  background: color-mix(
+    in srgb,
+    var(--ev, var(--color-primary)) 26%,
+    var(--color-surface, #1a1d27)
+  ) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--ev, var(--color-primary)) 26%,
+    var(--color-surface, #1a1d27)
+  ) !important;
 }
 
 .fc-event.ev .fc-event-main,
@@ -969,8 +987,16 @@
 .fc-event.ev:hover,
 .fc-v-event.ev:hover,
 .fc-timegrid-event.ev:hover {
-  background: color-mix(in srgb, var(--ev, var(--color-primary)) 18%, var(--color-surface, #ffffff)) !important;
-  background-color: color-mix(in srgb, var(--ev, var(--color-primary)) 18%, var(--color-surface, #ffffff)) !important;
+  background: color-mix(
+    in srgb,
+    var(--ev, var(--color-primary)) 18%,
+    var(--color-surface, #ffffff)
+  ) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--ev, var(--color-primary)) 18%,
+    var(--color-surface, #ffffff)
+  ) !important;
 }
 
 .fc-event.ev.is-venc,
@@ -1101,11 +1127,7 @@
   width: 0.9rem;
   height: 0.9rem;
   border-radius: 3px;
-  background: repeating-linear-gradient(
-    135deg,
-    transparent 0 3px,
-    var(--tint-soft-hover) 3px 6px
-  );
+  background: repeating-linear-gradient(135deg, transparent 0 3px, var(--tint-soft-hover) 3px 6px);
   border: 1px solid var(--color-line);
 }
 
@@ -1594,7 +1616,9 @@
   background: transparent;
   color: var(--color-muted);
   cursor: pointer;
-  transition: color 0.15s, background-color 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
 }
 
 .dp-toggle:hover:not(:disabled) {
@@ -1617,7 +1641,9 @@
   border: 1px solid var(--color-line);
   border-radius: 12px;
   background: var(--color-surface);
-  box-shadow: var(--shadow-soft), 0 12px 30px rgb(0 0 0 / 12%);
+  box-shadow:
+    var(--shadow-soft),
+    0 12px 30px rgb(0 0 0 / 12%);
   user-select: none;
 }
 
@@ -1645,7 +1671,9 @@
   background: transparent;
   color: var(--color-muted);
   cursor: pointer;
-  transition: background-color 0.12s, color 0.12s;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
 }
 
 .dp-nav-btn:hover {
@@ -1687,7 +1715,9 @@
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.12s, color 0.12s;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
 }
 
 .dp-cell--empty {
@@ -1748,5 +1778,3 @@
 .dp-legend-dot--sunday {
   background: var(--color-error);
 }
-
-
