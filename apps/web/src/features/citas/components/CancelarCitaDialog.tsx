@@ -90,8 +90,8 @@ function CancelarCitaModal({
         setIsNetError(true);
         setErrorNotice(
           typeof navigator !== 'undefined' && !navigator.onLine
-            ? 'Sin conexión a internet. Conéctate a la red o autentícate en el portal e inténtalo de nuevo.'
-            : 'No pudimos cancelar la cita por un error de conexión. La cita no cambió; intenta de nuevo.',
+            ? 'Sin conexión a la red. Conéctate a internet o autentícate en el portal escolar e inténtalo de nuevo.'
+            : 'No pudimos conectar con el servidor. Si estás en una red escolar o pública, asegúrate de haber iniciado sesión en su portal.',
         );
       }
     } finally {
