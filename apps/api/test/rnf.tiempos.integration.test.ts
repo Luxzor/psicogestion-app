@@ -228,7 +228,7 @@ integration('RNF de tiempo de respuesta con volumen representativo (PG-ERS-001)'
     expect(ms).toBeLessThan(3000);
   });
 
-  it('la agenda de una semana y de un mes completo responde en menos de 3 s (RNF 6.1, 6.2)', async () => {
+  it('la agenda de una semana y de un mes completo responde en menos de 2 s (RNF 6.1)', async () => {
     const semana = await peor(async () => {
       const r = await request(app)
         .get(`/api/v1/citas/agenda?desde=${DIA}&hasta=${sumarDias(DIA, 5)}`)
@@ -242,8 +242,8 @@ integration('RNF de tiempo de respuesta con volumen representativo (PG-ERS-001)'
       expect(r.status).toBe(200);
       expect(r.body.citas.length).toBe(citasInsertadas);
     });
-    expect(semana).toBeLessThan(3000);
-    expect(mes).toBeLessThan(3000);
+    expect(semana).toBeLessThan(2000);
+    expect(mes).toBeLessThan(2000);
   });
 
   it('el resumen de la pantalla de inicio responde en menos de 2 s (RNF 7.1)', async () => {
