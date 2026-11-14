@@ -387,4 +387,3 @@ describe('regla de asignación a citas (TC-U-020, RF 2.3.5, CA-2.3-03)', () => {
     expect(therapistService.isEligibleForAppointment({ activo: false })).toBe(false);
   });
 });
-

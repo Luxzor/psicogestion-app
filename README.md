@@ -4,10 +4,11 @@ Plataforma administrativa para la clínica SEAP de la Facultad de Psicología, U
 
 ## Inicio rápido
 
-1. Ejecuta `mkcert -install` una vez desde una terminal local y confirma la contraseña de macOS.
-2. Ejecuta `mkcert -cert-file infra/certs/localhost.pem -key-file infra/certs/localhost-key.pem localhost 127.0.0.1 ::1`.
-3. Ejecuta `npm install`.
-4. Ejecuta `npm run docker:up`.
+1. Crea tu archivo de entorno: `cp .env.example .env`. Sin este archivo `docker compose` no arranca. Cambia los tres valores que empiezan con `replace_with` (`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` y `RATE_LIMIT_KEY_SECRET`) por cadenas aleatorias largas y distintas entre sí; por ejemplo, genera cada una con `openssl rand -hex 32`. El archivo `.env` no se sube al repositorio.
+2. Ejecuta `mkcert -install` una vez desde una terminal local y confirma la contraseña de macOS.
+3. Ejecuta `mkcert -cert-file infra/certs/localhost.pem -key-file infra/certs/localhost-key.pem localhost 127.0.0.1 ::1`.
+4. Ejecuta `npm install`.
+5. Ejecuta `npm run docker:up`.
 
 Servicios disponibles:
 
@@ -26,10 +27,10 @@ api → db:5432
 ```
 
 Para permitir conexiones desde herramientas instaladas en el equipo local,
-Docker publica ese PostgreSQL en el puerto `5434` del host:
+Docker publica ese PostgreSQL en el puerto `5534` del host:
 
 ```text
-localhost:5434 → db:5432
+localhost:5534 → db:5432
 ```
 
 El puerto `5432` del equipo local no se utiliza porque puede estar ocupado por
@@ -42,7 +43,7 @@ Usa los siguientes valores para la base de desarrollo local:
 ```text
 Motor: PostgreSQL
 Host: localhost
-Puerto: 5434
+Puerto: 5534
 Base de datos: psicogestion
 Usuario: psicogestion
 Contraseña: psicogestion_dev_password
@@ -84,12 +85,12 @@ Para salir de PostgreSQL:
 ### Diferencia con la base de pruebas
 
 La base de desarrollo y la base de pruebas son independientes. La base de
-pruebas se publica en el puerto `5433` y no contiene necesariamente los datos
+pruebas se publica en el puerto `5533` y no contiene necesariamente los datos
 creados desde la aplicación:
 
 ```text
 Host: localhost
-Puerto: 5433
+Puerto: 5533
 Base de datos: psicogestion_test
 Usuario: psicogestion_test
 Contraseña: psicogestion_test_password
@@ -97,6 +98,10 @@ Contraseña: psicogestion_test_password
 
 Las pruebas automatizadas pueden limpiar sus tablas, por lo que no deben
 ejecutarse contra la base `psicogestion` de desarrollo.
+
+## Fotografías de terapeutas (uploads)
+
+La API guarda las fotografías en la carpeta `uploads/` de la raíz del proyecto. Con Docker, el servicio `api` la monta en el volumen `uploads_data` para que las imágenes no se pierdan al reconstruir o recrear el contenedor; `docker compose down -v` sí lo elimina. Fuera de Docker, la carpeta se crea en el proyecto y está ignorada por git.
 
 ## Módulo de cuentas — Iteración 1
 
@@ -133,7 +138,7 @@ El modelo de datos de salas y citas (EDT 5.2.1) está en la migración `0009_sal
 
 1. Copia `.env.test.example` a `.env.test` y ajusta valores locales si es necesario.
 2. Ejecuta `docker compose -f docker-compose.test.yml up -d`.
-3. Ejecuta `npm run migrate -w @psicogestion/api`.
+3. Ejecuta `NODE_ENV=test npm run migrate -w @psicogestion/api`. Sin `NODE_ENV=test` la migración usa `.env` (la base de desarrollo, que solo se alcanza desde Docker) y no `.env.test`.
 4. Ejecuta `npm run test:integration`.
 5. Al terminar, ejecuta `docker compose -f docker-compose.test.yml down -v`.
 

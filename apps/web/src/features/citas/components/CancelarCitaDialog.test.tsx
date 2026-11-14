@@ -152,9 +152,7 @@ describe('CancelarCitaDialog (EDT 5.3.5)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar cita' }));
 
-    expect(
-      await screen.findByText(/Otra persona modificó esta cita/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Otra persona modificó esta cita/i)).toBeInTheDocument();
   });
 
   it('obtiene la versión mediante getById si la cita del listado no incluye version', async () => {

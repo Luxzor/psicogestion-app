@@ -214,4 +214,3 @@ describe('CancelarPorFolioDialog (EDT 5.3.5)', () => {
     ).toBeInTheDocument();
   });
 });
-

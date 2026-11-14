@@ -24,6 +24,7 @@ const cita = {
 
 function setup(
   patchResponse: (body: Record<string, unknown>) => { status: number; body: unknown },
+  getCita?: () => { status: number; body: unknown },
 ) {
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
@@ -31,7 +32,7 @@ function setup(
     if (url.endsWith('/api/v1/citas/cita-1') && init?.method === 'PATCH') {
       result = patchResponse(JSON.parse(String(init.body)));
     } else if (url.endsWith('/api/v1/citas/cita-1')) {
-      result = { status: 200, body: { cita } };
+      result = getCita ? getCita() : { status: 200, body: { cita } };
     } else if (url.includes('/api/v1/salas')) {
       result = {
         status: 200,
@@ -141,5 +142,61 @@ describe('modificación de citas (RF 5.3.1–5.3.6)', () => {
     expect(
       screen.getByText('La clínica no atiende en domingo. Elige otro día.'),
     ).toBeInTheDocument();
+  });
+
+  it('conserva los cambios del borrador tras conflicto de versión y clic en «Ver cambios actuales» (CA-5.3-02, DEF-003)', async () => {
+    let versionActual = 1;
+    let patchCount = 0;
+    const fetchMock = setup(
+      (body) => {
+        patchCount += 1;
+        if (patchCount === 1) {
+          versionActual = 2;
+          return {
+            status: 409,
+            body: {
+              codigo: 'CONFLICTO_VERSION',
+              mensaje: 'La cita fue modificada por otro usuario.',
+            },
+          };
+        }
+        return {
+          status: 200,
+          body: {
+            codigo: 'CITA_MODIFICADA',
+            cita: { ...cita, ...body, version: versionActual + 1 },
+          },
+        };
+      },
+      () => ({ status: 200, body: { cita: { ...cita, version: versionActual } } }),
+    );
+
+    await screen.findByRole('heading', { name: /Modificar cita C31000001/ });
+    await screen.findByRole('option', { name: 'Sala B' });
+
+    fireEvent.change(screen.getByLabelText('Sala'), { target: { value: 'sala-2' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar y guardar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByText(/Otra persona modificó esta cita/i)).toBeInTheDocument();
+    const btnVerCambios = screen.getByRole('button', { name: 'Ver cambios actuales' });
+    expect(btnVerCambios).toBeInTheDocument();
+
+    fireEvent.click(btnVerCambios);
+
+    expect(
+      await screen.findByText(/Se actualizaron los datos base de la cita/i),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Sala')).toHaveValue('sala-2');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar y guardar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByText(/Cita modificada con éxito/)).toBeInTheDocument();
+    const secondPatch = fetchMock.mock.calls.filter(
+      ([url, init]) => String(url).endsWith('/api/v1/citas/cita-1') && init?.method === 'PATCH',
+    )[1];
+    expect(JSON.parse(String(secondPatch?.[1]?.body))).toEqual({ version: 2, id_sala: 'sala-2' });
   });
 });
