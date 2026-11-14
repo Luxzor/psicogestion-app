@@ -177,4 +177,3 @@ describe('validación en cliente de edición de terapeutas (EDT 4.3.5)', () => {
     expect(isTherapistEligibleForAppointment({ activo: false })).toBe(false);
   });
 });
-

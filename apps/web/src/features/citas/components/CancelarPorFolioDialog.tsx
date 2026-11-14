@@ -206,11 +206,7 @@ function CancelarPorFolioModal({
  * RF 5.4.1–5.4.2 (EDT 5.3.5). Diálogo interactivo para buscar una cita por su folio y proceder
  * con la cancelación (PG-DSN-003 5.5; maqueta dialogCancelarFolio de PG-DSN-003-INT).
  */
-export function CancelarPorFolioDialog({
-  isOpen,
-  ...rest
-}: CancelarPorFolioDialogProps) {
+export function CancelarPorFolioDialog({ isOpen, ...rest }: CancelarPorFolioDialogProps) {
   if (!isOpen) return null;
   return <CancelarPorFolioModal {...rest} />;
 }
-

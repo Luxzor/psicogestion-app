@@ -171,7 +171,14 @@ function RecuperarSalaDialogModal({
             </div>
           ) : (
             <div>
-              <p style={{ fontSize: '0.82rem', fontWeight: 700, margin: '0 0 0.5rem', textAlign: 'left' }}>
+              <p
+                style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  margin: '0 0 0.5rem',
+                  textAlign: 'left',
+                }}
+              >
                 Elige la sala que deseas recuperar:
               </p>
               <div className="pick-list" role="radiogroup" aria-label="Salas dadas de baja">

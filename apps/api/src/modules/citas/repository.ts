@@ -483,11 +483,7 @@ export const citaRepository = {
   /**
    * RF 7.1.1, RF 7.2.1–7.2.5. Resumen para la pantalla de inicio (KPIs y citas de hoy).
    */
-  async getDashboardSummary(
-    hoyInicio: Date,
-    hoyFin: Date,
-    client: Queryable = db,
-  ) {
+  async getDashboardSummary(hoyInicio: Date, hoyFin: Date, client: Queryable = db) {
     const [citasHoyResult, pendTotResult, salasResult, pacResult, terResult] = await Promise.all([
       client.query<CitaListRow>(
         `SELECT ${citaListFields}
@@ -514,9 +510,7 @@ export const citaRepository = {
          WHERE activo = true`,
         [hoyInicio, hoyFin],
       ),
-      client.query<{ total: string }>(
-        `SELECT count(*)::text AS total FROM paciente`,
-      ),
+      client.query<{ total: string }>(`SELECT count(*)::text AS total FROM paciente`),
       client.query<{ total: string }>(
         `SELECT count(*)::text AS total FROM terapeuta WHERE activo = true`,
       ),

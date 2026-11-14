@@ -36,7 +36,9 @@ describe('rutas de citas sin dependencias externas', () => {
     const detalle = await request(createApp()).get(`/api/v1/citas/${randomUUID()}`);
     expect(detalle.status).toBe(401);
 
-    const agenda = await request(createApp()).get('/api/v1/citas/agenda?desde=2026-11-02&hasta=2026-11-08');
+    const agenda = await request(createApp()).get(
+      '/api/v1/citas/agenda?desde=2026-11-02&hasta=2026-11-08',
+    );
     expect(agenda.status).toBe(401);
 
     const dashboard = await request(createApp()).get('/api/v1/citas/dashboard/resumen');
