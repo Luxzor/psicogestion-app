@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import type { ApiError } from '../../../auth/api';
@@ -63,14 +63,7 @@ export function EditarCitaPage({ session }: { session: Session }) {
       </div>
     );
   }
-  return (
-    <EditarCitaForm
-      key={`${id}-${detalle.data.version}`}
-      cita={detalle.data}
-      session={session}
-      onSaved={setGuardada}
-    />
-  );
+  return <EditarCitaForm key={id} cita={detalle.data} session={session} onSaved={setGuardada} />;
 }
 
 function EditarCitaForm({
@@ -85,6 +78,7 @@ function EditarCitaForm({
   const queryClient = useQueryClient();
   const salas = useSalasActivas(session.token);
   const { setHasUnsavedChanges } = useUnsavedChanges();
+  const prevCitaRef = useRef(cita);
   const inicial = toCitaFormValues(cita);
   const [values, setValues] = useState<CitaFormValues>(inicial);
   const [paciente, setPaciente] = useState<PersonaOption | null>({
@@ -98,10 +92,47 @@ function EditarCitaForm({
   const [estado, setEstado] = useState<CitaEstado>(cita.estado);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState('');
+  const [noticeType, setNoticeType] = useState<'error' | 'info'>('error');
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
   const dirty = Boolean(diffCitaPayload(cita, values, estado));
+
+  useEffect(() => {
+    if (cita.version !== prevCitaRef.current.version) {
+      const oldInitial = toCitaFormValues(prevCitaRef.current);
+      const newInitial = toCitaFormValues(cita);
+
+      setValues((current) => ({
+        id_paciente:
+          current.id_paciente !== oldInitial.id_paciente
+            ? current.id_paciente
+            : newInitial.id_paciente,
+        id_terapeuta:
+          current.id_terapeuta !== oldInitial.id_terapeuta
+            ? current.id_terapeuta
+            : newInitial.id_terapeuta,
+        id_sala: current.id_sala !== oldInitial.id_sala ? current.id_sala : newInitial.id_sala,
+        fecha: current.fecha !== oldInitial.fecha ? current.fecha : newInitial.fecha,
+        inicio: current.inicio !== oldInitial.inicio ? current.inicio : newInitial.inicio,
+        duracion: current.duracion !== oldInitial.duracion ? current.duracion : newInitial.duracion,
+      }));
+
+      setPaciente((current) =>
+        current?.id !== prevCitaRef.current.paciente.id
+          ? current
+          : { ...cita.paciente, activo: true },
+      );
+      setTerapeuta((current) =>
+        current?.id !== prevCitaRef.current.terapeuta.id
+          ? current
+          : { ...cita.terapeuta, activo: true },
+      );
+      setEstado((current) => (current !== prevCitaRef.current.estado ? current : cita.estado));
+
+      prevCitaRef.current = cita;
+    }
+  }, [cita]);
 
   useEffect(() => {
     setHasUnsavedChanges(dirty);
@@ -127,7 +158,7 @@ function EditarCitaForm({
   function review() {
     const next = validateCitaForm(values, {
       modo: 'editar',
-      inicial,
+      inicial: toCitaFormValues(cita),
       paciente: paciente ? { activo: paciente.activo } : null,
       terapeuta: terapeuta ? { activo: terapeuta.activo } : null,
       sala: { activo: true },
@@ -175,6 +206,7 @@ function EditarCitaForm({
       const apiError = isApiError(error) ? error : null;
       setConflict(apiError?.codigo === 'CONFLICTO_VERSION');
       setErrors(apiError?.campos ?? {});
+      setNoticeType('error');
       setNotice(
         apiError
           ? (mensajeDeError(apiError.codigo) ?? apiError.mensaje)
@@ -202,14 +234,19 @@ function EditarCitaForm({
         </div>
       </div>
       {notice ? (
-        <FormNotice type="error">
+        <FormNotice type={noticeType}>
           {notice}
           {conflict ? (
             <button
               type="button"
               className="button button--secondary"
-              onClick={() => {
-                void queryClient.invalidateQueries({ queryKey: citaKeys.detalle(cita.id) });
+              onClick={async () => {
+                await queryClient.invalidateQueries({ queryKey: citaKeys.detalle(cita.id) });
+                setConflict(false);
+                setNoticeType('info');
+                setNotice(
+                  'Se actualizaron los datos base de la cita. Conservamos los cambios en tu borrador; revisa y vuelve a guardar.',
+                );
               }}
             >
               Ver cambios actuales
