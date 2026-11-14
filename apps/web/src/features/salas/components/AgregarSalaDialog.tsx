@@ -178,8 +178,7 @@ function AgregarSalaDialogModal({
     }
   };
 
-  const isSubmitDisabled =
-    saving || checking || !!error || !nombre.trim() || isOverLimit;
+  const isSubmitDisabled = saving || checking || !!error || !nombre.trim() || isOverLimit;
 
   return (
     <div className="dialog-backdrop" role="presentation">
@@ -220,20 +219,14 @@ function AgregarSalaDialogModal({
               onKeyDown={handleInputKeyDown}
               disabled={saving}
             />
-            <span
-              className="field-hint"
-              id="sala-hint"
-              hidden={!!error && !checking}
-            >
+            <span className="field-hint" id="sala-hint" hidden={!!error && !checking}>
               {checking ? (
                 <span className="field-checking">
                   <LoaderCircle size={13} className="spin" aria-hidden="true" />
                   Verificando que el nombre no exista...
                 </span>
               ) : available ? (
-                <span style={{ color: 'var(--color-success)' }}>
-                  Nombre disponible.
-                </span>
+                <span style={{ color: 'var(--color-success)' }}>Nombre disponible.</span>
               ) : (
                 'De 1 a 10 caracteres.'
               )}

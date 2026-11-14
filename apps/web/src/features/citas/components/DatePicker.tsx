@@ -199,7 +199,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       </div>
 
       {isOpen && (
-        <div className="dp-popover" role="dialog" aria-modal="false" aria-label="Calendario de fecha">
+        <div
+          className="dp-popover"
+          role="dialog"
+          aria-modal="false"
+          aria-label="Calendario de fecha"
+        >
           <div className="dp-header">
             <button
               type="button"
@@ -286,4 +291,3 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     </div>
   );
 };
-

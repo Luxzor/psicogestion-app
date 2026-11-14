@@ -17,24 +17,12 @@ describe('AgregarSalaDialog (EDT 5.3.1, RF 4.1.1 a RF 4.1.4, CA-4.1-01 a CA-4.1-
   });
 
   it('no renderiza nada cuando isOpen es false', () => {
-    render(
-      <AgregarSalaDialog
-        isOpen={false}
-        onClose={onClose}
-        onCreated={onCreated}
-      />,
-    );
+    render(<AgregarSalaDialog isOpen={false} onClose={onClose} onCreated={onCreated} />);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('muestra el formulario con campos accesibles y botón deshabilitado inicialmente (RF 4.1.2)', () => {
-    render(
-      <AgregarSalaDialog
-        isOpen={true}
-        onClose={onClose}
-        onCreated={onCreated}
-      />,
-    );
+    render(<AgregarSalaDialog isOpen={true} onClose={onClose} onCreated={onCreated} />);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Agregar sala' })).toBeInTheDocument();
@@ -57,13 +45,7 @@ describe('AgregarSalaDialog (EDT 5.3.1, RF 4.1.1 a RF 4.1.4, CA-4.1-01 a CA-4.1-
   });
 
   it('rechaza nombres de más de 10 caracteres e indica la longitud (RF 4.1.3, CA-4.1-03)', () => {
-    render(
-      <AgregarSalaDialog
-        isOpen={true}
-        onClose={onClose}
-        onCreated={onCreated}
-      />,
-    );
+    render(<AgregarSalaDialog isOpen={true} onClose={onClose} onCreated={onCreated} />);
 
     const input = screen.getByLabelText('Nombre de la sala');
     fireEvent.change(input, { target: { value: 'Sala Grupal 1' } });
@@ -84,13 +66,7 @@ describe('AgregarSalaDialog (EDT 5.3.1, RF 4.1.1 a RF 4.1.4, CA-4.1-01 a CA-4.1-
       mensaje: 'Ya existe una sala con ese nombre.',
     });
 
-    render(
-      <AgregarSalaDialog
-        isOpen={true}
-        onClose={onClose}
-        onCreated={onCreated}
-      />,
-    );
+    render(<AgregarSalaDialog isOpen={true} onClose={onClose} onCreated={onCreated} />);
 
     const input = screen.getByLabelText('Nombre de la sala');
     fireEvent.change(input, { target: { value: 'Sala 1' } });
@@ -162,13 +138,7 @@ describe('AgregarSalaDialog (EDT 5.3.1, RF 4.1.1 a RF 4.1.4, CA-4.1-01 a CA-4.1-
 
     vi.spyOn(salasApi, 'register').mockRejectedValueOnce(new Error('Network error'));
 
-    render(
-      <AgregarSalaDialog
-        isOpen={true}
-        onClose={onClose}
-        onCreated={onCreated}
-      />,
-    );
+    render(<AgregarSalaDialog isOpen={true} onClose={onClose} onCreated={onCreated} />);
 
     const input = screen.getByLabelText('Nombre de la sala');
     fireEvent.change(input, { target: { value: 'Sala 5' } });
@@ -193,13 +163,7 @@ describe('AgregarSalaDialog (EDT 5.3.1, RF 4.1.1 a RF 4.1.4, CA-4.1-01 a CA-4.1-
   });
 
   it('permite cerrar con el botón Cancelar o tecla Escape', () => {
-    render(
-      <AgregarSalaDialog
-        isOpen={true}
-        onClose={onClose}
-        onCreated={onCreated}
-      />,
-    );
+    render(<AgregarSalaDialog isOpen={true} onClose={onClose} onCreated={onCreated} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -208,4 +172,3 @@ describe('AgregarSalaDialog (EDT 5.3.1, RF 4.1.1 a RF 4.1.4, CA-4.1-01 a CA-4.1-
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 });
-

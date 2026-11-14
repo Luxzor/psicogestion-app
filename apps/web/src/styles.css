@@ -700,5 +700,7 @@ tr.is-new {
 }
 
 .fab-group .button--danger-soft {
-  box-shadow: 0 10px 25px rgb(180 35 24 / 15%), 0 0 0 1px var(--color-line);
+  box-shadow:
+    0 10px 25px rgb(180 35 24 / 15%),
+    0 0 0 1px var(--color-line);
 }
