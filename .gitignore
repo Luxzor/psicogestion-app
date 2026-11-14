@@ -5,6 +5,7 @@ coverage/
 .env.*
 !.env.example
 !.env.test.example
+uploads/
 infra/certs/*
 !infra/certs/.gitkeep
 .DS_Store
