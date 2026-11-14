@@ -25,12 +25,7 @@ type ModalProps = {
   accessToken?: string;
 };
 
-function EditarSalaDialogModal({
-  sala,
-  onClose,
-  onUpdated,
-  accessToken = '',
-}: ModalProps) {
+function EditarSalaDialogModal({ sala, onClose, onUpdated, accessToken = '' }: ModalProps) {
   const [nombre, setNombre] = useState(sala.nombre);
   const [currentVersion, setCurrentVersion] = useState(sala.version);
   const [error, setError] = useState('');

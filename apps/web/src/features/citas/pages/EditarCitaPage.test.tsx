@@ -154,7 +154,10 @@ describe('modificación de citas (RF 5.3.1–5.3.6)', () => {
           versionActual = 2;
           return {
             status: 409,
-            body: { codigo: 'CONFLICTO_VERSION', mensaje: 'La cita fue modificada por otro usuario.' },
+            body: {
+              codigo: 'CONFLICTO_VERSION',
+              mensaje: 'La cita fue modificada por otro usuario.',
+            },
           };
         }
         return {
@@ -176,9 +179,7 @@ describe('modificación de citas (RF 5.3.1–5.3.6)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Revisar y guardar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-    expect(
-      await screen.findByText(/Otra persona modificó esta cita/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Otra persona modificó esta cita/i)).toBeInTheDocument();
     const btnVerCambios = screen.getByRole('button', { name: 'Ver cambios actuales' });
     expect(btnVerCambios).toBeInTheDocument();
 

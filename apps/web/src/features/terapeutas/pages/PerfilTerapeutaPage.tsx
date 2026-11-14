@@ -115,8 +115,8 @@ function PerfilTerapeuta({
           <span className="notice__with-icon">
             <UserX size={15} aria-hidden="true" />
             Este terapeuta fue dado de baja
-            {terapeuta.fecha_baja ? ` el ${displayFromIso(terapeuta.fecha_baja)}` : ''}. Sus datos
-            y su fotografía se conservan en el sistema.
+            {terapeuta.fecha_baja ? ` el ${displayFromIso(terapeuta.fecha_baja)}` : ''}. Sus datos y
+            su fotografía se conservan en el sistema.
           </span>
         </FormNotice>
       ) : null}

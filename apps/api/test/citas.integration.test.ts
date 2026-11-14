@@ -741,7 +741,6 @@ integration('citas: alta, listado y detalle con servicios reales (EDT 5.3.3)', (
     });
   });
 
-
   describe('cancelación de cita (RF 5.4, CA-5.4-01, CA-5.4-02, EDT 5.3.5)', () => {
     it('cancela una cita Pendiente, registra auditoría y libera el horario para agendar de inmediato (CA-5.4-01)', async () => {
       const creada = await post(cuerpo());
@@ -793,12 +792,7 @@ integration('citas: alta, listado y detalle con servicios reales (EDT 5.3.3)', (
     });
 
     it('rechaza la cancelación de una cita vencida (CITA_NO_MODIFICABLE)', async () => {
-      const vencida = await insertarCita(
-        pacienteConCorreo,
-        terapeutaA,
-        salaA,
-        at(PASADO, '10:00'),
-      );
+      const vencida = await insertarCita(pacienteConCorreo, terapeutaA, salaA, at(PASADO, '10:00'));
 
       const response = await postCancel(vencida.id, { version: 1 });
 
