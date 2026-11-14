@@ -125,7 +125,7 @@ describe('CancelarCitaDialog (EDT 5.3.5)', () => {
 
     expect(
       await screen.findByText(
-        'No pudimos cancelar la cita por un error de conexión. La cita no cambió; intenta de nuevo.',
+        'No pudimos conectar con el servidor. Si estás en una red escolar o pública, asegúrate de haber iniciado sesión en su portal.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();

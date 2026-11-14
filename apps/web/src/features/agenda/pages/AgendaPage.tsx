@@ -591,7 +591,17 @@ export function AgendaPage({ session }: { session: Session }) {
                 const startIso = `${info.view.currentStart.getFullYear()}-${String(info.view.currentStart.getMonth() + 1).padStart(2, '0')}-${String(info.view.currentStart.getDate()).padStart(2, '0')}`;
                 if (info.view.type === 'timeGridDay') {
                   setFecha(startIso);
+                  return;
                 }
+                // Semana y mes: al usar las flechas del calendario, `fecha` debe seguir al rango
+                // visible para que el título y la consulta de citas se actualicen (DEF-ITER04).
+                const e = info.view.currentEnd;
+                const endIso = `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, '0')}-${String(e.getDate()).padStart(2, '0')}`;
+                setFecha((prev) => {
+                  if (prev >= startIso && prev < endIso) return prev;
+                  if (hoy >= startIso && hoy < endIso) return hoy;
+                  return esDomingo(startIso) ? sumarDias(startIso, 1) : startIso;
+                });
               }}
             />
           </div>
