@@ -92,7 +92,6 @@ function esPeriodoActual(periodo: string, fecha: string) {
   return fecha === hoy;
 }
 
-
 /**
  * RF 5.2.1–5.2.3, RF 5.4.1–5.4.4 (EDT 5.3.3 y 5.3.5).
  * Lista de citas y detalle interactivo mediante diálogo (PG-DSN-003-INT).

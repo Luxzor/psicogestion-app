@@ -77,11 +77,7 @@ export const salasApi = {
   /**
    * Modificación del nombre de la sala (control optimista con version, ADR-23).
    */
-  rename(
-    id: string,
-    payload: { nombre: string; version: number },
-    accessToken: string,
-  ) {
+  rename(id: string, payload: { nombre: string; version: number }, accessToken: string) {
     return api<SalaResponse>(`/salas/${id}`, {
       method: 'PATCH',
       body: payload,
@@ -117,4 +113,3 @@ export const salasApi = {
     });
   },
 };
-

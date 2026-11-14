@@ -211,8 +211,8 @@ export function TerapeutasPage({ session }: { session: Session }) {
               <>
                 <h2>Sin resultados</h2>
                 <p>
-                  No encontramos terapeutas {inactivos ? 'dados de baja ' : ''}con “{query}”.
-                  Revisa el nombre, la cédula, el teléfono o el correo.
+                  No encontramos terapeutas {inactivos ? 'dados de baja ' : ''}con “{query}”. Revisa
+                  el nombre, la cédula, el teléfono o el correo.
                 </p>
               </>
             ) : inactivos ? (

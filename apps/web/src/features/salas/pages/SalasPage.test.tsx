@@ -94,7 +94,9 @@ describe('SalasPage (EDT 5.3.1 y EDT 5.3.2 Visualización de salas)', () => {
   });
 
   it('permite cambiar la fecha del estado del día usando el selector y botones de navegación', async () => {
-    const getDispSpy = vi.spyOn(salasApi, 'getDisponibilidad').mockResolvedValue(mockDisponibilidad);
+    const getDispSpy = vi
+      .spyOn(salasApi, 'getDisponibilidad')
+      .mockResolvedValue(mockDisponibilidad);
 
     renderSalasPage();
 
@@ -136,9 +138,7 @@ describe('SalasPage (EDT 5.3.1 y EDT 5.3.2 Visualización de salas)', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Aún no hay salas' })).toBeInTheDocument();
-      expect(
-        screen.getByText(/Usa “Agregar sala” para registrar la primera/i),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Usa “Agregar sala” para registrar la primera/i)).toBeInTheDocument();
     });
   });
 
@@ -148,7 +148,9 @@ describe('SalasPage (EDT 5.3.1 y EDT 5.3.2 Visualización de salas)', () => {
     renderSalasPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'No pudimos cargar las salas' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: 'No pudimos cargar las salas' }),
+      ).toBeInTheDocument();
     });
 
     const retryBtn = screen.getByRole('button', { name: /Reintentar/i });
