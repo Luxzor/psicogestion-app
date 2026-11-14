@@ -25,4 +25,3 @@ export function EstadoBadge({ estado }: { estado: CitaEstado }) {
     </span>
   );
 }
-

@@ -63,14 +63,7 @@ export function EditarCitaPage({ session }: { session: Session }) {
       </div>
     );
   }
-  return (
-    <EditarCitaForm
-      key={id}
-      cita={detalle.data}
-      session={session}
-      onSaved={setGuardada}
-    />
-  );
+  return <EditarCitaForm key={id} cita={detalle.data} session={session} onSaved={setGuardada} />;
 }
 
 function EditarCitaForm({
@@ -122,8 +115,7 @@ function EditarCitaForm({
         id_sala: current.id_sala !== oldInitial.id_sala ? current.id_sala : newInitial.id_sala,
         fecha: current.fecha !== oldInitial.fecha ? current.fecha : newInitial.fecha,
         inicio: current.inicio !== oldInitial.inicio ? current.inicio : newInitial.inicio,
-        duracion:
-          current.duracion !== oldInitial.duracion ? current.duracion : newInitial.duracion,
+        duracion: current.duracion !== oldInitial.duracion ? current.duracion : newInitial.duracion,
       }));
 
       setPaciente((current) =>
@@ -136,9 +128,7 @@ function EditarCitaForm({
           ? current
           : { ...cita.terapeuta, activo: true },
       );
-      setEstado((current) =>
-        current !== prevCitaRef.current.estado ? current : cita.estado,
-      );
+      setEstado((current) => (current !== prevCitaRef.current.estado ? current : cita.estado));
 
       prevCitaRef.current = cita;
     }
