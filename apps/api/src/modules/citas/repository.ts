@@ -70,17 +70,10 @@ export type NuevaCita = {
   fin: Date;
 };
 
-export type CambiosCita = Partial<NuevaCita> & { estado?: CitaEstado };
+export type CambiosCita = Partial<NuevaCita>;
 
 /** Columnas que una modificación puede escribir, en lista blanca (nunca desde el cuerpo). */
-const CHANGEABLE_COLUMNS = [
-  'id_paciente',
-  'id_terapeuta',
-  'id_sala',
-  'inicio',
-  'fin',
-  'estado',
-] as const;
+const CHANGEABLE_COLUMNS = ['id_paciente', 'id_terapeuta', 'id_sala', 'inicio', 'fin'] as const;
 
 /** Recursos de una cita y si siguen activos, leídos con bloqueo compartido (ADR-21). */
 export type Asignables = {
@@ -321,10 +314,6 @@ export const citaRepository = {
         return `${column} = $${params.length}`;
       },
     );
-    if (changes.estado === 'Cancelada') {
-      assignments.push('cancelada_en = now()', 'cancelada_por = $3');
-    }
-
     const result = await client.query<CitaRow>(
       `WITH c AS (
          UPDATE cita SET
