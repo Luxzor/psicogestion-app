@@ -1,11 +1,8 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { db } from './db.js';
 import { logger } from './logger.js';
-
-const currentFile = fileURLToPath(import.meta.url);
-const migrationsDirectory = path.resolve(path.dirname(currentFile), '../../../../db/migrations');
+import { listMigrationFiles, migrationsDirectory } from './migrations.js';
 
 async function migrate() {
   await db.query(`
@@ -15,9 +12,7 @@ async function migrate() {
     )
   `);
 
-  const filenames = (await readdir(migrationsDirectory))
-    .filter((filename) => filename.endsWith('.sql'))
-    .sort();
+  const filenames = await listMigrationFiles();
   for (const filename of filenames) {
     const applied = await db.query('SELECT 1 FROM schema_migrations WHERE filename = $1', [
       filename,

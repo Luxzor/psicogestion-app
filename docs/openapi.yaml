@@ -24,7 +24,7 @@ paths:
       security: []
       responses:
         '200':
-          description: PostgreSQL y Redis disponibles
+          description: PostgreSQL disponible con todas las migraciones aplicadas y Redis disponible
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReadyStatus' }
@@ -464,6 +464,12 @@ components:
         campos:
           type: object
           additionalProperties: { type: string }
+        dependencias:
+          type: object
+          description: Solo en /ready con 503; estado de cada dependencia crítica.
+          properties:
+            base_datos: { type: string, enum: [disponible, no_disponible, migraciones_pendientes] }
+            redis: { type: string, enum: [disponible, no_disponible] }
         correlation_id: { type: string, format: uuid }
     RegistrationResponse:
       type: object
