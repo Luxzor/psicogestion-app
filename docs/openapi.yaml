@@ -93,6 +93,7 @@ paths:
         '403': { $ref: '#/components/responses/UnverifiedError' }
         '423': { $ref: '#/components/responses/BlockedError' }
         '429': { $ref: '#/components/responses/RateLimitError' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
   /auth/refresh:
     post:
       summary: Rota la cookie refresh y entrega un access token nuevo
