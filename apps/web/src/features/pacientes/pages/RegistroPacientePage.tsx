@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, LoaderCircle, RotateCw, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ApiError } from '../../../auth/api';
@@ -8,6 +9,7 @@ import { patientsApi } from '../api';
 import { ActionDialog } from '../components/ActionDialog';
 import { FormNotice } from '../components/FormNotice';
 import { PatientFormFields } from '../components/PatientFormFields';
+import { patientKeys } from '../hooks/usePacientes';
 import { usePatientForm } from '../hooks/usePatientForm';
 import type { Flash, InactivePatient } from '../types';
 import { displayFromIso, toPayload } from '../validation';
@@ -25,6 +27,7 @@ const isApiError = (error: unknown): error is PatientApiError =>
 /** EDT 4.3.1. Registro de paciente (PG-DSN-002-INT, pantalla /pacientes/nuevo). */
 export function RegistroPacientePage({ session }: { session: Session }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [consent, setConsent] = useState(false);
   const [saving, setSaving] = useState(false);
   const [reactivation, setReactivation] = useState<Reactivation | null>(null);
@@ -52,8 +55,13 @@ export function RegistroPacientePage({ session }: { session: Session }) {
     return ref.current.key;
   }
 
-  /** Al guardar se va al perfil del paciente con el aviso de confirmación (§5.5). */
+  /**
+   * Al guardar se va al perfil del paciente con el aviso de confirmación (§5.5). Las listas en
+   * caché se invalidan, igual que al editar, para que el paciente nuevo o reactivado aparezca
+   * de inmediato y no hasta que venza el staleTime de 30 s (DEF-003, PG-DEF-ITER04).
+   */
   function finish(id: string, flash: Flash) {
+    void queryClient.invalidateQueries({ queryKey: patientKeys.listas });
     form.clearUnsavedChanges();
     navigate(`${LIST_PATH}/${id}`, { state: { flash } });
   }
