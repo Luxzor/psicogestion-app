@@ -255,9 +255,11 @@ integration('agenda y resumen de inicio con servicios reales (EDT 6.3)', () => {
       expect(resultado.salas_libres_hoy).toBe(1); // Sala B no tiene citas ese día
     });
 
-    it('cuenta a todos los pacientes registrados, incluidos los dados de baja', async () => {
+    it('cuenta solo los pacientes activos, sin los dados de baja (OBS-003, MCC 17/Nov/2026)', async () => {
       const response = await resumen();
-      expect(response.body.pacientes_totales).toBe(3);
+      // Tres pacientes registrados, uno dado de baja en el beforeEach.
+      expect(response.body.pacientes_activos).toBe(2);
+      expect(response.body).not.toHaveProperty('pacientes_totales');
     });
   });
 });

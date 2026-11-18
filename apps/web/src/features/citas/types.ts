@@ -80,7 +80,8 @@ export type DashboardSummary = {
   citas_pendientes_total: number;
   salas_totales: number;
   salas_libres_hoy: number;
-  pacientes_totales: number;
+  /** Solo pacientes activos (OBS-003, MCC 17/Nov/2026). */
+  pacientes_activos: number;
   terapeutas_activos: number;
 };
 

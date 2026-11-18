@@ -50,7 +50,7 @@ const mockSummary: DashboardSummary = {
   citas_pendientes_total: 12,
   salas_totales: 4,
   salas_libres_hoy: 2,
-  pacientes_totales: 28,
+  pacientes_activos: 28,
   terapeutas_activos: 6,
 };
 
@@ -125,7 +125,7 @@ describe('DashboardHomePage (RF 7.1.1, RF 7.2.1–7.2.6)', () => {
     expect(cardSalas).toHaveAttribute('href', '/inicio/salas');
 
     const cardPacientes = screen.getByRole('link', {
-      name: /Pacientes[\s\S]*28[\s\S]*registrados/i,
+      name: /Pacientes[\s\S]*28[\s\S]*activos/i,
     });
     expect(cardPacientes).toHaveAttribute('href', '/inicio/pacientes');
 

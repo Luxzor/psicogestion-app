@@ -499,7 +499,10 @@ export const citaRepository = {
          WHERE activo = true`,
         [hoyInicio, hoyFin],
       ),
-      client.query<{ total: string }>(`SELECT count(*)::text AS total FROM paciente`),
+      // OBS-003 (PG-DEF-ITER04), MCC 17/Nov/2026: solo pacientes activos, como terapeutas.
+      client.query<{ total: string }>(
+        `SELECT count(*)::text AS total FROM paciente WHERE activo = true`,
+      ),
       client.query<{ total: string }>(
         `SELECT count(*)::text AS total FROM terapeuta WHERE activo = true`,
       ),
@@ -514,7 +517,7 @@ export const citaRepository = {
       citas_pendientes_total: Number(pendTotResult.rows[0]?.total ?? 0),
       salas_totales: Number(salasResult.rows[0]?.total ?? 0),
       salas_libres_hoy: Number(salasResult.rows[0]?.libres_hoy ?? 0),
-      pacientes_totales: Number(pacResult.rows[0]?.total ?? 0),
+      pacientes_activos: Number(pacResult.rows[0]?.total ?? 0),
       terapeutas_activos: Number(terResult.rows[0]?.total ?? 0),
     };
   },
