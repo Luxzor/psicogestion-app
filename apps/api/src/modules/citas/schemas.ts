@@ -22,7 +22,7 @@ const uuidField = (message: string) =>
   z
     .string({ error: message })
     .trim()
-    .pipe(z.uuid(message))
+    .pipe(z.guid(message))
     .transform((value) => value.toLowerCase());
 
 const idPaciente = uuidField('Selecciona un paciente.');
@@ -98,7 +98,7 @@ export const updateCitaSchema = z.strictObject({
 /** Cancelación (POST /citas/{id}/cancelar, ADR-20): solo la versión leída. */
 export const cancelCitaSchema = z.strictObject({ version: versionSchema });
 
-export const citaIdSchema = z.uuid('El identificador de la cita no es válido.');
+export const citaIdSchema = z.guid('El identificador de la cita no es válido.');
 
 /** Folio escrito por la persona (RF 5.4.2): sin distinguir mayúsculas ni espacios laterales. */
 export const folioSchema = z

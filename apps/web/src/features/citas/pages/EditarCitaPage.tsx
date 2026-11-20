@@ -132,6 +132,41 @@ function EditarCitaForm({
   }, [cita]);
 
   useEffect(() => {
+    if (cita.version !== prevCitaRef.current.version) {
+      const oldInitial = toCitaFormValues(prevCitaRef.current);
+      const newInitial = toCitaFormValues(cita);
+
+      setValues((current) => ({
+        id_paciente:
+          current.id_paciente !== oldInitial.id_paciente
+            ? current.id_paciente
+            : newInitial.id_paciente,
+        id_terapeuta:
+          current.id_terapeuta !== oldInitial.id_terapeuta
+            ? current.id_terapeuta
+            : newInitial.id_terapeuta,
+        id_sala: current.id_sala !== oldInitial.id_sala ? current.id_sala : newInitial.id_sala,
+        fecha: current.fecha !== oldInitial.fecha ? current.fecha : newInitial.fecha,
+        inicio: current.inicio !== oldInitial.inicio ? current.inicio : newInitial.inicio,
+        duracion: current.duracion !== oldInitial.duracion ? current.duracion : newInitial.duracion,
+      }));
+
+      setPaciente((current) =>
+        current?.id !== prevCitaRef.current.paciente.id
+          ? current
+          : { ...cita.paciente, activo: true },
+      );
+      setTerapeuta((current) =>
+        current?.id !== prevCitaRef.current.terapeuta.id
+          ? current
+          : { ...cita.terapeuta, activo: true },
+      );
+
+      prevCitaRef.current = cita;
+    }
+  }, [cita]);
+
+  useEffect(() => {
     setHasUnsavedChanges(dirty);
     return () => setHasUnsavedChanges(false);
   }, [dirty, setHasUnsavedChanges]);
