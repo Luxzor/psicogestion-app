@@ -887,8 +887,17 @@
   text-decoration: none;
 }
 
+/*
+ * Altura de cada media hora de la rejilla. Es la misma en pantalla y en impresión: FullCalendar
+ * calcula en píxeles la posición de cada cita con la rejilla de pantalla, y si la impresión
+ * cambia la altura de las filas, las citas se desplazan respecto a su hora (DEF-004).
+ */
+.ag-cal {
+  --ag-slot-alto: 2rem;
+}
+
 .ag-cal .fc .fc-timegrid-slot {
-  height: 2rem;
+  height: var(--ag-slot-alto);
   border-color: var(--color-line);
 }
 
@@ -1325,9 +1334,10 @@
 }
 
 @media print {
+  /* Con 8 mm de margen, la jornada de 07:00 a 17:00 completa cabe en una hoja carta horizontal. */
   @page {
     size: landscape;
-    margin: 10mm;
+    margin: 8mm;
   }
 
   body {
@@ -1380,8 +1390,8 @@
     display: flex !important;
     justify-content: space-between;
     align-items: flex-end;
-    padding: 0 0 0.6rem;
-    margin-bottom: 0.6rem;
+    padding: 0 0 0.4rem;
+    margin-bottom: 0.4rem;
     border-bottom: 2px solid #002e5f;
   }
 
@@ -1478,10 +1488,6 @@
     overflow: visible !important;
     height: auto !important;
     position: static !important;
-  }
-
-  .ag-cal .fc-timegrid-slot {
-    height: 1.85rem !important;
   }
 
   .ag-cal .ev-c__meta {

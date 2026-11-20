@@ -58,14 +58,18 @@ export const createCitaSchema = z.strictObject({
   duracion_bloques: duracionBloques,
 });
 
-/** Campos que la modificación puede cambiar (RF 5.3.3). */
+/**
+ * Campos que la modificación puede cambiar (RF 5.3.3). El estatus no está: Pendiente lo asigna el
+ * sistema al crear, Cancelada solo la acción Cancelar (RF 5.4) y Vencida el sistema (ADR-18).
+ * Decisión de la Mesa de Control de Cambios del 17/Nov/2026 (NC-005, NC-012 y OBS-006 de
+ * PG-DEF-ITER03).
+ */
 export const EDITABLE_FIELDS = [
   'id_paciente',
   'id_terapeuta',
   'id_sala',
   'inicio',
   'duracion_bloques',
-  'estado',
 ] as const;
 
 export type EditableField = (typeof EDITABLE_FIELDS)[number];
@@ -81,7 +85,13 @@ export const updateCitaSchema = z.strictObject({
   id_sala: idSala.optional(),
   inicio: inicio.optional(),
   duracion_bloques: duracionBloques.optional(),
-  estado: z.enum(CITA_ESTADOS, { error: 'El estatus no es válido.' }).optional(),
+  // Se declara para responder 400 con un mensaje claro en el campo, en lugar de una llave
+  // desconocida sin explicación.
+  estado: z
+    .never({
+      error: 'El estatus no se modifica. Para cancelar la cita usa la acción Cancelar.',
+    })
+    .optional(),
   version: versionSchema,
 });
 

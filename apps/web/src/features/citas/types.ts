@@ -47,7 +47,8 @@ export type CitaPayload = {
 };
 
 /** Cuerpo de la modificación (PATCH /citas/{id}): solo lo que cambió más la versión (ADR-23). */
-export type CitaUpdatePayload = Partial<CitaPayload> & { estado?: CitaEstado; version: number };
+/** Cuerpo del PATCH: datos que cambiaron y la versión leída; el estatus no se envía. */
+export type CitaUpdatePayload = Partial<CitaPayload> & { version: number };
 
 /** Cuerpo de la cancelación (POST /citas/{id}/cancelar, ADR-20). */
 export type CitaCancelPayload = { version: number };
@@ -79,7 +80,8 @@ export type DashboardSummary = {
   citas_pendientes_total: number;
   salas_totales: number;
   salas_libres_hoy: number;
-  pacientes_totales: number;
+  /** Solo pacientes activos (OBS-003, MCC 17/Nov/2026). */
+  pacientes_activos: number;
   terapeutas_activos: number;
 };
 

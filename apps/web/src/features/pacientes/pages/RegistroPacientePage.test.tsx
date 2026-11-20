@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { UnsavedChangesProvider } from '../../../contexts/UnsavedChangesContext';
+import { patientKeys } from '../hooks/usePacientes';
 import { PacientesPage } from './PacientesPage';
 import { RegistroPacientePage } from './RegistroPacientePage';
 
@@ -56,8 +57,9 @@ function PerfilStub() {
   );
 }
 
-function renderPage() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function renderPage(
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+) {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/inicio/pacientes/nuevo']}>
@@ -201,6 +203,27 @@ describe('registro de paciente (EDT 4.3.1)', () => {
       consentimiento: false,
     });
     expect(new Headers(init?.headers).get('Idempotency-Key')).toBeTruthy();
+  });
+
+  it('invalida las listas en caché al registrar para que el paciente aparezca de inmediato (DEF-003)', async () => {
+    mockApi((url) =>
+      url.endsWith('/validaciones')
+        ? { status: 200, body: { disponible: true } }
+        : { status: 201, body: { codigo: 'PACIENTE_REGISTRADO', paciente: patient } },
+    );
+    // Misma vigencia que lib/queryClient.ts: la lista vista antes del alta sigue "fresca" 30 s.
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
+    });
+    const listKey = patientKeys.lista({ pagina: 1, tamano: 25, estado: 'activos' });
+    queryClient.setQueryData(listKey, { datos: [], pagina: 1, tamano: 25, total: 0 });
+    renderPage(queryClient);
+    fillValidForm();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar paciente' }));
+
+    expect(await screen.findByText('Paciente registrado.')).toBeInTheDocument();
+    expect(queryClient.getQueryState(listKey)?.isInvalidated).toBe(true);
   });
 
   it('conserva los datos ante una falla de red y reintenta con la misma llave (RNF 3.2.6)', async () => {
