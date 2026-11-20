@@ -115,7 +115,7 @@ export const createPatientSchema = (registrationDate: () => string = () => today
 
 export const patientSchema = createPatientSchema();
 
-export const patientIdSchema = z.uuid('El identificador del paciente no es válido.');
+export const patientIdSchema = z.guid('El identificador del paciente no es válido.');
 
 /** Excluye al propio paciente de la verificación de unicidad al editar (RF 3.2.5). */
 const excluirId = patientIdSchema.optional();

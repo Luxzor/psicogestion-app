@@ -161,7 +161,6 @@ function EditarCitaForm({
           ? current
           : { ...cita.terapeuta, activo: true },
       );
-      setEstado((current) => (current !== prevCitaRef.current.estado ? current : cita.estado));
 
       prevCitaRef.current = cita;
     }
