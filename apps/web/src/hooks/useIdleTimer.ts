@@ -73,13 +73,7 @@ export function useIdleTimer({
 
     scheduleIdleWarning();
 
-    const activityEvents = [
-      'mousedown',
-      'keydown',
-      'touchstart',
-      'scroll',
-      'wheel',
-    ] as const;
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll', 'wheel'] as const;
 
     const handleUserActivity = () => {
       if (!showWarningRef.current) {
@@ -111,4 +105,3 @@ export function useIdleTimer({
     stayActive,
   };
 }
-

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import type { ApiError } from '../../../auth/api';
@@ -7,11 +7,12 @@ import type { Session } from '../../auth/types';
 import { ActionDialog } from '../../pacientes/components/ActionDialog';
 import { FormNotice } from '../../pacientes/components/FormNotice';
 import { citasApi } from '../api';
+import { DatePicker } from '../components/DatePicker';
 import { PersonaSelector, type PersonaOption } from '../components/PersonaSelector';
 import { citaKeys, disponibilidadKeys, useCita, useSalasActivas } from '../hooks/useCitas';
-import { BLOQUES_DEL_DIA, DURACIONES, etiquetaDuracion, minutosAHora } from '../horario';
-import type { Cita, CitaEstado, CitaFormValues } from '../types';
-import { CITA_ESTADOS } from '../types';
+import { BLOQUES_DEL_DIA, DURACIONES, esDomingo, etiquetaDuracion, minutosAHora } from '../horario';
+import { EstadoBadge } from '../components/EstadoBadge';
+import type { Cita, CitaFormValues } from '../types';
 import { diffCitaPayload, mensajeDeError, toCitaFormValues, validateCitaForm } from '../validation';
 import '../../pacientes/styles/pacientes.css';
 import '../styles/citas.css';
@@ -62,14 +63,7 @@ export function EditarCitaPage({ session }: { session: Session }) {
       </div>
     );
   }
-  return (
-    <EditarCitaForm
-      key={`${id}-${detalle.data.version}`}
-      cita={detalle.data}
-      session={session}
-      onSaved={setGuardada}
-    />
-  );
+  return <EditarCitaForm key={id} cita={detalle.data} session={session} onSaved={setGuardada} />;
 }
 
 function EditarCitaForm({
@@ -84,6 +78,7 @@ function EditarCitaForm({
   const queryClient = useQueryClient();
   const salas = useSalasActivas(session.token);
   const { setHasUnsavedChanges } = useUnsavedChanges();
+  const prevCitaRef = useRef(cita);
   const inicial = toCitaFormValues(cita);
   const [values, setValues] = useState<CitaFormValues>(inicial);
   const [paciente, setPaciente] = useState<PersonaOption | null>({
@@ -94,13 +89,82 @@ function EditarCitaForm({
     ...cita.terapeuta,
     activo: true,
   });
-  const [estado, setEstado] = useState<CitaEstado>(cita.estado);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState('');
+  const [noticeType, setNoticeType] = useState<'error' | 'info'>('error');
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
-  const dirty = Boolean(diffCitaPayload(cita, values, estado));
+  const dirty = Boolean(diffCitaPayload(cita, values));
+
+  useEffect(() => {
+    if (cita.version !== prevCitaRef.current.version) {
+      const oldInitial = toCitaFormValues(prevCitaRef.current);
+      const newInitial = toCitaFormValues(cita);
+
+      setValues((current) => ({
+        id_paciente:
+          current.id_paciente !== oldInitial.id_paciente
+            ? current.id_paciente
+            : newInitial.id_paciente,
+        id_terapeuta:
+          current.id_terapeuta !== oldInitial.id_terapeuta
+            ? current.id_terapeuta
+            : newInitial.id_terapeuta,
+        id_sala: current.id_sala !== oldInitial.id_sala ? current.id_sala : newInitial.id_sala,
+        fecha: current.fecha !== oldInitial.fecha ? current.fecha : newInitial.fecha,
+        inicio: current.inicio !== oldInitial.inicio ? current.inicio : newInitial.inicio,
+        duracion: current.duracion !== oldInitial.duracion ? current.duracion : newInitial.duracion,
+      }));
+
+      setPaciente((current) =>
+        current?.id !== prevCitaRef.current.paciente.id
+          ? current
+          : { ...cita.paciente, activo: true },
+      );
+      setTerapeuta((current) =>
+        current?.id !== prevCitaRef.current.terapeuta.id
+          ? current
+          : { ...cita.terapeuta, activo: true },
+      );
+      prevCitaRef.current = cita;
+    }
+  }, [cita]);
+
+  useEffect(() => {
+    if (cita.version !== prevCitaRef.current.version) {
+      const oldInitial = toCitaFormValues(prevCitaRef.current);
+      const newInitial = toCitaFormValues(cita);
+
+      setValues((current) => ({
+        id_paciente:
+          current.id_paciente !== oldInitial.id_paciente
+            ? current.id_paciente
+            : newInitial.id_paciente,
+        id_terapeuta:
+          current.id_terapeuta !== oldInitial.id_terapeuta
+            ? current.id_terapeuta
+            : newInitial.id_terapeuta,
+        id_sala: current.id_sala !== oldInitial.id_sala ? current.id_sala : newInitial.id_sala,
+        fecha: current.fecha !== oldInitial.fecha ? current.fecha : newInitial.fecha,
+        inicio: current.inicio !== oldInitial.inicio ? current.inicio : newInitial.inicio,
+        duracion: current.duracion !== oldInitial.duracion ? current.duracion : newInitial.duracion,
+      }));
+
+      setPaciente((current) =>
+        current?.id !== prevCitaRef.current.paciente.id
+          ? current
+          : { ...cita.paciente, activo: true },
+      );
+      setTerapeuta((current) =>
+        current?.id !== prevCitaRef.current.terapeuta.id
+          ? current
+          : { ...cita.terapeuta, activo: true },
+      );
+
+      prevCitaRef.current = cita;
+    }
+  }, [cita]);
 
   useEffect(() => {
     setHasUnsavedChanges(dirty);
@@ -126,7 +190,7 @@ function EditarCitaForm({
   function review() {
     const next = validateCitaForm(values, {
       modo: 'editar',
-      inicial,
+      inicial: toCitaFormValues(cita),
       paciente: paciente ? { activo: paciente.activo } : null,
       terapeuta: terapeuta ? { activo: terapeuta.activo } : null,
       sala: { activo: true },
@@ -140,25 +204,12 @@ function EditarCitaForm({
       setNotice('No hay cambios para guardar.');
       return;
     }
-    const payload = diffCitaPayload(cita, values, estado);
-    if (
-      estado !== 'Pendiente' &&
-      payload &&
-      Object.keys(payload).some((key) => key !== 'version' && key !== 'estado')
-    ) {
-      setNotice('Guarda los cambios de datos antes de cambiar el estatus.');
-      return;
-    }
-    if (estado === 'Vencida' && new Date(cita.fin).getTime() > Date.now()) {
-      setNotice('Una cita futura no puede marcarse como vencida.');
-      return;
-    }
     setNotice('');
     setConfirming(true);
   }
 
   async function save() {
-    const payload = diffCitaPayload(cita, values, estado);
+    const payload = diffCitaPayload(cita, values);
     if (!payload || saving) return;
     setSaving(true);
     try {
@@ -174,6 +225,7 @@ function EditarCitaForm({
       const apiError = isApiError(error) ? error : null;
       setConflict(apiError?.codigo === 'CONFLICTO_VERSION');
       setErrors(apiError?.campos ?? {});
+      setNoticeType('error');
       setNotice(
         apiError
           ? (mensajeDeError(apiError.codigo) ?? apiError.mensaje)
@@ -201,14 +253,19 @@ function EditarCitaForm({
         </div>
       </div>
       {notice ? (
-        <FormNotice type="error">
+        <FormNotice type={noticeType}>
           {notice}
           {conflict ? (
             <button
               type="button"
               className="button button--secondary"
-              onClick={() => {
-                void queryClient.invalidateQueries({ queryKey: citaKeys.detalle(cita.id) });
+              onClick={async () => {
+                await queryClient.invalidateQueries({ queryKey: citaKeys.detalle(cita.id) });
+                setConflict(false);
+                setNoticeType('info');
+                setNotice(
+                  'Se actualizaron los datos base de la cita. Conservamos los cambios en tu borrador; revisa y vuelve a guardar.',
+                );
               }}
             >
               Ver cambios actuales
@@ -287,13 +344,24 @@ function EditarCitaForm({
             </div>
             <div className="field">
               <label htmlFor="e-fecha">Fecha</label>
-              <input
+              <DatePicker
                 id="e-fecha"
-                type="date"
+                name="e-fecha"
                 value={values.fecha}
-                onChange={(event) => change('fecha', event.target.value)}
+                disableSundays={true}
                 disabled={saving}
                 aria-invalid={Boolean(errors.fecha)}
+                onChange={(val) => {
+                  if (esDomingo(val)) {
+                    setValues((curr) => ({ ...curr, fecha: val }));
+                    setErrors((curr) => ({
+                      ...curr,
+                      fecha: 'La clínica no atiende en domingo. Elige otro día.',
+                    }));
+                  } else {
+                    change('fecha', val);
+                  }
+                }}
               />
               {errors.fecha ? (
                 <span className="field-error" role="alert">
@@ -340,25 +408,18 @@ function EditarCitaForm({
                 ))}
               </select>
             </div>
+            {/*
+              El estatus no se elige al modificar (Mesa de Control de Cambios, 17/Nov/2026):
+              Pendiente lo asigna el sistema al crear, Cancelada solo la acción Cancelar (RF 5.4)
+              y Vencida el sistema (ADR-18). Se muestra como texto.
+            */}
             <div className="field">
-              <label htmlFor="e-estado">Estatus</label>
-              <select
-                id="e-estado"
-                value={estado}
-                onChange={(event) => {
-                  setEstado(event.target.value as CitaEstado);
-                  setNotice('');
-                }}
-                disabled={saving}
-              >
-                {CITA_ESTADOS.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
+              <span id="e-estado-label">Estatus</span>
+              <div role="group" aria-labelledby="e-estado-label">
+                <EstadoBadge estado={cita.estado} />
+              </div>
               <span className="field-hint">
-                Una cita cancelada o vencida queda en solo lectura.
+                Para cancelar la cita usa la acción Cancelar desde su detalle.
               </span>
             </div>
           </div>

@@ -22,7 +22,7 @@ const uuidField = (message: string) =>
   z
     .string({ error: message })
     .trim()
-    .pipe(z.uuid(message))
+    .pipe(z.guid(message))
     .transform((value) => value.toLowerCase());
 
 const idPaciente = uuidField('Selecciona un paciente.');
@@ -58,14 +58,18 @@ export const createCitaSchema = z.strictObject({
   duracion_bloques: duracionBloques,
 });
 
-/** Campos que la modificación puede cambiar (RF 5.3.3). */
+/**
+ * Campos que la modificación puede cambiar (RF 5.3.3). El estatus no está: Pendiente lo asigna el
+ * sistema al crear, Cancelada solo la acción Cancelar (RF 5.4) y Vencida el sistema (ADR-18).
+ * Decisión de la Mesa de Control de Cambios del 17/Nov/2026 (NC-005, NC-012 y OBS-006 de
+ * PG-DEF-ITER03).
+ */
 export const EDITABLE_FIELDS = [
   'id_paciente',
   'id_terapeuta',
   'id_sala',
   'inicio',
   'duracion_bloques',
-  'estado',
 ] as const;
 
 export type EditableField = (typeof EDITABLE_FIELDS)[number];
@@ -81,14 +85,20 @@ export const updateCitaSchema = z.strictObject({
   id_sala: idSala.optional(),
   inicio: inicio.optional(),
   duracion_bloques: duracionBloques.optional(),
-  estado: z.enum(CITA_ESTADOS, { error: 'El estatus no es válido.' }).optional(),
+  // Se declara para responder 400 con un mensaje claro en el campo, en lugar de una llave
+  // desconocida sin explicación.
+  estado: z
+    .never({
+      error: 'El estatus no se modifica. Para cancelar la cita usa la acción Cancelar.',
+    })
+    .optional(),
   version: versionSchema,
 });
 
 /** Cancelación (POST /citas/{id}/cancelar, ADR-20): solo la versión leída. */
 export const cancelCitaSchema = z.strictObject({ version: versionSchema });
 
-export const citaIdSchema = z.uuid('El identificador de la cita no es válido.');
+export const citaIdSchema = z.guid('El identificador de la cita no es válido.');
 
 /** Folio escrito por la persona (RF 5.4.2): sin distinguir mayúsculas ni espacios laterales. */
 export const folioSchema = z
@@ -150,3 +160,26 @@ export type CreateCitaInput = z.infer<typeof createCitaSchema>;
 export type UpdateCitaInput = z.infer<typeof updateCitaSchema>;
 export type CancelCitaInput = z.infer<typeof cancelCitaSchema>;
 export type CitaListQueryInput = z.infer<typeof citaListQuerySchema>;
+
+/**
+ * Consulta de citas para la vista de agenda (RF 6.1.1, RF 6.1.2, RF 6.2.1–6.2.3).
+ * `desde` y `hasta` llegan como fechas de calendario (AAAA-MM-DD); soporta filtros opcionales por
+ * sala, terapeuta y si incluye citas canceladas.
+ */
+export const agendaQuerySchema = z
+  .strictObject({
+    desde: fechaFiltro('La fecha "desde" no es válida.'),
+    hasta: fechaFiltro('La fecha "hasta" no es válida.'),
+    id_sala: idSala.optional(),
+    id_terapeuta: idTerapeuta.optional(),
+    canceladas: z
+      .enum(['true', 'false', '1', '0'])
+      .optional()
+      .transform((val) => val === 'true' || val === '1'),
+  })
+  .refine((value) => value.desde <= value.hasta, {
+    error: 'La fecha "desde" no puede ser posterior a "hasta".',
+    path: ['desde'],
+  });
+
+export type AgendaQueryInput = z.infer<typeof agendaQuerySchema>;

@@ -1,9 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  TherapistAppointmentSelector,
-  type TherapistOption,
-} from './TherapistAppointmentSelector';
+import { TherapistAppointmentSelector, type TherapistOption } from './TherapistAppointmentSelector';
 
 const activeTherapist: TherapistOption = {
   id: 'terapeuta-activo-1',
@@ -63,11 +60,7 @@ describe('Selector de terapeuta para asignación de citas (TC-F-013, CA-2.3-03, 
   });
 
   it('permite filtrar terapeutas por nombre o cédula', () => {
-    render(
-      <TherapistAppointmentSelector
-        therapists={[activeTherapist, inactiveTherapist]}
-      />,
-    );
+    render(<TherapistAppointmentSelector therapists={[activeTherapist, inactiveTherapist]} />);
 
     const searchInput = screen.getByLabelText(/Buscar terapeuta por nombre o cédula/i);
 

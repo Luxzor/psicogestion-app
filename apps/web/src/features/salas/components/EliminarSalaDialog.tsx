@@ -373,8 +373,8 @@ function EliminarSalaDialogModal({
                 <CircleAlert size={17} aria-hidden="true" />
                 <div className="notice__body">
                   La sala tiene {pendingCount}{' '}
-                  {pendingCount === 1 ? 'cita pendiente' : 'citas pendientes'}. Modifícalas o cancélalas
-                  antes de eliminar la sala.
+                  {pendingCount === 1 ? 'cita pendiente' : 'citas pendientes'}. Modifícalas o
+                  cancélalas antes de eliminar la sala.
                 </div>
               </div>
             </>
@@ -446,4 +446,3 @@ export function EliminarSalaDialog(props: EliminarSalaDialogProps) {
   if (!props.isOpen) return null;
   return <EliminarSalaDialogModal {...props} />;
 }
-

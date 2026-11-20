@@ -131,6 +131,14 @@ function AgregarSalaDialogModal({
     return () => clearTimeout(timer);
   };
 
+  const handleBlur = () => {
+    const err = validateSalaNombre(nombre);
+    if (err) {
+      setError(err);
+      setAvailable(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const err = validateSalaNombre(nombre);
     if (err) {
@@ -172,14 +180,11 @@ function AgregarSalaDialogModal({
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (!isSubmitDisabled) {
-        void handleSubmit();
-      }
+      void handleSubmit();
     }
   };
 
-  const isSubmitDisabled =
-    saving || checking || !!error || !nombre.trim() || isOverLimit;
+  const isSubmitDisabled = saving || checking || !!error || !nombre.trim() || isOverLimit;
 
   return (
     <div className="dialog-backdrop" role="presentation">
@@ -217,23 +222,18 @@ function AgregarSalaDialogModal({
               aria-invalid={!!error}
               value={nombre}
               onChange={(e) => handleInputChange(e.target.value)}
+              onBlur={handleBlur}
               onKeyDown={handleInputKeyDown}
               disabled={saving}
             />
-            <span
-              className="field-hint"
-              id="sala-hint"
-              hidden={!!error && !checking}
-            >
+            <span className="field-hint" id="sala-hint" hidden={!!error && !checking}>
               {checking ? (
                 <span className="field-checking">
                   <LoaderCircle size={13} className="spin" aria-hidden="true" />
                   Verificando que el nombre no exista...
                 </span>
               ) : available ? (
-                <span style={{ color: 'var(--color-success)' }}>
-                  Nombre disponible.
-                </span>
+                <span style={{ color: 'var(--color-success)' }}>Nombre disponible.</span>
               ) : (
                 'De 1 a 10 caracteres.'
               )}

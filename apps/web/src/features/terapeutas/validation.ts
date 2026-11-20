@@ -239,4 +239,3 @@ export function diffPayload(
 export function isTherapistEligibleForAppointment(therapist: { activo: boolean }): boolean {
   return Boolean(therapist.activo);
 }
-

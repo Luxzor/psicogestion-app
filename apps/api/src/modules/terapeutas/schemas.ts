@@ -107,7 +107,7 @@ export const therapistSchema = createTherapistSchema();
 export const createBirthDateSchema = (registrationDate: () => string) =>
   fechaNacimiento(registrationDate);
 
-export const therapistIdSchema = z.uuid('El identificador del terapeuta no es válido.');
+export const therapistIdSchema = z.guid('El identificador del terapeuta no es válido.');
 
 /** Excluye al propio terapeuta de la verificación de unicidad al editar (RF 2.2.4). */
 const excluirId = therapistIdSchema.optional();

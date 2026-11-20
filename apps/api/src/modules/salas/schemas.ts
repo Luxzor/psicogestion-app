@@ -47,14 +47,12 @@ export const updateSalaSchema = z.strictObject({
   version: versionSchema,
 });
 
-export const salaIdSchema = z.uuid('El identificador de la sala no es válido.');
+export const salaIdSchema = z.guid('El identificador de la sala no es válido.');
 
 /** Verificación anticipada de disponibilidad de nombre (RF 4.1.4, RNF 4.1.2). */
 export const salaAvailabilitySchema = z.strictObject({
   campo: z.literal('nombre'),
-  valor: z
-    .string({ error: SALA_MENSAJES.NOMBRE_INVALIDO })
-    .transform(normalizarNombreSala),
+  valor: z.string({ error: SALA_MENSAJES.NOMBRE_INVALIDO }).transform(normalizarNombreSala),
   excluir_id: salaIdSchema.optional(),
 });
 

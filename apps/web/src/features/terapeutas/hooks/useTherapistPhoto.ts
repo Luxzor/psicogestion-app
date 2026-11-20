@@ -49,7 +49,12 @@ export function useTherapistPhoto(
     void (async () => {
       const release = await acquireSlot();
       try {
-        const blob = await therapistsApi.getPhotoBlob(therapistId, tam, accessToken, controller.signal);
+        const blob = await therapistsApi.getPhotoBlob(
+          therapistId,
+          tam,
+          accessToken,
+          controller.signal,
+        );
         if (cancelled || !blob) return;
         objectUrl = URL.createObjectURL(blob);
         setUrl(objectUrl);

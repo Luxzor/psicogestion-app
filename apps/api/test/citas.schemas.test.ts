@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  agendaQuerySchema,
   cancelCitaSchema,
   citaListQuerySchema,
   createCitaSchema,
+  EDITABLE_FIELDS,
   folioSchema,
   updateCitaSchema,
 } from '../src/modules/citas/schemas.js';
@@ -21,16 +23,24 @@ const ids = {
 const valida = { ...ids, inicio: '2026-10-26T15:00:00Z', duracion_bloques: 2 };
 
 describe('modificación de citas (RF 5.3.2–5.3.4)', () => {
-  it('acepta cambios parciales con versión y los tres estatus', () => {
+  it('acepta cambios parciales con versión', () => {
     expect(updateCitaSchema.safeParse({ version: 1, id_sala: ids.id_sala }).success).toBe(true);
-    for (const estado of ['Pendiente', 'Cancelada', 'Vencida']) {
-      expect(updateCitaSchema.safeParse({ version: 1, estado }).success).toBe(true);
+    expect(EDITABLE_FIELDS).not.toContain('estado');
+  });
+
+  it('rechaza el estatus: no se elige al modificar (MCC 17/Nov/2026, NC-005, NC-012, OBS-006)', () => {
+    for (const estado of ['Pendiente', 'Cancelada', 'Vencida', 'Confirmada']) {
+      const result = updateCitaSchema.safeParse({ version: 1, estado });
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.path).toEqual(['estado']);
+      expect(result.error?.issues[0]?.message).toBe(
+        'El estatus no se modifica. Para cancelar la cita usa la acción Cancelar.',
+      );
     }
   });
 
-  it('rechaza versión ausente, estatus desconocido y campos ajenos', () => {
+  it('rechaza versión ausente y campos ajenos', () => {
     expect(updateCitaSchema.safeParse({ id_sala: ids.id_sala }).success).toBe(false);
-    expect(updateCitaSchema.safeParse({ version: 1, estado: 'Confirmada' }).success).toBe(false);
     expect(updateCitaSchema.safeParse({ version: 1, folio: 'C26000001' }).success).toBe(false);
   });
 });
@@ -129,5 +139,41 @@ describe('cancelación de citas: cancelCitaSchema (EDT 5.3.5, ADR-20)', () => {
     expect(folioSchema.safeParse('').success).toBe(false);
     expect(folioSchema.safeParse('invalido').success).toBe(false);
     expect(folioSchema.safeParse('C260001').success).toBe(false);
+  });
+});
+
+describe('agenda de citas: agendaQuerySchema (RF 6.1, RF 6.2)', () => {
+  it('acepta rango de fechas válido y filtros opcionales', () => {
+    const res = agendaQuerySchema.safeParse({
+      desde: '2026-11-02',
+      hasta: '2026-11-08',
+      id_sala: ids.id_sala,
+      canceladas: 'true',
+    });
+    expect(res.success).toBe(true);
+    if (res.success) {
+      expect(res.data.canceladas).toBe(true);
+    }
+  });
+
+  it('rechaza rango donde desde es posterior a hasta', () => {
+    const res = agendaQuerySchema.safeParse({
+      desde: '2026-11-09',
+      hasta: '2026-11-08',
+    });
+    expect(res.success).toBe(false);
+  });
+
+  it('rechaza parámetros ajenos o fechas inválidas', () => {
+    expect(agendaQuerySchema.safeParse({ desde: 'invalida', hasta: '2026-11-08' }).success).toBe(
+      false,
+    );
+    expect(
+      agendaQuerySchema.safeParse({
+        desde: '2026-11-02',
+        hasta: '2026-11-08',
+        desconocido: '123',
+      }).success,
+    ).toBe(false);
   });
 });

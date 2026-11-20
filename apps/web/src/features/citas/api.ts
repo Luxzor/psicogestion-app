@@ -1,11 +1,13 @@
 import { api } from '../../auth/api';
 import type {
+  AgendaParams,
   Cita,
   CitaCreada,
   CitaListParams,
   CitaListResponse,
   CitaPayload,
   CitaUpdatePayload,
+  DashboardSummary,
 } from './types';
 
 type CitaCreadaResponse = { codigo: string; cita: CitaCreada };
@@ -70,5 +72,26 @@ export const citasApi = {
       },
     );
     return result.cita;
+  },
+
+  /** RF 7.1.1, RF 7.2. Resumen para la pantalla de inicio. */
+  dashboardSummary(accessToken: string, signal?: AbortSignal) {
+    return api<DashboardSummary>('/citas/dashboard/resumen', { accessToken, signal });
+  },
+
+  /** RF 6.1, RF 6.2. Citas para la vista de agenda. */
+  async agenda(params: AgendaParams, accessToken: string, signal?: AbortSignal) {
+    const query = new URLSearchParams({
+      desde: params.desde,
+      hasta: params.hasta,
+    });
+    if (params.id_sala) query.set('id_sala', params.id_sala);
+    if (params.id_terapeuta) query.set('id_terapeuta', params.id_terapeuta);
+    if (params.canceladas) query.set('canceladas', 'true');
+    const result = await api<{ citas: Cita[] }>(`/citas/agenda?${query.toString()}`, {
+      accessToken,
+      signal,
+    });
+    return result.citas;
   },
 };

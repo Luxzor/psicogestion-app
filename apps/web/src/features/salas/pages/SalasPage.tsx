@@ -6,7 +6,9 @@ import {
   ChevronRight,
   CircleCheck,
   DoorOpen,
+  Pencil,
   Plus,
+  RotateCcw,
   RotateCw,
   Trash2,
   WifiOff,
@@ -14,16 +16,12 @@ import {
 } from 'lucide-react';
 import type { Session } from '../../auth/types';
 import { AgregarSalaDialog } from '../components/AgregarSalaDialog';
+import { EditarSalaDialog } from '../components/EditarSalaDialog';
 import { EliminarSalaDialog } from '../components/EliminarSalaDialog';
+import { RecuperarSalaDialog } from '../components/RecuperarSalaDialog';
 import { salasApi } from '../api';
 import type { DisponibilidadSala, Sala } from '../types';
-import {
-  addDias,
-  fechaDeIso,
-  fMedia,
-  getSalaColor,
-  isoDe,
-} from '../validation';
+import { addDias, fechaDeIso, fMedia, getSalaColor, isoDe } from '../validation';
 import '../../pacientes/styles/pacientes.css';
 
 export function SalasPage({ session }: { session?: Session }) {
@@ -33,14 +31,20 @@ export function SalasPage({ session }: { session?: Session }) {
 
   const [fecha, setFecha] = useState(hoyIso);
   const [salas, setSalas] = useState<DisponibilidadSala[]>([]);
+  const [salasInactivas, setSalasInactivas] = useState<Sala[]>([]);
+  const [estadoFiltro, setEstadoFiltro] = useState<'activas' | 'inactivas'>('activas');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [nuevaSalaId, setNuevaSalaId] = useState<string | null>(null);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditarOpen, setIsEditarOpen] = useState(false);
+  const [salaParaEditar, setSalaParaEditar] = useState<Sala | null>(null);
   const [isEliminarOpen, setIsEliminarOpen] = useState(false);
   const [salaParaEliminar, setSalaParaEliminar] = useState<Sala | null>(null);
+  const [isRecuperarOpen, setIsRecuperarOpen] = useState(false);
+  const [salaParaRecuperar, setSalaParaRecuperar] = useState<Sala | null>(null);
   const [flashMessage, setFlashMessage] = useState<string | null>(null);
 
   const refetch = () => {
@@ -53,10 +57,18 @@ export function SalasPage({ session }: { session?: Session }) {
     let ignore = false;
     const fetchData = async () => {
       try {
-        const resp = await salasApi.getDisponibilidad({ fecha }, token);
-        if (!ignore) {
-          setSalas(resp.salas);
-          setLoading(false);
+        if (estadoFiltro === 'activas') {
+          const resp = await salasApi.getDisponibilidad({ fecha }, token);
+          if (!ignore) {
+            setSalas(resp.salas);
+            setLoading(false);
+          }
+        } else {
+          const resp = await salasApi.list({ estado: 'inactivas' }, token);
+          if (!ignore) {
+            setSalasInactivas(resp.salas);
+            setLoading(false);
+          }
         }
       } catch {
         if (!ignore) {
@@ -70,7 +82,7 @@ export function SalasPage({ session }: { session?: Session }) {
     return () => {
       ignore = true;
     };
-  }, [fecha, token, reloadTrigger]);
+  }, [fecha, token, reloadTrigger, estadoFiltro]);
 
   const handleCreated = (sala: Sala) => {
     setNuevaSalaId(sala.id);
@@ -78,8 +90,21 @@ export function SalasPage({ session }: { session?: Session }) {
     refetch();
   };
 
+  const handleUpdated = (sala: Sala) => {
+    setNuevaSalaId(sala.id);
+    setFlashMessage(`Sala “${sala.nombre}” actualizada.`);
+    refetch();
+  };
+
   const handleDischarged = (sala: Sala) => {
-    setFlashMessage(`Sala “${sala.nombre}” eliminada.`);
+    setFlashMessage(`Sala “${sala.nombre}” dada de baja.`);
+    refetch();
+  };
+
+  const handleRestored = (sala: Sala) => {
+    setNuevaSalaId(sala.id);
+    setFlashMessage(`Sala “${sala.nombre}” recuperada. Ya está disponible para agendar citas.`);
+    setEstadoFiltro('activas');
     refetch();
   };
 
@@ -99,12 +124,22 @@ export function SalasPage({ session }: { session?: Session }) {
     navigate(`/inicio/salas/${salaId}?fecha=${fecha}`);
   };
 
+  const handleOpenEditar = (sala: Sala) => {
+    setSalaParaEditar(sala);
+    setIsEditarOpen(true);
+  };
+
   const handleOpenEliminar = (sala?: Sala) => {
     setSalaParaEliminar(sala ?? null);
     setIsEliminarOpen(true);
   };
 
-  const thead = (
+  const handleOpenRecuperar = (sala?: Sala) => {
+    setSalaParaRecuperar(sala ?? null);
+    setIsRecuperarOpen(true);
+  };
+
+  const theadActivas = (
     <thead>
       <tr>
         <th scope="col">Sala</th>
@@ -120,6 +155,27 @@ export function SalasPage({ session }: { session?: Session }) {
     </thead>
   );
 
+  const theadInactivas = (
+    <thead>
+      <tr>
+        <th scope="col">Sala</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Fecha de baja</th>
+        <th scope="col">
+          <span className="sr-only">Acciones</span>
+        </th>
+      </tr>
+    </thead>
+  );
+
+  const countText = loading
+    ? 'Cargando...'
+    : error
+      ? '\u00A0'
+      : estadoFiltro === 'activas'
+        ? `${salas.length} ${salas.length === 1 ? 'sala registrada' : 'salas registradas'}`
+        : `${salasInactivas.length} ${salasInactivas.length === 1 ? 'sala dada de baja' : 'salas dadas de baja'}`;
+
   return (
     <div className="page">
       <div className="page-head">
@@ -129,46 +185,66 @@ export function SalasPage({ session }: { session?: Session }) {
           </span>
           <div>
             <h1>Salas</h1>
-            <p id="list-count">
-              {loading
-                ? 'Cargando...'
-                : error
-                  ? '\u00A0'
-                  : `${salas.length} ${salas.length === 1 ? 'sala registrada' : 'salas registradas'}`}
-            </p>
+            <p id="list-count">{countText}</p>
           </div>
         </div>
 
         <div className="page-tools">
-          <span className="segmented__label" style={{ padding: 0 }}>
-            Estado del día:
-          </span>
-          <div className="datebar">
+          <div className="segmented" role="group" aria-label="Mostrar salas">
+            <span className="segmented__label" aria-hidden="true">
+              Mostrar:
+            </span>
             <button
               type="button"
-              onClick={() => handleDateMove(-1)}
-              aria-label="Día anterior"
+              aria-pressed={estadoFiltro === 'activas'}
+              onClick={() => {
+                if (estadoFiltro !== 'activas') {
+                  setEstadoFiltro('activas');
+                  setLoading(true);
+                }
+              }}
             >
-              <ChevronLeft size={16} aria-hidden="true" />
-            </button>
-            <button type="button" onClick={() => handleDateMove(0)}>
-              Hoy
+              Activas
             </button>
             <button
               type="button"
-              onClick={() => handleDateMove(1)}
-              aria-label="Día siguiente"
+              aria-pressed={estadoFiltro === 'inactivas'}
+              onClick={() => {
+                if (estadoFiltro !== 'inactivas') {
+                  setEstadoFiltro('inactivas');
+                  setLoading(true);
+                }
+              }}
             >
-              <ChevronRight size={16} aria-hidden="true" />
+              Dadas de baja
             </button>
-            <input
-              type="date"
-              id="sl-fecha"
-              value={fecha}
-              onChange={(e) => e.target.value && setFecha(e.target.value)}
-              aria-label="Elegir día"
-            />
           </div>
+
+          {estadoFiltro === 'activas' && (
+            <>
+              <span className="segmented__label" style={{ padding: 0 }}>
+                Estado del día:
+              </span>
+              <div className="datebar">
+                <button type="button" onClick={() => handleDateMove(-1)} aria-label="Día anterior">
+                  <ChevronLeft size={16} aria-hidden="true" />
+                </button>
+                <button type="button" onClick={() => handleDateMove(0)}>
+                  Hoy
+                </button>
+                <button type="button" onClick={() => handleDateMove(1)} aria-label="Día siguiente">
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+                <input
+                  type="date"
+                  id="sl-fecha"
+                  value={fecha}
+                  onChange={(e) => e.target.value && setFecha(e.target.value)}
+                  aria-label="Elegir día"
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -190,9 +266,9 @@ export function SalasPage({ session }: { session?: Session }) {
       <section className="panel" id="list-panel" aria-live="polite">
         {loading ? (
           <table className="data-table">
-            {thead}
+            {estadoFiltro === 'activas' ? theadActivas : theadInactivas}
             <tbody>
-              {Array.from({ length: 6 }, (_, i) => (
+              {Array.from({ length: 4 }, (_, i) => (
                 <tr key={i} className="is-static">
                   <td>
                     <div className="person">
@@ -223,17 +299,59 @@ export function SalasPage({ session }: { session?: Session }) {
               <WifiOff size={40} aria-hidden="true" />
             </span>
             <h2>No pudimos cargar las salas</h2>
-            <p>Revisa tu conexión e inténtalo de nuevo. El día elegido se conserva.</p>
-            <button
-              type="button"
-              className="button button--primary"
-              id="retry"
-              onClick={refetch}
-            >
+            <p>Revisa tu conexión e inténtalo de nuevo.</p>
+            <button type="button" className="button button--primary" id="retry" onClick={refetch}>
               <RotateCw size={16} aria-hidden="true" />
               Reintentar
             </button>
           </div>
+        ) : estadoFiltro === 'inactivas' ? (
+          salasInactivas.length === 0 ? (
+            <div className="empty">
+              <span className="empty__icon">
+                <DoorOpen size={44} aria-hidden="true" />
+              </span>
+              <h2>No hay salas dadas de baja</h2>
+              <p>Todas las salas registradas se encuentran activas.</p>
+            </div>
+          ) : (
+            <table className="data-table">
+              {theadInactivas}
+              <tbody>
+                {salasInactivas.map((s, idx) => {
+                  const color = getSalaColor(idx);
+                  return (
+                    <tr key={s.id} className="is-static">
+                      <td>
+                        <div className="room-name" style={{ '--c': color } as React.CSSProperties}>
+                          <span className="tile" style={{ opacity: 0.6 }}>
+                            <DoorOpen size={17} aria-hidden="true" />
+                          </span>
+                          {s.nombre}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="badge badge--canc">Dada de baja</span>
+                      </td>
+                      <td className="num muted">{s.fecha_baja ? fMedia(s.fecha_baja) : '—'}</td>
+                      <td>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            className="button button--secondary button--sm"
+                            onClick={() => handleOpenRecuperar(s)}
+                          >
+                            <RotateCcw size={14} aria-hidden="true" />
+                            Recuperar sala
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )
         ) : salas.length === 0 ? (
           <div className="empty">
             <span className="empty__icon">
@@ -246,7 +364,7 @@ export function SalasPage({ session }: { session?: Session }) {
           </div>
         ) : (
           <table className="data-table">
-            {thead}
+            {theadActivas}
             <tbody>
               {salas.map((s, idx) => {
                 const color = getSalaColor(idx);
@@ -268,10 +386,7 @@ export function SalasPage({ session }: { session?: Session }) {
                     }}
                   >
                     <td>
-                      <div
-                        className="room-name"
-                        style={{ '--c': color } as React.CSSProperties}
-                      >
+                      <div className="room-name" style={{ '--c': color } as React.CSSProperties}>
                         <span className="tile">
                           <DoorOpen size={17} aria-hidden="true" />
                         </span>
@@ -298,10 +413,7 @@ export function SalasPage({ session }: { session?: Session }) {
                         aria-hidden="true"
                       >
                         {s.bloques.map((b, bIdx) => (
-                          <i
-                            key={bIdx}
-                            className={b.estado === 'reservada' ? 'on' : ''}
-                          />
+                          <i key={bIdx} className={b.estado === 'reservada' ? 'on' : ''} />
                         ))}
                       </div>
                       <div className="occ-scale" aria-hidden="true">
@@ -319,6 +431,25 @@ export function SalasPage({ session }: { session?: Session }) {
                       <div className="row-actions">
                         <button
                           type="button"
+                          className="icon-act"
+                          aria-label={`Editar nombre de ${s.nombre}`}
+                          title="Editar nombre"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditar({
+                              id: s.id,
+                              nombre: s.nombre,
+                              activo: s.activo ?? true,
+                              fecha_baja: null,
+                              fecha_registro: '',
+                              version: s.version ?? 1,
+                            });
+                          }}
+                        >
+                          <Pencil size={15} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
                           className="icon-act is-danger"
                           data-del={s.id}
                           aria-label={`Eliminar ${s.nombre}`}
@@ -331,7 +462,7 @@ export function SalasPage({ session }: { session?: Session }) {
                               activo: s.activo ?? true,
                               fecha_baja: null,
                               fecha_registro: '',
-                              version: 1,
+                              version: s.version ?? 1,
                             });
                           }}
                         >
@@ -351,6 +482,15 @@ export function SalasPage({ session }: { session?: Session }) {
       </section>
 
       <div className="fab-group">
+        <button
+          type="button"
+          className="button button--secondary"
+          id="btn-recuperar"
+          onClick={() => handleOpenRecuperar()}
+        >
+          <RotateCcw size={16} aria-hidden="true" />
+          Recuperar sala
+        </button>
         <button
           type="button"
           className="button button--danger-soft"
@@ -378,6 +518,17 @@ export function SalasPage({ session }: { session?: Session }) {
         accessToken={session?.token}
       />
 
+      <EditarSalaDialog
+        isOpen={isEditarOpen}
+        onClose={() => {
+          setIsEditarOpen(false);
+          setSalaParaEditar(null);
+        }}
+        sala={salaParaEditar}
+        onUpdated={handleUpdated}
+        accessToken={session?.token}
+      />
+
       <EliminarSalaDialog
         isOpen={isEliminarOpen}
         onClose={() => {
@@ -386,6 +537,17 @@ export function SalasPage({ session }: { session?: Session }) {
         }}
         preselectedSala={salaParaEliminar}
         onDischarged={handleDischarged}
+        accessToken={session?.token}
+      />
+
+      <RecuperarSalaDialog
+        isOpen={isRecuperarOpen}
+        onClose={() => {
+          setIsRecuperarOpen(false);
+          setSalaParaRecuperar(null);
+        }}
+        preselectedSala={salaParaRecuperar}
+        onRestored={handleRestored}
         accessToken={session?.token}
       />
     </div>

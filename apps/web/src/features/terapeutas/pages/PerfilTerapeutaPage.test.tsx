@@ -7,13 +7,13 @@ import { useTherapistList } from '../hooks/useTerapeutas';
 import { PerfilTerapeutaPage } from './PerfilTerapeutaPage';
 
 type Call = { url: string; method: string; headers: Headers; body: unknown };
-type RoutedHandler = (
-  call: Call,
-) => { status: number; body?: unknown; isPhoto?: boolean } | Promise<{
-  status: number;
-  body?: unknown;
-  isPhoto?: boolean;
-}>;
+type RoutedHandler = (call: Call) =>
+  | { status: number; body?: unknown; isPhoto?: boolean }
+  | Promise<{
+      status: number;
+      body?: unknown;
+      isPhoto?: boolean;
+    }>;
 
 function responseFor(result: { status: number; body?: unknown; isPhoto?: boolean }) {
   if (result.isPhoto) {
@@ -117,7 +117,9 @@ afterEach(() => {
 describe('perfil de terapeuta (EDT 4.3.5, RF 2.2.2)', () => {
   it('muestra nombre, fecha dd/mm/aaaa, cédula, teléfono, correo y la fotografía', async () => {
     mockRoutes((call) =>
-      isFoto(call) ? { status: 200, isPhoto: true } : { status: 200, body: { terapeuta: therapist } },
+      isFoto(call)
+        ? { status: 200, isPhoto: true }
+        : { status: 200, body: { terapeuta: therapist } },
     );
     const { container } = renderWithProviders();
 
@@ -136,14 +138,16 @@ describe('perfil de terapeuta (EDT 4.3.5, RF 2.2.2)', () => {
 
   it('pide ?tam=perfil para la fotografía del encabezado', async () => {
     const fetchMock = mockRoutes((call) =>
-      isFoto(call) ? { status: 200, isPhoto: true } : { status: 200, body: { terapeuta: therapist } },
+      isFoto(call)
+        ? { status: 200, isPhoto: true }
+        : { status: 200, body: { terapeuta: therapist } },
     );
     renderWithProviders();
 
     await screen.findByRole('heading', { name: 'Victoria Méndez Rosado' });
-    expect(
-      fetchMock.mock.calls.some(([url]) => String(url).includes('/foto?tam=perfil')),
-    ).toBe(true);
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/foto?tam=perfil'))).toBe(
+      true,
+    );
   });
 
   it('un terapeuta activo muestra "Editar" y "Dar de baja"', async () => {
@@ -189,7 +193,9 @@ describe('baja lógica desde el perfil (EDT 4.3.5, RF 2.3.1–2.3.3)', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Dar de baja' }));
 
-    const dialog = screen.getByRole('alertdialog', { name: 'Dar de baja a Victoria Méndez Rosado' });
+    const dialog = screen.getByRole('alertdialog', {
+      name: 'Dar de baja a Victoria Méndez Rosado',
+    });
     expect(dialog).toHaveTextContent(
       'Dejará de aparecer en la lista de terapeutas activos y no podrá asignarse a nuevas citas. Sus datos se conservarán.',
     );
@@ -220,7 +226,8 @@ describe('baja lógica desde el perfil (EDT 4.3.5, RF 2.3.1–2.3.3)', () => {
       if (isAction(call, 'baja')) {
         return { status: 200, body: { codigo: 'BAJA_REGISTRADA', terapeuta: inactive } };
       }
-      if (isList(call)) return { status: 200, body: { datos: [], pagina: 1, tamano: 25, total: 0 } };
+      if (isList(call))
+        return { status: 200, body: { datos: [], pagina: 1, tamano: 25, total: 0 } };
       return { status: 200, body: { terapeuta: therapist } };
     });
     renderWithProviders();

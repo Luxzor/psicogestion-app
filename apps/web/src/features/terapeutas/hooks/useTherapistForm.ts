@@ -28,7 +28,10 @@ export const EMPTY_THERAPIST_FORM: TherapistFormValues = {
 const UNIQUENESS_DELAY_MS = 400;
 
 export type TherapistFormErrors = Partial<Record<TherapistFieldKey, string>>;
-export type TherapistFormNotice = { kind: 'resumen' | 'red' | 'error' | 'foto'; text: string } | null;
+export type TherapistFormNotice = {
+  kind: 'resumen' | 'red' | 'error' | 'foto';
+  text: string;
+} | null;
 
 export type UseTherapistFormOptions = {
   accessToken: string;
@@ -142,7 +145,11 @@ export function useTherapistForm(options: UseTherapistFormOptions) {
         setChecking((current) => ({ ...current, [field]: true }));
         const scope = excluirId ? { excluir_id: excluirId } : {};
         therapistsApi
-          .checkAvailability({ campo: field, valor: value, ...scope }, accessToken, controller.signal)
+          .checkAvailability(
+            { campo: field, valor: value, ...scope },
+            accessToken,
+            controller.signal,
+          )
           .then((result) => {
             if (valuesRef.current[field] !== value) return;
             applyRemoteErrors({

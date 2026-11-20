@@ -410,4 +410,20 @@ describe('agendar cita (RF 5.1.1-5.1.15, RF 2.3.5)', () => {
     const dialog = await screen.findByRole('dialog', { name: '¿Salir sin guardar?' });
     expect(within(dialog).getByRole('button', { name: 'Seguir editando' })).toHaveFocus();
   });
+
+  it('desactiva domingos y muestra error inmediato al seleccionar domingo', async () => {
+    mockApi(baseHandler(() => ({ status: 201, body: citaCreada() })));
+    renderPage();
+
+    // 2031-05-18 es domingo (2031-05-12 era lunes)
+    const inputFecha = screen.getByLabelText('Fecha');
+    fireEvent.change(inputFecha, { target: { value: '2031-05-18' } });
+
+    expect(
+      screen.getByText('La clínica no atiende en domingo. Elige otro día.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('La clínica no abre los domingos. Elige un día de lunes a sábado.'),
+    ).toBeInTheDocument();
+  });
 });

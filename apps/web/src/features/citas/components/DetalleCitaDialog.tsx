@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import { CircleX, UserX } from 'lucide-react';
+import { CircleX, Pencil, UserX } from 'lucide-react';
 import { fLarga } from '../../salas/validation';
 import { enHoraClinica, etiquetaDuracion, rangoLegible } from '../horario';
 import type { Cita, CitaEstado } from '../types';
@@ -11,6 +11,7 @@ export type DetalleCitaDialogProps = {
   cita: Cita | null;
   onClose: () => void;
   onCancelar?: (cita: Cita) => void;
+  onEditar?: (cita: Cita) => void;
   salaColor?: string;
 };
 
@@ -43,11 +44,13 @@ function DetalleCitaModal({
   cita,
   onClose,
   onCancelar,
+  onEditar,
   salaColor = '#002e5f',
 }: {
   cita: Cita;
   onClose: () => void;
   onCancelar?: (cita: Cita) => void;
+  onEditar?: (cita: Cita) => void;
   salaColor?: string;
 }) {
   const dialogRef = useRef<HTMLElement>(null);
@@ -84,7 +87,13 @@ function DetalleCitaModal({
   }, [onClose]);
 
   const fechaIso = enHoraClinica(cita.inicio).fecha;
-  const duracionMinutos = (cita.duracion_bloques || 1) * 30;
+  // El listado no siempre trae duracion_bloques: si falta, se calcula con inicio y fin.
+  const duracionMinutos = cita.duracion_bloques
+    ? cita.duracion_bloques * 30
+    : Math.max(
+        30,
+        Math.round((new Date(cita.fin).getTime() - new Date(cita.inicio).getTime()) / 60000),
+      );
 
   return (
     <div
@@ -173,6 +182,19 @@ function DetalleCitaModal({
               Cancelar cita
             </button>
           ) : null}
+          {onEditar && cita.estado === 'Pendiente' ? (
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={() => {
+                onClose();
+                onEditar(cita);
+              }}
+            >
+              <Pencil size={15} aria-hidden="true" />
+              Modificar
+            </button>
+          ) : null}
           <button type="button" className="button button--secondary" onClick={onClose} autoFocus>
             Cerrar
           </button>
@@ -186,11 +208,7 @@ function DetalleCitaModal({
  * RF 5.2, RF 5.4. Diálogo de detalle de cita (PG-DSN-003-INT dialogCita).
  * Muestra toda la información de la cita y permite cancelar si está Pendiente.
  */
-export function DetalleCitaDialog({
-  isOpen,
-  cita,
-  ...rest
-}: DetalleCitaDialogProps) {
+export function DetalleCitaDialog({ isOpen, cita, ...rest }: DetalleCitaDialogProps) {
   if (!isOpen || !cita) return null;
   return <DetalleCitaModal key={cita.id} cita={cita} {...rest} />;
 }

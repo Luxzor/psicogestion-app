@@ -27,7 +27,7 @@ services:
       retries: 20
 
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:v1.28.1
     ports:
       - '8025:8025'
 
@@ -57,6 +57,7 @@ services:
           path: ./apps/api/package.json
     volumes:
       - ./apps/api/src:/workspace/apps/api/src
+      - uploads_data:/workspace/uploads
     command: npm run dev --workspace=@psicogestion/api
     depends_on:
       migrate:
@@ -111,3 +112,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:

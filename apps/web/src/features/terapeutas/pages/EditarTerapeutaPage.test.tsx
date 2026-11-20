@@ -93,7 +93,9 @@ const getsAlDetalle = (fetchMock: ReturnType<typeof mockApi>) =>
   );
 
 const sinFoto: Handler = (url) =>
-  url.includes('/foto') ? { status: 404, isPhoto: true } : { status: 200, body: { terapeuta: therapist } };
+  url.includes('/foto')
+    ? { status: 404, isPhoto: true }
+    : { status: 200, body: { terapeuta: therapist } };
 
 afterEach(() => {
   cleanup();
@@ -226,7 +228,9 @@ describe('edición de terapeutas (EDT 4.3.5, RF 2.2.3–2.2.5)', () => {
       await screen.findByText('La fecha de nacimiento debe ser anterior a hoy.'),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: '19/05/1988' } });
+    fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), {
+      target: { value: '19/05/1988' },
+    });
     fireEvent.change(screen.getByLabelText('Cédula profesional'), { target: { value: '123456' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     expect(await screen.findByText('La cédula debe tener 7 u 8 dígitos.')).toBeInTheDocument();
@@ -413,7 +417,11 @@ describe('edición de terapeutas (EDT 4.3.5, RF 2.2.3–2.2.5)', () => {
         patchCalls += 1;
         if (patchCalls === 1) {
           return new Response(
-            JSON.stringify({ codigo: 'CONFLICTO_VERSION', mensaje: 'Conflicto', version_actual: 2 }),
+            JSON.stringify({
+              codigo: 'CONFLICTO_VERSION',
+              mensaje: 'Conflicto',
+              version_actual: 2,
+            }),
             { status: 409, headers: { 'Content-Type': 'application/json' } },
           );
         }
@@ -480,8 +488,7 @@ describe('edición de terapeutas (EDT 4.3.5, RF 2.2.3–2.2.5)', () => {
       // el cambio aplicado, porque la respuesta de aquel primer PATCH se perdió.
       return new Response(
         JSON.stringify({
-          terapeuta:
-            gets === 1 ? therapist : { ...therapist, telefono: '9991112222', version: 2 },
+          terapeuta: gets === 1 ? therapist : { ...therapist, telefono: '9991112222', version: 2 },
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       );
@@ -519,7 +526,9 @@ describe('edición de terapeutas (EDT 4.3.5, RF 2.2.3–2.2.5)', () => {
 
     const getsAntesDeNavegar = getsAlDetalle(fetchMock).length;
 
-    expect(await screen.findByRole('heading', { name: 'Perfil del terapeuta' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Perfil del terapeuta' }),
+    ).toBeInTheDocument();
     expect(getsAlDetalle(fetchMock)).toHaveLength(getsAntesDeNavegar);
   });
 
@@ -538,7 +547,10 @@ describe('edición de terapeutas (EDT 4.3.5, RF 2.2.3–2.2.5)', () => {
     mockApi((url) =>
       url.includes('/foto')
         ? { status: 404, isPhoto: true }
-        : { status: 200, body: { terapeuta: { ...therapist, activo: false, fecha_baja: '2026-10-14' } } },
+        : {
+            status: 200,
+            body: { terapeuta: { ...therapist, activo: false, fecha_baja: '2026-10-14' } },
+          },
     );
     renderPage();
 

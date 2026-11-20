@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UnsavedChangesProvider } from '../../../contexts/UnsavedChangesContext';
 import { therapistsApi } from '../api';
+import { therapistKeys } from '../hooks/useTerapeutas';
 import { RegistroTerapeutaPage } from './RegistroTerapeutaPage';
 import { TerapeutasPage } from './TerapeutasPage';
 
@@ -42,8 +43,9 @@ const therapist = {
   version: 1,
 };
 
-function renderPage() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function renderPage(
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+) {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/inicio/terapeutas/nuevo']}>
@@ -229,6 +231,45 @@ describe('registro de terapeutas (EDT 4.3.4)', () => {
       cedula_profesional: '7845213',
     });
     expect(new Headers(init?.headers).get('Idempotency-Key')).toBeTruthy();
+  });
+
+  it('muestra al terapeuta nuevo en la lista sin esperar a que venza la caché (DEF-003)', async () => {
+    const listItem = {
+      id: therapist.id,
+      nombre_completo: therapist.nombre_completo,
+      cedula_profesional: therapist.cedula_profesional,
+      telefono: therapist.telefono,
+      correo_electronico: therapist.correo_electronico,
+      foto_actualizada_en: null,
+      activo: true,
+    };
+    const fetchMock = mockApi((url, init) => {
+      if (url.endsWith('/validaciones')) return { status: 200, body: { disponible: true } };
+      if (init.method === 'POST') {
+        return { status: 201, body: { codigo: 'TERAPEUTA_REGISTRADO', terapeuta: therapist } };
+      }
+      return { status: 200, body: { datos: [listItem], pagina: 1, tamano: 25, total: 1 } };
+    });
+    // Misma vigencia que lib/queryClient.ts: la lista vista antes del alta sigue "fresca" 30 s.
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
+    });
+    queryClient.setQueryData(therapistKeys.lista({ pagina: 1, tamano: 25, estado: 'activos' }), {
+      datos: [],
+      pagina: 1,
+      tamano: 25,
+      total: 0,
+    });
+    renderPage(queryClient);
+    fillValidForm();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar terapeuta' }));
+
+    expect(await screen.findByText('Terapeuta registrado.')).toBeInTheDocument();
+    expect(await screen.findByText('Victoria Méndez Rosado')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/v1/terapeutas?'))).toBe(
+      true,
+    );
   });
 
   it('valida formato y dimensiones de la fotografía (RF 2.1.11 a 2.1.13, CA-2.1-05)', async () => {

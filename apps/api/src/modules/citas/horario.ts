@@ -135,10 +135,17 @@ export function duracionValida(duracionBloques: number) {
   );
 }
 
+/** Indica si la fecha corresponde a domingo (la clínica no atiende domingos). */
+export function esDomingoEnClinica(fecha: string) {
+  const date = parseIsoDate(fecha);
+  if (!date) return false;
+  return new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay() === 0;
+}
+
 /**
  * Verifica las reglas de horario de una cita (PG-DSN-003 4.5 y 5.7.1): rejilla de 30 minutos,
- * dentro de 07:00 a 17:00, en el mismo día, con 1 a 4 bloques y no en el pasado. Devuelve el
- * primer error encontrado o null. Las mismas reglas, salvo la del pasado, las garantiza la base.
+ * dentro de 07:00 a 17:00, en el mismo día, con 1 a 4 bloques, de lunes a sábado y no en el pasado.
+ * Devuelve el primer error encontrado o null.
  */
 export function evaluarHorario(
   inicio: Date,
@@ -153,6 +160,7 @@ export function evaluarHorario(
   if (Number.isNaN(inicio.getTime()) || !duracionValida(duracionBloques)) return invalido;
 
   const start = clinicParts(inicio, timeZone);
+  if (esDomingoEnClinica(start.fecha)) return invalido;
   if (start.segundos !== 0 || start.milisegundos !== 0) return invalido;
   if (start.minutos % BLOQUE_MINUTOS !== 0) return invalido;
   if (start.minutos < APERTURA_MINUTOS) return invalido;

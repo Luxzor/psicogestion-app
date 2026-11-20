@@ -105,6 +105,15 @@ describe('modelo de datos de citas: rejilla horaria (EDT 5.2.1, ADR-15)', () => 
     // El mismo instante todavía es válido.
     expect(evaluarHorario(lunes9, 1, lunes9, ZONA)).toBeNull();
   });
+
+  it('rechaza citas programadas en domingo (la clínica no abre domingos)', () => {
+    // 2026-10-25 es domingo; a las 09:00 Mérida (15:00 UTC)
+    const domingo9 = new Date('2026-10-25T15:00:00.000Z');
+    expect(evaluarHorario(domingo9, 2, antes, ZONA)).toEqual({
+      codigo: 'HORARIO_INVALIDO',
+      mensaje: HORARIO_MENSAJES.HORARIO_INVALIDO,
+    });
+  });
 });
 
 describe('modelo de datos de citas: esquemas (EDT 5.2.1)', () => {
@@ -162,7 +171,8 @@ describe('modelo de datos de citas: esquemas (EDT 5.2.1)', () => {
       version: 3,
     });
     expect(updateCitaSchema.safeParse({ id_sala: ids.id_sala }).success).toBe(false);
-    expect(updateCitaSchema.safeParse({ estado: 'Vencida', version: 1 }).success).toBe(true);
+    // El estatus no se elige al modificar (MCC 17/Nov/2026): solo Cancelar o el sistema lo cambian.
+    expect(updateCitaSchema.safeParse({ estado: 'Vencida', version: 1 }).success).toBe(false);
     expect(cancelCitaSchema.parse({ version: 1 })).toEqual({ version: 1 });
     expect(cancelCitaSchema.safeParse({ version: 1, motivo: 'x' }).success).toBe(false);
   });

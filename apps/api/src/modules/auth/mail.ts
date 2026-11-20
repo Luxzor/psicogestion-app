@@ -2,10 +2,21 @@ import nodemailer from 'nodemailer';
 import { env } from '../../config/env.js';
 import { logger } from '../../platform/logger.js';
 
+/**
+ * C2 (Robustez de la API): sin límites, nodemailer espera hasta 30 s el saludo y 2 min la
+ * conexión, y el registro de cuenta quedaba atorado si el servidor SMTP no respondía.
+ */
+export const SMTP_TIMEOUTS = {
+  connectionTimeout: 5_000,
+  greetingTimeout: 5_000,
+  socketTimeout: 10_000,
+};
+
 const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,
   port: env.SMTP_PORT,
   secure: false,
+  ...SMTP_TIMEOUTS,
 });
 
 /** Fecha y hora en la zona de la clínica, para el correo de confirmación (RF 5.1.14). */

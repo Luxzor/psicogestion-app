@@ -710,37 +710,37 @@ integration('citas: alta, listado y detalle con servicios reales (EDT 5.3.3)', (
       expect(viejo.body.version_actual).toBe(2);
     });
 
-    it('permite cambiar estatus a Cancelada y rechaza nuevas modificaciones', async () => {
-      const original = await insertarCita(
-        pacienteConCorreo,
-        terapeutaA,
-        salaA,
-        at(futuro, '09:00'),
-      );
-      const response = await patch(original.id, { version: 1, estado: 'Cancelada' });
-      expect(response.status).toBe(200);
-      expect(response.body.cita.estado).toBe('Cancelada');
-      expect(response.body.cita.cancelada_en).toBeTruthy();
-      expect((await patch(original.id, { version: 2, id_sala: salaB })).body.codigo).toBe(
-        'CITA_NO_MODIFICABLE',
-      );
-    });
-
-    it('solo marca Vencida una cita terminada y no mezcla estatus con otros cambios', async () => {
+    it('no cambia el estatus por PATCH: 400 de validación y la cita sigue igual (MCC 17/Nov/2026)', async () => {
       const futura = await insertarCita(pacienteConCorreo, terapeutaA, salaA, at(futuro, '09:00'));
-      const invalida = await patch(futura.id, { version: 1, estado: 'Vencida' });
-      expect(invalida.status).toBe(400);
-      expect(invalida.body.codigo).toBe('ESTADO_INVALIDO');
+      for (const estado of ['Cancelada', 'Vencida']) {
+        const response = await patch(futura.id, { version: 1, estado });
+        expect(response.status).toBe(400);
+        expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
+        expect(response.body.campos.estado).toBeTypeOf('string');
+      }
       const mezclada = await patch(futura.id, { version: 1, estado: 'Cancelada', id_sala: salaB });
       expect(mezclada.status).toBe(400);
-      expect(mezclada.body.codigo).toBe('ESTADO_INVALIDO');
+      const guardada = await db.query<{ estado: string; version: number; id_sala: string }>(
+        'SELECT estado, version, id_sala FROM cita WHERE id = $1',
+        [futura.id],
+      );
+      expect(guardada.rows[0]).toEqual({ estado: 'Pendiente', version: 1, id_sala: salaA });
+    });
+
+    it('rechaza modificar una cita que el sistema ya marcó como Vencida (ADR-18)', async () => {
       const pasada = await insertarCita(pacienteSinCorreo, terapeutaB, salaB, at(PASADO, '09:00'));
-      const vencida = await patch(pasada.id, { version: 1, estado: 'Vencida' });
-      expect(vencida.status).toBe(200);
-      expect(vencida.body.cita.estado).toBe('Vencida');
+      // La transacción marca Vencida la cita terminada (y sube su versión) antes de compararla,
+      // así que el cambio se rechaza con 409 y la cita no cambia de sala.
+      const response = await patch(pasada.id, { version: 1, id_sala: salaA });
+      expect(response.status).toBe(409);
+      expect(['CONFLICTO_VERSION', 'CITA_NO_MODIFICABLE']).toContain(response.body.codigo);
+      const guardada = await db.query<{ id_sala: string }>(
+        'SELECT id_sala FROM cita WHERE id = $1',
+        [pasada.id],
+      );
+      expect(guardada.rows[0]?.id_sala).toBe(salaB);
     });
   });
-
 
   describe('cancelación de cita (RF 5.4, CA-5.4-01, CA-5.4-02, EDT 5.3.5)', () => {
     it('cancela una cita Pendiente, registra auditoría y libera el horario para agendar de inmediato (CA-5.4-01)', async () => {
@@ -793,12 +793,7 @@ integration('citas: alta, listado y detalle con servicios reales (EDT 5.3.3)', (
     });
 
     it('rechaza la cancelación de una cita vencida (CITA_NO_MODIFICABLE)', async () => {
-      const vencida = await insertarCita(
-        pacienteConCorreo,
-        terapeutaA,
-        salaA,
-        at(PASADO, '10:00'),
-      );
+      const vencida = await insertarCita(pacienteConCorreo, terapeutaA, salaA, at(PASADO, '10:00'));
 
       const response = await postCancel(vencida.id, { version: 1 });
 

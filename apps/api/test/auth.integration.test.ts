@@ -42,6 +42,22 @@ integration('autenticación con servicios reales', () => {
     expect(verificationMail).toHaveBeenCalledOnce();
   });
 
+  it('registra la cuenta y responde aunque falle el envío del código (C2)', async () => {
+    verificationMail.mockRejectedValueOnce(new Error('Greeting never received'));
+
+    await expect(authService.register(registration, context)).resolves.toEqual({
+      estado: 'pendiente_verificacion',
+    });
+
+    const user = await db.query<{ estado: string }>(
+      'SELECT estado FROM usuario WHERE correo_institucional = $1',
+      [registration.correo_institucional],
+    );
+    expect(user.rows[0]?.estado).toBe('pendiente_verificacion');
+    await authService.resendVerification(registration.correo_institucional, context);
+    expect(verificationMail).toHaveBeenCalledTimes(2);
+  });
+
   it('rechaza reutilizar un código de verificación ya consumido', async () => {
     await authService.register(registration, context);
     const code = verificationMail.mock.calls[0]?.[1];

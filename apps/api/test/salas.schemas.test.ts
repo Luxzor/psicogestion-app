@@ -83,7 +83,9 @@ describe('modelo de datos de salas: validación del nombre (EDT 5.2.1)', () => {
     if (valid.success) {
       expect(valid.data.valor).toBe('Sala 4');
     }
-    expect(salaAvailabilitySchema.safeParse({ campo: 'otro', valor: 'Sala 4' }).success).toBe(false);
+    expect(salaAvailabilitySchema.safeParse({ campo: 'otro', valor: 'Sala 4' }).success).toBe(
+      false,
+    );
   });
 
   it('valida el esquema de consulta de listado de salas por estado (RNF 4.2.1)', () => {

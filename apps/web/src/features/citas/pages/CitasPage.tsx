@@ -4,12 +4,10 @@ import {
   CalendarCheck,
   CalendarDays,
   CalendarPlus,
-  CalendarX,
   ChevronLeft,
   ChevronRight,
   CircleCheck,
   CircleX,
-  Clock,
   Hash,
   Pencil,
   RotateCw,
@@ -24,14 +22,9 @@ import { fLarga, fMedia, getSalaColor } from '../../salas/validation';
 import { CancelarCitaDialog } from '../components/CancelarCitaDialog';
 import { CancelarPorFolioDialog } from '../components/CancelarPorFolioDialog';
 import { DetalleCitaDialog } from '../components/DetalleCitaDialog';
+import { EstadoBadge } from '../components/EstadoBadge';
 import { citaKeys, useCitaList, useSalasActivas } from '../hooks/useCitas';
-import {
-  enHoraClinica,
-  hoyEnClinica,
-  rangoDelPeriodo,
-  rangoLegible,
-  sumarDias,
-} from '../horario';
+import { enHoraClinica, hoyEnClinica, rangoDelPeriodo, rangoLegible, sumarDias } from '../horario';
 import type { Cita, CitaEstado, CitaListParams } from '../types';
 import { CITA_TABS, normalizeFolio, validateFolio } from '../validation';
 import '../../pacientes/styles/pacientes.css';
@@ -97,31 +90,6 @@ function esPeriodoActual(periodo: string, fecha: string) {
     return fecha.slice(0, 7) === hoy.slice(0, 7);
   }
   return fecha === hoy;
-}
-
-function EstadoBadge({ estado }: { estado: CitaEstado }) {
-  if (estado === 'Pendiente') {
-    return (
-      <span className="badge badge--pend">
-        <Clock size={12} aria-hidden="true" />
-        Pendiente
-      </span>
-    );
-  }
-  if (estado === 'Cancelada') {
-    return (
-      <span className="badge badge--canc">
-        <CircleX size={12} aria-hidden="true" />
-        Cancelada
-      </span>
-    );
-  }
-  return (
-    <span className="badge badge--venc">
-      <CalendarX size={12} aria-hidden="true" />
-      Vencida
-    </span>
-  );
 }
 
 /**
@@ -395,10 +363,7 @@ export function CitasPage({ session }: { session: Session }) {
                   onClick={() =>
                     updateParams(
                       {
-                        fecha:
-                          periodo === 'semana'
-                            ? sumarDias(fecha, -7)
-                            : sumarMeses(fecha, -1),
+                        fecha: periodo === 'semana' ? sumarDias(fecha, -7) : sumarMeses(fecha, -1),
                       },
                       { resetPagina: true },
                     )
@@ -412,10 +377,7 @@ export function CitasPage({ session }: { session: Session }) {
                   onClick={() =>
                     updateParams(
                       {
-                        fecha:
-                          periodo === 'semana'
-                            ? sumarDias(fecha, 7)
-                            : sumarMeses(fecha, 1),
+                        fecha: periodo === 'semana' ? sumarDias(fecha, 7) : sumarMeses(fecha, 1),
                       },
                       { resetPagina: true },
                     )
@@ -589,7 +551,10 @@ export function CitasPage({ session }: { session: Session }) {
                     <td className="muted">
                       {cita.terapeuta.nombre_completo}
                       {cita.terapeuta.activo === false ? (
-                        <> <span className="badge badge--off">Baja</span></>
+                        <>
+                          {' '}
+                          <span className="badge badge--off">Baja</span>
+                        </>
                       ) : null}
                     </td>
                     <td>
@@ -679,7 +644,9 @@ export function CitasPage({ session }: { session: Session }) {
         }}
         salaColor={
           citaParaDetalle
-            ? getSalaColor(getSalaIdx(citaParaDetalle.sala.id) >= 0 ? getSalaIdx(citaParaDetalle.sala.id) : 0)
+            ? getSalaColor(
+                getSalaIdx(citaParaDetalle.sala.id) >= 0 ? getSalaIdx(citaParaDetalle.sala.id) : 0,
+              )
             : undefined
         }
       />

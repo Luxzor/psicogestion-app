@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { salasApi } from '../../salas/api';
 import type { DisponibilidadParams } from '../../salas/types';
 import { citasApi } from '../api';
-import type { CitaListParams } from '../types';
+import type { AgendaParams, CitaListParams } from '../types';
 
 /** Claves de caché del módulo (ADR-12), con el patrón de pacientes/hooks/usePacientes.ts. */
 export const citaKeys = {
@@ -10,6 +10,8 @@ export const citaKeys = {
   listas: ['citas', 'lista'] as const,
   lista: (params: CitaListParams) => ['citas', 'lista', params] as const,
   detalle: (id: string) => ['citas', 'detalle', id] as const,
+  dashboard: ['citas', 'dashboard'] as const,
+  agenda: (params: AgendaParams) => ['citas', 'agenda', params] as const,
 };
 
 export function useCitaList(params: CitaListParams, accessToken: string) {
@@ -59,5 +61,22 @@ export function useSalasActivas(accessToken: string) {
   return useQuery({
     queryKey: salasActivasKeys.todo,
     queryFn: ({ signal }) => salasApi.list({ estado: 'activas' }, accessToken, signal),
+  });
+}
+
+/** RF 7.1.1. Resumen y KPIs para la pantalla de inicio. */
+export function useDashboardSummary(accessToken: string) {
+  return useQuery({
+    queryKey: citaKeys.dashboard,
+    queryFn: ({ signal }) => citasApi.dashboardSummary(accessToken, signal),
+    refetchInterval: 60_000,
+  });
+}
+
+/** RF 6.1, RF 6.2. Citas para la vista de agenda. */
+export function useAgendaCitas(params: AgendaParams, accessToken: string) {
+  return useQuery({
+    queryKey: citaKeys.agenda(params),
+    queryFn: ({ signal }) => citasApi.agenda(params, accessToken, signal),
   });
 }

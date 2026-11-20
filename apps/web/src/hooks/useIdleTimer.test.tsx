@@ -139,4 +139,3 @@ describe('IdleWarningDialog', () => {
     expect(onStayActive).toHaveBeenCalledTimes(1);
   });
 });
-

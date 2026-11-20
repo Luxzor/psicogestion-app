@@ -489,6 +489,9 @@ export const therapistService = {
         'Un terapeuta dado de baja no puede asignarse a una cita nueva.',
       );
     }
-    return { elegible: true, terapeuta: { id: therapist.id, nombre_completo: therapist.nombre_completo } };
+    return {
+      elegible: true,
+      terapeuta: { id: therapist.id, nombre_completo: therapist.nombre_completo },
+    };
   },
 };

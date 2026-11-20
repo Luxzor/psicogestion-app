@@ -19,7 +19,7 @@ const notices: Record<string, Notice> = {
     type: 'error',
     text: 'El enlace de recuperación ha expirado. Por favor, solicita uno nuevo.',
   },
-  'inactividad': {
+  inactividad: {
     type: 'error',
     text: 'Tu sesión se cerró por inactividad. Inicia sesión de nuevo.',
   },

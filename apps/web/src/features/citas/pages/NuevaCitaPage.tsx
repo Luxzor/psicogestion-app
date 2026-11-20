@@ -17,15 +17,18 @@ import { FormNotice } from '../../pacientes/components/FormNotice';
 import type { Session } from '../../auth/types';
 import { fLarga, fMedia } from '../../salas/validation';
 import { citasApi } from '../api';
+import { DatePicker } from '../components/DatePicker';
 import { PersonaSelector, type PersonaOption } from '../components/PersonaSelector';
 import { SalaHorarioGrid, type SalaHorarioValue } from '../components/SalaHorarioGrid';
 import { citaKeys, disponibilidadKeys } from '../hooks/useCitas';
 import { newIdempotencyKey } from '../idempotency';
 import {
   DURACION_POR_DEFECTO,
+  esDomingo,
   etiquetaDuracion,
   hoyEnClinica,
   minutosAHora,
+  primerDiaHabilEnClinica,
   toInicioIso,
 } from '../horario';
 import type { CitaCreada, CitaFormErrors } from '../types';
@@ -54,7 +57,7 @@ export function NuevaCitaPage({ session }: { session: Session }) {
 
   const [paciente, setPaciente] = useState<PersonaOption | null>(null);
   const [terapeuta, setTerapeuta] = useState<PersonaOption | null>(null);
-  const [fecha, setFecha] = useState(hoyEnClinica());
+  const [fecha, setFecha] = useState(primerDiaHabilEnClinica());
   const [duracion, setDuracion] = useState<number>(DURACION_POR_DEFECTO);
   const [horario, setHorario] = useState<SalaHorarioValue>({ salaId: '', inicio: null });
   const [errors, setErrors] = useState<CitaFormErrors>({});
@@ -95,7 +98,7 @@ export function NuevaCitaPage({ session }: { session: Session }) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  const fechaIsoValida = Boolean(toInicioIso(fecha, 0));
+  const fechaIsoValida = Boolean(toInicioIso(fecha, 0)) && !esDomingo(fecha);
   const values = {
     id_paciente: paciente?.id ?? '',
     id_terapeuta: terapeuta?.id ?? '',
@@ -212,7 +215,7 @@ export function NuevaCitaPage({ session }: { session: Session }) {
   function reiniciar() {
     setPaciente(null);
     setTerapeuta(null);
-    setFecha(hoyEnClinica());
+    setFecha(primerDiaHabilEnClinica());
     setDuracion(DURACION_POR_DEFECTO);
     setHorario({ salaId: '', inicio: null });
     setErrors({});
@@ -234,7 +237,14 @@ export function NuevaCitaPage({ session }: { session: Session }) {
 
   function onFechaChange(next: string) {
     setFecha(next);
-    setErrors((prev) => ({ ...prev, fecha: undefined }));
+    if (esDomingo(next)) {
+      setErrors((prev) => ({
+        ...prev,
+        fecha: 'La clínica no atiende en domingo. Elige otro día.',
+      }));
+    } else {
+      setErrors((prev) => ({ ...prev, fecha: undefined }));
+    }
     setHorario((current) => ({ ...current, inicio: null }));
   }
 
@@ -380,15 +390,16 @@ export function NuevaCitaPage({ session }: { session: Session }) {
             <div className="form-grid">
               <div className="field">
                 <label htmlFor="f-fecha">Fecha</label>
-                <input
+                <DatePicker
                   id="f-fecha"
-                  type="date"
+                  name="f-fecha"
                   min={hoyEnClinica()}
                   value={fecha}
                   disabled={saving}
+                  disableSundays={true}
                   aria-invalid={Boolean(errors.fecha)}
                   aria-describedby="f-fecha-hint f-fecha-error"
-                  onChange={(event) => onFechaChange(event.target.value)}
+                  onChange={onFechaChange}
                 />
                 <span className="field-hint" id="f-fecha-hint">
                   Hoy o una fecha posterior. La clínica no atiende en domingo.

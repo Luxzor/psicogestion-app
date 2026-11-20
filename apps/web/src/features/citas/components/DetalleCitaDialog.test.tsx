@@ -24,13 +24,7 @@ afterEach(() => {
 
 describe('DetalleCitaDialog (PG-DSN-003-INT dialogCita)', () => {
   it('renderiza la información completa de la cita', () => {
-    render(
-      <DetalleCitaDialog
-        isOpen={true}
-        cita={citaBase}
-        onClose={vi.fn()}
-      />,
-    );
+    render(<DetalleCitaDialog isOpen={true} cita={citaBase} onClose={vi.fn()} />);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Cita C26000001' })).toBeInTheDocument();
@@ -45,12 +39,7 @@ describe('DetalleCitaDialog (PG-DSN-003-INT dialogCita)', () => {
     const onClose = vi.fn();
 
     render(
-      <DetalleCitaDialog
-        isOpen={true}
-        cita={citaBase}
-        onClose={onClose}
-        onCancelar={onCancelar}
-      />,
+      <DetalleCitaDialog isOpen={true} cita={citaBase} onClose={onClose} onCancelar={onCancelar} />,
     );
 
     const btn = screen.getByRole('button', { name: 'Cancelar cita' });
@@ -76,16 +65,9 @@ describe('DetalleCitaDialog (PG-DSN-003-INT dialogCita)', () => {
 
   it('cierra el diálogo al presionar Cerrar', () => {
     const onClose = vi.fn();
-    render(
-      <DetalleCitaDialog
-        isOpen={true}
-        cita={citaBase}
-        onClose={onClose}
-      />,
-    );
+    render(<DetalleCitaDialog isOpen={true} cita={citaBase} onClose={onClose} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(onClose).toHaveBeenCalled();
   });
 });
-

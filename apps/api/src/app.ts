@@ -19,7 +19,32 @@ export function createApp() {
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
   app.use(helmet({ referrerPolicy: { policy: 'no-referrer' } }));
-  app.use(cors({ origin: env.WEB_ORIGIN, credentials: true }));
+
+  const allowedOrigins = [
+    env.WEB_ORIGIN,
+    'https://localhost:8443',
+    'https://127.0.0.1:8443',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ];
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (
+          !origin ||
+          allowedOrigins.includes(origin) ||
+          origin.endsWith(':8443') ||
+          origin.endsWith(':5173')
+        ) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
+      credentials: true,
+    }),
+  );
   app.use(correlationId);
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());

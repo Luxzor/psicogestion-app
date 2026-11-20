@@ -43,9 +43,7 @@ describe('EliminarSalaDialog (EDT 5.3.1 Baja lógica de salas)', () => {
     render(<EliminarSalaDialog isOpen={true} onClose={vi.fn()} activeSalas={mockSalas} />);
 
     expect(screen.getByRole('heading', { name: 'Eliminar sala' })).toBeInTheDocument();
-    expect(
-      screen.getByText('Selecciona la sala que quieres eliminar.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Selecciona la sala que quieres eliminar.')).toBeInTheDocument();
 
     const continueBtn = screen.getByRole('button', { name: 'Continuar' });
     expect(continueBtn).toBeDisabled();
@@ -65,13 +63,7 @@ describe('EliminarSalaDialog (EDT 5.3.1 Baja lógica de salas)', () => {
   it('bloquea la eliminación si la sala tiene citas pendientes futuras (CA-4.2-02)', async () => {
     vi.spyOn(salasApi, 'countPendingAppointments').mockResolvedValue({ total: 2 });
 
-    render(
-      <EliminarSalaDialog
-        isOpen={true}
-        onClose={vi.fn()}
-        preselectedSala={mockSalas[0]}
-      />,
-    );
+    render(<EliminarSalaDialog isOpen={true} onClose={vi.fn()} preselectedSala={mockSalas[0]} />);
 
     expect(
       screen.getByRole('heading', { name: '¿Eliminar la sala “Sala 1”?' }),
@@ -79,9 +71,7 @@ describe('EliminarSalaDialog (EDT 5.3.1 Baja lógica de salas)', () => {
 
     await waitFor(() => {
       expect(screen.getByText('No es posible eliminarla todavía.')).toBeInTheDocument();
-      expect(
-        screen.getByText(/La sala tiene 2 citas pendientes/),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/La sala tiene 2 citas pendientes/)).toBeInTheDocument();
     });
 
     const delButton = screen.getByRole('button', { name: /Eliminar sala/i });
@@ -107,9 +97,7 @@ describe('EliminarSalaDialog (EDT 5.3.1 Baja lógica de salas)', () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/La sala dejará de aparecer en la lista/),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/La sala dejará de aparecer en la lista/)).toBeInTheDocument();
     });
 
     const delButton = screen.getByRole('button', { name: /Eliminar sala/i });
@@ -129,11 +117,7 @@ describe('EliminarSalaDialog (EDT 5.3.1 Baja lógica de salas)', () => {
   it('cierra el diálogo al presionar Cancelar o Escape', () => {
     const handleClose = vi.fn();
     render(
-      <EliminarSalaDialog
-        isOpen={true}
-        onClose={handleClose}
-        preselectedSala={mockSalas[1]}
-      />,
+      <EliminarSalaDialog isOpen={true} onClose={handleClose} preselectedSala={mockSalas[1]} />,
     );
 
     const cancelBtn = screen.getByRole('button', { name: 'Cancelar' });
@@ -144,4 +128,3 @@ describe('EliminarSalaDialog (EDT 5.3.1 Baja lógica de salas)', () => {
     expect(handleClose).toHaveBeenCalledTimes(2);
   });
 });
-

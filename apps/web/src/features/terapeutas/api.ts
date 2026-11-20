@@ -162,11 +162,14 @@ export const therapistsApi = {
   ): Promise<Blob | null> {
     let response: Response;
     try {
-      response = await fetch(`/api/v1/terapeutas/${encodeURIComponent(therapistId)}/foto?tam=${tam}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        credentials: 'include',
-        signal,
-      });
+      response = await fetch(
+        `/api/v1/terapeutas/${encodeURIComponent(therapistId)}/foto?tam=${tam}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          credentials: 'include',
+          signal,
+        },
+      );
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') throw error;
       return null;

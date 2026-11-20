@@ -93,7 +93,12 @@ describe('detalle de cita (RF 5.2, RF 5.4)', () => {
       const url = String(input);
       if (url.includes('/cancelar') && init?.method === 'POST') {
         return json(200, {
-          cita: { ...cita, estado: 'Cancelada', cancelada_en: '2026-10-26T16:00:00.000Z', version: 2 },
+          cita: {
+            ...cita,
+            estado: 'Cancelada',
+            cancelada_en: '2026-10-26T16:00:00.000Z',
+            version: 2,
+          },
         });
       }
       return json(200, { cita });

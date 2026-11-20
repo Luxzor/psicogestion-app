@@ -5,6 +5,7 @@ import { requireAuth } from '../../middleware/require-auth.js';
 import { validationError } from '../../platform/errors.js';
 import { readIdempotencyKey, runIdempotent } from '../../platform/idempotency.js';
 import {
+  agendaQuerySchema,
   cancelCitaSchema,
   citaIdSchema,
   createCitaSchema,
@@ -63,6 +64,24 @@ citasRouter.get(
     const parsed = citaListQuerySchema.safeParse(request.query);
     if (!parsed.success) throw validationError(parsed.error);
     response.json(await citaService.list(parsed.data));
+  }),
+);
+
+/** RF 7.1.1, RF 7.2.1–7.2.5. Resumen de KPIs y citas de hoy para inicio. */
+citasRouter.get(
+  '/dashboard/resumen',
+  asyncRoute(async (_request, response) => {
+    response.json(await citaService.dashboardSummary());
+  }),
+);
+
+/** RF 6.1.1, RF 6.1.2, RF 6.2.1–6.2.3. Citas de la agenda por rango y filtros. */
+citasRouter.get(
+  '/agenda',
+  asyncRoute(async (request, response) => {
+    const parsed = agendaQuerySchema.safeParse(request.query);
+    if (!parsed.success) throw validationError(parsed.error);
+    response.json(await citaService.agenda(parsed.data));
   }),
 );
 

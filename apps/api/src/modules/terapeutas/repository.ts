@@ -41,10 +41,9 @@ export type TherapistListItem = {
 };
 
 /** Estado mínimo para decidir sobre una operación (control de versión, baja y reactivación). */
-export type TherapistSummary = Pick<
-  TherapistRecord,
-  'id' | 'activo' | 'fecha_baja' | 'version'
-> & { created_at: Date };
+export type TherapistSummary = Pick<TherapistRecord, 'id' | 'activo' | 'fecha_baja' | 'version'> & {
+  created_at: Date;
+};
 
 /**
  * Zona horaria de la clínica como literal de SQL. `env` ya validó que es un nombre IANA válido;
@@ -91,11 +90,7 @@ const escapeForLike = (value: string) => value.replace(/[\\%_]/g, (match) => `\\
  * correo (PG-DSN-002 5.7). Recibe las posiciones de los parámetros para poder reutilizarse en el
  * conteo.
  */
-const matchClause = (
-  activeParam: string,
-  searchParam: string,
-  digitsParam: string,
-) => `
+const matchClause = (activeParam: string, searchParam: string, digitsParam: string) => `
   (${activeParam}::boolean IS NULL OR activo = ${activeParam}::boolean)
   AND (${searchParam}::text IS NULL
        OR f_sin_acentos(lower(nombre_completo))
@@ -228,12 +223,7 @@ export const therapistRepository = {
    * la versión leída: si no afecta ninguna fila, el servicio averigua la causa. Las columnas se
    * arman desde la lista blanca EDITABLE_FIELDS, nunca desde las llaves del cuerpo.
    */
-  async update(
-    id: string,
-    input: UpdateTherapistInput,
-    userId: string,
-    client: Queryable = db,
-  ) {
+  async update(id: string, input: UpdateTherapistInput, userId: string, client: Queryable = db) {
     const changed = EDITABLE_FIELDS.filter((field) => field in input);
     const params: unknown[] = [id, input.version, userId];
     const assignments = changed.map((field) => {

@@ -98,4 +98,3 @@ describe('logger redaction (TC-U-017, RNF 3.2.7, CA-3.2-05)', () => {
     expect(loggedData).not.toContain('secreta123');
   });
 });
-

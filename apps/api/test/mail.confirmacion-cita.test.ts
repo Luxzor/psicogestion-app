@@ -7,15 +7,32 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
  * importar mail.ts, para que transporter.sendMail nunca intente una conexión de red.
  */
 
-const sendMail = vi.fn();
+const { sendMail, createTransport } = vi.hoisted(() => {
+  const sendMail = vi.fn();
+  const createTransport = vi.fn<(options: unknown) => { sendMail: typeof sendMail }>(() => ({
+    sendMail,
+  }));
+  return { sendMail, createTransport };
+});
 
 vi.mock('nodemailer', () => ({
-  default: {
-    createTransport: () => ({ sendMail }),
-  },
+  default: { createTransport },
 }));
 
 const { mailService } = await import('../src/modules/auth/mail.js');
+const transportOptions = createTransport.mock.calls[0]?.[0];
+
+describe('transporte SMTP (C2)', () => {
+  it('limita la espera de conexión, saludo y envío para no atorar el registro de cuenta', () => {
+    expect(transportOptions).toEqual(
+      expect.objectContaining({
+        connectionTimeout: 5_000,
+        greetingTimeout: 5_000,
+        socketTimeout: 10_000,
+      }),
+    );
+  });
+});
 
 afterEach(() => {
   sendMail.mockReset();
