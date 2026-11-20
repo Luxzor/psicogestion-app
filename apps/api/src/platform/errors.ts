@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
+import { isDependencyUnavailable } from './dependencies.js';
 import { logger } from './logger.js';
 
 export class AppError extends Error {
@@ -51,6 +52,18 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
     response.status(400).json({
       codigo: 'JSON_INVALIDO',
       mensaje: 'El cuerpo de la solicitud no contiene JSON válido.',
+      correlation_id: correlationId,
+    });
+    return;
+  }
+
+  // DEF-005 y DEF-006: PostgreSQL o Redis no disponibles no son un error interno de la API.
+  if (isDependencyUnavailable(error)) {
+    logger.warn({ err: error, correlationId, path: request.path }, 'Dependencia no disponible');
+    response.setHeader('Retry-After', '5');
+    response.status(503).json({
+      codigo: 'SERVICIO_NO_DISPONIBLE',
+      mensaje: 'El servicio no está disponible por el momento. Inténtalo de nuevo en unos minutos.',
       correlation_id: correlationId,
     });
     return;

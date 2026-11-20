@@ -8,6 +8,7 @@ import { RecoveryPage } from './features/auth/pages/RecoveryPage';
 import { RegisterPage } from './features/auth/pages/RegisterPage';
 import { ResetPasswordPage } from './features/auth/pages/ResetPasswordPage';
 import { VerifyPage } from './features/auth/pages/VerifyPage';
+import { sessionWithToken } from './features/auth/session';
 import type { Session } from './features/auth/types';
 import { AgendaPage } from './features/agenda/pages/AgendaPage';
 import { CitasPage } from './features/citas/pages/CitasPage';
@@ -64,7 +65,7 @@ export function App() {
       endSession();
     });
     setOnTokenRefreshed((newToken) => {
-      setSession({ token: newToken });
+      setSession((previous) => sessionWithToken(previous, newToken));
     });
     return () => {
       setOnUnauthorized(null);
@@ -94,7 +95,9 @@ export function App() {
     const timer = setTimeout(
       () => {
         void api<{ access_token: string }>('/auth/refresh', { method: 'POST' })
-          .then((result) => setSession({ token: result.access_token }))
+          .then((result) =>
+            setSession((previous) => sessionWithToken(previous, result.access_token)),
+          )
           .catch(() => endSession());
       },
       14 * 60 * 1000,

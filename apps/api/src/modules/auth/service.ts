@@ -3,6 +3,7 @@ import argon2 from 'argon2';
 import type { PoolClient } from 'pg';
 import { db } from '../../platform/db.js';
 import { AppError } from '../../platform/errors.js';
+import { logger } from '../../platform/logger.js';
 import { env } from '../../config/env.js';
 import { mailService } from './mail.js';
 import { authRepository, type UserRecord } from './repository.js';
@@ -110,10 +111,20 @@ export const authService = {
     }
 
     if (!registration) throw new Error('Registration did not complete.');
-    await mailService.sendVerificationCode(
-      registration.user.correo_institucional,
-      registration.code,
-    );
+    // C2: la cuenta ya quedó creada. Si el correo falla no se responde error, porque el usuario
+    // ya no podría registrarse de nuevo (CORREO_EN_USO); puede pedir otro código en la pantalla
+    // de verificación (POST /auth/verificacion/reenviar).
+    try {
+      await mailService.sendVerificationCode(
+        registration.user.correo_institucional,
+        registration.code,
+      );
+    } catch (error) {
+      logger.warn(
+        { err: error, correlationId: context.correlationId },
+        'No se pudo enviar el código de verificación del registro',
+      );
+    }
     await authRepository.audit({
       ...context,
       userId: registration.user.id,

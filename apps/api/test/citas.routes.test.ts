@@ -168,7 +168,7 @@ describe('rutas de citas sin dependencias externas', () => {
     it('exige sesión activa', async () => {
       const response = await request(createApp())
         .patch(`/api/v1/citas/${randomUUID()}`)
-        .send({ version: 1, estado: 'Cancelada' });
+        .send({ version: 1, id_sala: randomUUID() });
       expect(response.status).toBe(401);
     });
 
@@ -178,9 +178,22 @@ describe('rutas de citas sin dependencias externas', () => {
           .patch(`/api/v1/citas/${id}`)
           .set('Authorization', `Bearer ${token}`)
           .send(body);
-      expect((await patch('incorrecto', { version: 1, estado: 'Cancelada' })).status).toBe(400);
-      expect((await patch(randomUUID(), { estado: 'Cancelada' })).status).toBe(400);
+      expect((await patch('incorrecto', { version: 1, id_sala: randomUUID() })).status).toBe(400);
+      expect((await patch(randomUUID(), { id_sala: randomUUID() })).status).toBe(400);
       expect((await patch(randomUUID(), { version: 1, notas: 'texto' })).status).toBe(400);
+    });
+
+    it('responde 400 de validación si llega el estatus (MCC 17/Nov/2026, NC-005, NC-012, OBS-006)', async () => {
+      const response = await request(createApp())
+        .patch(`/api/v1/citas/${randomUUID()}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ version: 1, estado: 'Cancelada' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.codigo).toBe('VALIDACION_INVALIDA');
+      expect(response.body.campos).toEqual({
+        estado: 'El estatus no se modifica. Para cancelar la cita usa la acción Cancelar.',
+      });
     });
   });
 

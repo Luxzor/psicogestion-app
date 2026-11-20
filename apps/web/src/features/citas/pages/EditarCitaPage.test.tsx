@@ -105,6 +105,27 @@ describe('modificación de citas (RF 5.3.1–5.3.6)', () => {
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({ version: 1, id_sala: 'sala-2' });
   }, 15000);
 
+  it('muestra el estatus como texto, sin selector, y no lo envía al guardar (MCC 17/Nov/2026)', async () => {
+    const fetchMock = setup(() => ({
+      status: 200,
+      body: { codigo: 'CITA_MODIFICADA', cita: { ...cita, version: 2 } },
+    }));
+    await screen.findByRole('heading', { name: /Modificar cita C31000001/ });
+
+    expect(screen.queryByRole('combobox', { name: 'Estatus' })).not.toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Estatus' })).toHaveTextContent('Pendiente');
+
+    await screen.findByRole('option', { name: 'Sala B' });
+    fireEvent.change(screen.getByLabelText('Sala'), { target: { value: 'sala-2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar y guardar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    await screen.findByText(/Cita modificada con éxito/);
+    const call = fetchMock.mock.calls.find(
+      ([url, init]) => String(url).endsWith('/api/v1/citas/cita-1') && init?.method === 'PATCH',
+    );
+    expect(JSON.parse(String(call?.[1]?.body))).not.toHaveProperty('estado');
+  }, 15000);
+
   it('conserva lo capturado si el servidor informa un conflicto de horario', async () => {
     setup(() => ({ status: 409, body: { codigo: 'SALA_OCUPADA', mensaje: 'Sala ocupada.' } }));
     await screen.findByRole('heading', { name: /Modificar cita C31000001/ });

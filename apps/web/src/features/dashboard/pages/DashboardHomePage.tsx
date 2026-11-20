@@ -124,8 +124,8 @@ export function DashboardHomePage({ session }: { session: Session }) {
           </span>
           <span className="quick__body">
             <span className="quick__label">Pacientes</span>
-            <span className="quick__num">{summary?.pacientes_totales ?? 0}</span>
-            <span className="quick__desc">registrados</span>
+            <span className="quick__num">{summary?.pacientes_activos ?? 0}</span>
+            <span className="quick__desc">activos</span>
           </span>
           <span className="quick__go" aria-hidden="true">
             <ArrowRight size={16} />

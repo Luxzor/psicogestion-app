@@ -70,17 +70,10 @@ export type NuevaCita = {
   fin: Date;
 };
 
-export type CambiosCita = Partial<NuevaCita> & { estado?: CitaEstado };
+export type CambiosCita = Partial<NuevaCita>;
 
 /** Columnas que una modificación puede escribir, en lista blanca (nunca desde el cuerpo). */
-const CHANGEABLE_COLUMNS = [
-  'id_paciente',
-  'id_terapeuta',
-  'id_sala',
-  'inicio',
-  'fin',
-  'estado',
-] as const;
+const CHANGEABLE_COLUMNS = ['id_paciente', 'id_terapeuta', 'id_sala', 'inicio', 'fin'] as const;
 
 /** Recursos de una cita y si siguen activos, leídos con bloqueo compartido (ADR-21). */
 export type Asignables = {
@@ -321,10 +314,6 @@ export const citaRepository = {
         return `${column} = $${params.length}`;
       },
     );
-    if (changes.estado === 'Cancelada') {
-      assignments.push('cancelada_en = now()', 'cancelada_por = $3');
-    }
-
     const result = await client.query<CitaRow>(
       `WITH c AS (
          UPDATE cita SET
@@ -510,7 +499,10 @@ export const citaRepository = {
          WHERE activo = true`,
         [hoyInicio, hoyFin],
       ),
-      client.query<{ total: string }>(`SELECT count(*)::text AS total FROM paciente`),
+      // OBS-003 (PG-DEF-ITER04), MCC 17/Nov/2026: solo pacientes activos, como terapeutas.
+      client.query<{ total: string }>(
+        `SELECT count(*)::text AS total FROM paciente WHERE activo = true`,
+      ),
       client.query<{ total: string }>(
         `SELECT count(*)::text AS total FROM terapeuta WHERE activo = true`,
       ),
@@ -525,7 +517,7 @@ export const citaRepository = {
       citas_pendientes_total: Number(pendTotResult.rows[0]?.total ?? 0),
       salas_totales: Number(salasResult.rows[0]?.total ?? 0),
       salas_libres_hoy: Number(salasResult.rows[0]?.libres_hoy ?? 0),
-      pacientes_totales: Number(pacResult.rows[0]?.total ?? 0),
+      pacientes_activos: Number(pacResult.rows[0]?.total ?? 0),
       terapeutas_activos: Number(terResult.rows[0]?.total ?? 0),
     };
   },

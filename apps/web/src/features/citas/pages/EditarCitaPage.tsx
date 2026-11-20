@@ -11,8 +11,8 @@ import { DatePicker } from '../components/DatePicker';
 import { PersonaSelector, type PersonaOption } from '../components/PersonaSelector';
 import { citaKeys, disponibilidadKeys, useCita, useSalasActivas } from '../hooks/useCitas';
 import { BLOQUES_DEL_DIA, DURACIONES, esDomingo, etiquetaDuracion, minutosAHora } from '../horario';
-import type { Cita, CitaEstado, CitaFormValues } from '../types';
-import { CITA_ESTADOS } from '../types';
+import { EstadoBadge } from '../components/EstadoBadge';
+import type { Cita, CitaFormValues } from '../types';
 import { diffCitaPayload, mensajeDeError, toCitaFormValues, validateCitaForm } from '../validation';
 import '../../pacientes/styles/pacientes.css';
 import '../styles/citas.css';
@@ -89,14 +89,13 @@ function EditarCitaForm({
     ...cita.terapeuta,
     activo: true,
   });
-  const [estado, setEstado] = useState<CitaEstado>(cita.estado);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState('');
   const [noticeType, setNoticeType] = useState<'error' | 'info'>('error');
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
-  const dirty = Boolean(diffCitaPayload(cita, values, estado));
+  const dirty = Boolean(diffCitaPayload(cita, values));
 
   useEffect(() => {
     if (cita.version !== prevCitaRef.current.version) {
@@ -128,7 +127,40 @@ function EditarCitaForm({
           ? current
           : { ...cita.terapeuta, activo: true },
       );
-      setEstado((current) => (current !== prevCitaRef.current.estado ? current : cita.estado));
+      prevCitaRef.current = cita;
+    }
+  }, [cita]);
+
+  useEffect(() => {
+    if (cita.version !== prevCitaRef.current.version) {
+      const oldInitial = toCitaFormValues(prevCitaRef.current);
+      const newInitial = toCitaFormValues(cita);
+
+      setValues((current) => ({
+        id_paciente:
+          current.id_paciente !== oldInitial.id_paciente
+            ? current.id_paciente
+            : newInitial.id_paciente,
+        id_terapeuta:
+          current.id_terapeuta !== oldInitial.id_terapeuta
+            ? current.id_terapeuta
+            : newInitial.id_terapeuta,
+        id_sala: current.id_sala !== oldInitial.id_sala ? current.id_sala : newInitial.id_sala,
+        fecha: current.fecha !== oldInitial.fecha ? current.fecha : newInitial.fecha,
+        inicio: current.inicio !== oldInitial.inicio ? current.inicio : newInitial.inicio,
+        duracion: current.duracion !== oldInitial.duracion ? current.duracion : newInitial.duracion,
+      }));
+
+      setPaciente((current) =>
+        current?.id !== prevCitaRef.current.paciente.id
+          ? current
+          : { ...cita.paciente, activo: true },
+      );
+      setTerapeuta((current) =>
+        current?.id !== prevCitaRef.current.terapeuta.id
+          ? current
+          : { ...cita.terapeuta, activo: true },
+      );
 
       prevCitaRef.current = cita;
     }
@@ -172,25 +204,12 @@ function EditarCitaForm({
       setNotice('No hay cambios para guardar.');
       return;
     }
-    const payload = diffCitaPayload(cita, values, estado);
-    if (
-      estado !== 'Pendiente' &&
-      payload &&
-      Object.keys(payload).some((key) => key !== 'version' && key !== 'estado')
-    ) {
-      setNotice('Guarda los cambios de datos antes de cambiar el estatus.');
-      return;
-    }
-    if (estado === 'Vencida' && new Date(cita.fin).getTime() > Date.now()) {
-      setNotice('Una cita futura no puede marcarse como vencida.');
-      return;
-    }
     setNotice('');
     setConfirming(true);
   }
 
   async function save() {
-    const payload = diffCitaPayload(cita, values, estado);
+    const payload = diffCitaPayload(cita, values);
     if (!payload || saving) return;
     setSaving(true);
     try {
@@ -389,25 +408,18 @@ function EditarCitaForm({
                 ))}
               </select>
             </div>
+            {/*
+              El estatus no se elige al modificar (Mesa de Control de Cambios, 17/Nov/2026):
+              Pendiente lo asigna el sistema al crear, Cancelada solo la acción Cancelar (RF 5.4)
+              y Vencida el sistema (ADR-18). Se muestra como texto.
+            */}
             <div className="field">
-              <label htmlFor="e-estado">Estatus</label>
-              <select
-                id="e-estado"
-                value={estado}
-                onChange={(event) => {
-                  setEstado(event.target.value as CitaEstado);
-                  setNotice('');
-                }}
-                disabled={saving}
-              >
-                {CITA_ESTADOS.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
+              <span id="e-estado-label">Estatus</span>
+              <div role="group" aria-labelledby="e-estado-label">
+                <EstadoBadge estado={cita.estado} />
+              </div>
               <span className="field-hint">
-                Una cita cancelada o vencida queda en solo lectura.
+                Para cancelar la cita usa la acción Cancelar desde su detalle.
               </span>
             </div>
           </div>

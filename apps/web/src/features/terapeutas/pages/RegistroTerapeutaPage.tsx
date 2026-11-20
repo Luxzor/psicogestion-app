@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, LoaderCircle, RotateCw, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ApiError } from '../../../auth/api';
@@ -9,6 +10,7 @@ import { ActionDialog } from '../../pacientes/components/ActionDialog';
 import { FormNotice } from '../../pacientes/components/FormNotice';
 import { therapistsApi } from '../api';
 import { PhotoUploader } from '../components/PhotoUploader';
+import { therapistKeys } from '../hooks/useTerapeutas';
 import { TherapistField } from '../components/TherapistField';
 import type { Flash, PhotoData, TherapistFieldKey, TherapistFormValues } from '../types';
 import { NAME_MAX, normalizeInput, toPayload, validateField, validatePhoto } from '../validation';
@@ -69,6 +71,7 @@ const summaryText = (count: number) =>
 /** EDT 4.3.4. Registro de terapeuta (PG-DSN-002-INT, pantalla /terapeutas/nuevo). */
 export function RegistroTerapeutaPage({ session }: { session: Session }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { setHasUnsavedChanges } = useUnsavedChanges();
 
   const [values, setValues] = useState<TherapistFormValues>(EMPTY);
@@ -252,7 +255,16 @@ export function RegistroTerapeutaPage({ session }: { session: Session }) {
     return ref.current.key;
   }
 
+  /**
+   * Las listas en caché se invalidan, igual que al editar, para que el terapeuta nuevo aparezca
+   * de inmediato y no hasta que venza el staleTime de 30 s (DEF-003, PG-DEF-ITER04).
+   */
+  function refreshLists() {
+    void queryClient.invalidateQueries({ queryKey: therapistKeys.listas });
+  }
+
   function finish(flash: Flash) {
+    refreshLists();
     setHasUnsavedChanges(false);
     navigate(LIST_PATH, { state: { flash } });
   }
@@ -306,6 +318,8 @@ export function RegistroTerapeutaPage({ session }: { session: Session }) {
       const result = await therapistsApi.register(payload, session.token, key);
       const newTherapistId = result.terapeuta.id;
       setSavedTherapistId(newTherapistId);
+      // El alta ya existe aunque falte la fotografía y la persona salga sin cargarla.
+      refreshLists();
 
       // Si se cargó fotografía, proceder al segundo paso (PG-DSN-002 5.8):
       if (photo) {
